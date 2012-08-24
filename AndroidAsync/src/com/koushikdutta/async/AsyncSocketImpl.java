@@ -122,7 +122,7 @@ class AsyncSocketImpl implements AsyncSocket {
                         break;
                     }
                 }
-                Assert.assertEquals(list.remaining(), 0);
+//                Assert.assertEquals(list.remaining(), 0);
             }
         
             if (closed)

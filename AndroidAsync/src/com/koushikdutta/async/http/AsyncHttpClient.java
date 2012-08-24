@@ -1,13 +1,17 @@
 package com.koushikdutta.async.http;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.List;
+
+import android.os.Handler;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
@@ -21,6 +25,7 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.ResultCallback;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
     private static Hashtable<String, HashSet<AsyncSocket>> mSockets = new Hashtable<String, HashSet<AsyncSocket>>();
@@ -51,7 +56,7 @@ public class AsyncHttpClient {
             }
         }
 
-        ConnectCallback socketConnected = new ConnectCallback() {
+        final ConnectCallback socketConnected = new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, final AsyncSocket socket) {
                 if (ex != null) {
@@ -73,7 +78,8 @@ public class AsyncHttpClient {
                             }
                             
                             String kas = headers.get("Connection");
-                            if (kas != null && "keep-alive".toLowerCase().equals(kas.toLowerCase()))
+                            // wip
+                            if (false && kas != null && "keep-alive".toLowerCase().equals(kas.toLowerCase()))
                                 keepalive = true;
                         }
                         catch (Exception ex) {
@@ -116,10 +122,15 @@ public class AsyncHttpClient {
         HashSet<AsyncSocket> sockets = mSockets.get(uri.getHost());
         if (sockets != null) {
             synchronized (sockets) {
-                for (AsyncSocket socket: sockets) {
+                for (final AsyncSocket socket: sockets) {
                     if (socket.isConnected()) {
                         socket.setClosedCallback(null);
-                        socketConnected.onConnectCompleted(null, socket);
+                        server.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                socketConnected.onConnectCompleted(null, socket);
+                            }
+                        });
                         return;
                     }
                 }
@@ -145,6 +156,9 @@ public class AsyncHttpClient {
     }
     
     public static interface StringCallback extends ResultCallback<String> {
+    }
+    
+    public static interface FileCallback extends ResultCallback<File> {
     }
     
     private interface ResultConvert {
@@ -173,13 +187,70 @@ public class AsyncHttpClient {
         });
     }
     
-    private static void download(String uri, final ResultCallback callback, final ResultConvert convert) {
+    private static void invoke(Handler handler, final ResultCallback callback, final Exception e, final Object result) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                callback.onCompleted(e, result);
+            }
+        });
+    }
+    
+    public static void download(String uri, final String filename, final FileCallback callback) {
+        final Handler handler = new Handler();
+        final File file = new File(filename);
+        final FileOutputStream fout;
+        try {
+            fout = new FileOutputStream(file);
+        }
+        catch (FileNotFoundException e) {
+            invoke(handler, callback, e, null);
+            return;
+        }
         connect(uri, new HttpConnectCallback() {
             ByteBufferList buffer = new ByteBufferList();
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
                 if (ex != null) {
-                    callback.onCompleted(ex, null);
+                    try {
+                        fout.close();
+                    }
+                    catch (IOException e) {
+                    }
+                    invoke(handler, callback, ex, null);
+                    return;
+                }
+                
+                response.setDataCallback(new OutputStreamDataCallback(fout));
+                response.setCompletedCallback(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        try {
+                            fout.close();
+                        }
+                        catch (IOException e) {
+                            invoke(handler, callback, e, null);
+                            return;
+                        }
+                        if (ex != null) {
+                            invoke(handler, callback, ex, null);
+                            return;
+                        }
+                        invoke(handler, callback, null, file);
+                    }
+                });
+            }
+        });
+    }
+    
+    private static void download(String uri, final ResultCallback callback, final ResultConvert convert) {
+        final Handler handler = new Handler();
+        connect(uri, new HttpConnectCallback() {
+            ByteBufferList buffer = new ByteBufferList();
+            @Override
+            public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
+                if (ex != null) {
+                    invoke(handler, callback, ex, null);
                     return;
                 }
                 
@@ -193,7 +264,7 @@ public class AsyncHttpClient {
                 response.setCompletedCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
-                        callback.onCompleted(ex, buffer != null ? convert.convert(buffer) : null);
+                        invoke(handler, callback, ex, buffer != null ? convert.convert(buffer) : null);
                     }
                 });
             }
