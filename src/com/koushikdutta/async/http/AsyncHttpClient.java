@@ -21,6 +21,7 @@ public class AsyncHttpClient {
     public static void connect(final AsyncHttpRequest request, final HttpConnectCallback callback) {
         connect(AsyncServer.getDefault(), request, callback);
     }
+
     public static void connect(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback) {
         connect(server, request, callback, 0);
     }
