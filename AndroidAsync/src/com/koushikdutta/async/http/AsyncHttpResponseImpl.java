@@ -160,10 +160,10 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
     boolean mCompleted = false;
     protected void onCompleted(Exception ex) {
         // DISCONNECT. EVERYTHING.
+        mExchange.setDataCallback(null);
+        mExchange.setWriteableCallback(null);
         mSocket.setClosedCallback(null);
         mSocket.setExceptionCallback(null);
-        mSocket.setDataCallback(null);
-        mSocket.setWriteableCallback(null);
         mCompleted = true;
 //        System.out.println("closing up shop");
         if (mCompletedCallback != null)

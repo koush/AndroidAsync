@@ -157,6 +157,8 @@ public class AsyncHttpClient {
                 for (final SocketExchange se: sockets) {
                     final AsyncSocket socket = se.socket;
                     if (socket.isConnected()) {
+                        System.out.println("reuing socket");
+                        sockets.remove(se);
                         socket.setClosedCallback(null);
                         server.post(new Runnable() {
                             @Override
