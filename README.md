@@ -8,8 +8,11 @@ NIO is extremely efficient.
 ### Download a url to a String
 
 ```java
+// url is the URL to download. The callback will be invoked on the UI thread
+// once the download is complete.
 AsyncHttpClient.download(url, new AsyncHttpClient.StringCallback() {
     @Override
+    // Callback is invoked with any exceptions/errors, and the result, if available.
     public void onCompleted(Exception e, String result) {
         if (e != null) {
             e.printStackTrace();
