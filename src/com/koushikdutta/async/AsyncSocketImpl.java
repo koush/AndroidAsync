@@ -202,4 +202,9 @@ class AsyncSocketImpl implements AsyncSocket {
     public ExceptionCallback getExceptionCallback() {
         return mExceptionCallback;
     }
+    
+    @Override
+    public boolean isConnected() {
+        return mChannel.isConnected();
+    }
 }

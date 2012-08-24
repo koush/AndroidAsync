@@ -50,6 +50,12 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
         LineEmitter liner = new LineEmitter(exchange);
         liner.setLineCallback(mHeaderCallback);
         
+        mSocket.setExceptionCallback(new ExceptionCallback() {
+            @Override
+            public void onException(Exception error) {
+                report(error);
+            }
+        });
         mSocket.setClosedCallback(new ClosedCallback() {
             @Override
             public void onClosed() {
@@ -149,20 +155,24 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
         onCompleted(ex);
     }
     
-    boolean hasParsedStatusLine = false;
-    BufferedDataSink mWriter;
-    AsyncSocket mSocket;
-    AsyncHttpRequest mRequest;
-    DataExchange mExchange;
-    ResponseHeaders mHeaders;
+    private boolean hasParsedStatusLine = false;
+    private BufferedDataSink mWriter;
+    private AsyncSocket mSocket;
+    private AsyncHttpRequest mRequest;
+    private DataExchange mExchange;
+    private ResponseHeaders mHeaders;
     public AsyncHttpResponseImpl(AsyncHttpRequest request) {
         mRequest = request;
     }
 
     boolean mCompleted = false;
-    private void onCompleted(Exception ex) {
+    protected void onCompleted(Exception ex) {
+        // DISCONNECT. EVERYTHING.
+        mSocket.setClosedCallback(null);
+        mSocket.setExceptionCallback(null);
+        mSocket.setDataCallback(null);
+        mSocket.setWriteableCallback(null);
         mCompleted = true;
-        mSocket.close();
 //        System.out.println("closing up shop");
         if (mCompletedCallback != null)
             mCompletedCallback.onCompleted(ex);

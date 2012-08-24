@@ -189,16 +189,18 @@ public class TestActivity extends Activity {
                 return;
             */
             
-            AsyncHttpClient.download("http://www.appleapologist.com", new StringCallback() {
-                @Override
-                public void onCompleted(Exception e, String result) {
-                    if (e != null) {
-                        e.printStackTrace();
+            for (int i = 0; i < 5; i++) {
+                AsyncHttpClient.download("http://builder.clockworkmod.com", new StringCallback() {
+                    @Override
+                    public void onCompleted(Exception e, String result) {
+                        if (e != null) {
+                            e.printStackTrace();
+                        }
+                        System.out.println(result);
                     }
-                    System.out.println(result);
-                }
-            });
-            
+                });
+                Thread.sleep(5000);
+            }
             
             if (true)
                 return;
