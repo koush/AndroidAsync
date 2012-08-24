@@ -93,7 +93,10 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
         }
 
         if (!mHeaders.isChunked()) {
-            Assert.assertTrue(mHeaders.getContentLength() > 0);
+            if (mHeaders.getContentLength() < 0) {
+                report(new Exception("not using chunked encoding, and no content-length found."));
+                return;
+            }
             DataTransformerBase contentLengthWatcher = new DataTransformerBase() {
                 int totalRead = 0;
                 @Override

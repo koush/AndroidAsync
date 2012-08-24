@@ -118,7 +118,6 @@ public class AsyncHttpClient {
             synchronized (sockets) {
                 for (AsyncSocket socket: sockets) {
                     if (socket.isConnected()) {
-                        System.out.println("reusing socket!");
                         socket.setClosedCallback(null);
                         socketConnected.onConnectCompleted(null, socket);
                         return;
