@@ -13,7 +13,6 @@ import com.koushikdutta.async.DataTransformerBase;
 import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
-import com.koushikdutta.async.SSLDataExchange;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -29,18 +28,8 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
         return mRawHeaders;
     }
 
-    void setSocket(AsyncSocket socket) {
+    void setSocket(AsyncSocket socket, DataExchange exchange) {
         mSocket = socket;
-        // socket and exchange are the same for regular http
-        // but different for https (ssl)
-        // the exchange will be a wrapper around socket that does
-        // ssl translation.
-        DataExchange exchange = socket;
-        if (mRequest.getUri().getScheme().equals("https")) {
-            SSLDataExchange ssl = new SSLDataExchange(socket);
-            exchange = ssl;
-            socket.setDataCallback(ssl);
-        }
         mExchange = exchange;
 
         mWriter = new BufferedDataSink(exchange);
@@ -171,10 +160,10 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
     boolean mCompleted = false;
     protected void onCompleted(Exception ex) {
         // DISCONNECT. EVERYTHING.
+        mExchange.setDataCallback(null);
+        mExchange.setWriteableCallback(null);
         mSocket.setClosedCallback(null);
         mSocket.setExceptionCallback(null);
-        mSocket.setDataCallback(null);
-        mSocket.setWriteableCallback(null);
         mCompleted = true;
 //        System.out.println("closing up shop");
         if (mCompletedCallback != null)

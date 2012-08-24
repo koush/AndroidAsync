@@ -1,4 +1,4 @@
-package com.koushikdutta.async.test;
+package com.koushikdutta.test;
 
 import java.io.File;
 
@@ -14,9 +14,9 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.test.R;
 
 public class MainActivity extends Activity {
-
     ImageView rommanager;
     ImageView tether;
     ImageView desksms;
