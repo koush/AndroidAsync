@@ -54,7 +54,7 @@ public class AsyncHttpClient {
         connect(server, request, callback, 0);
     }
 
-    public static void connect(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback, int redirectCount) {
+    private static void connect(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback, int redirectCount) {
         if (redirectCount > 5) {
             callback.onConnectCompleted(new Exception("too many redirects"), null);
             return;

@@ -117,7 +117,7 @@ public class AsyncServer {
         final ServerSocketChannelWrapper wrapper = new ServerSocketChannelWrapper(server);
         InetSocketAddress isa = new InetSocketAddress(host, port);
         server.socket().bind(isa);
-        run(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
                 try {
