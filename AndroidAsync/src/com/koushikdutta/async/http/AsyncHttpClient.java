@@ -71,6 +71,7 @@ public class AsyncHttpClient {
                 return;
             }
         }
+        final String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
             @Override
@@ -109,10 +110,10 @@ public class AsyncHttpClient {
                             socket.close();
                         }
                         else {
-                            HashSet<SocketExchange> sockets = mSockets.get(uri.getHost());
+                            HashSet<SocketExchange> sockets = mSockets.get(lookup);
                             if (sockets == null) {
                                 sockets = new HashSet<SocketExchange>();
-                                mSockets.put(uri.getHost(), sockets);
+                                mSockets.put(lookup, sockets);
                             }
                             final HashSet<SocketExchange> ss = sockets;
                             synchronized (sockets) {
@@ -151,7 +152,7 @@ public class AsyncHttpClient {
             }
         };
 
-        HashSet<SocketExchange> sockets = mSockets.get(uri.getHost());
+        HashSet<SocketExchange> sockets = mSockets.get(lookup);
         if (sockets != null) {
             synchronized (sockets) {
                 for (final SocketExchange se: sockets) {
