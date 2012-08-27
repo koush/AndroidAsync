@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http.transform;
+package com.koushikdutta.async.http.filter;
 
 import junit.framework.Assert;
 
@@ -8,7 +8,7 @@ import com.koushikdutta.async.DataTransformerBase;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 
-public abstract class ChunkedTransformer extends DataTransformerBase implements CompletedCallback {
+public abstract class ChunkedInputFilter extends DataTransformerBase implements CompletedCallback {
     private int mChunkLength = 0;
     private int mChunkLengthRemaining = 0;
     private State mState = State.CHUNK_LEN;
@@ -25,7 +25,7 @@ public abstract class ChunkedTransformer extends DataTransformerBase implements 
     
     private boolean checkByte(char b, char value) {
         if (b != value) {
-            onException(new Exception(value + " was expeceted, got " + (char)b));
+            report(new Exception(value + " was expeceted, got " + (char)b));
             return false;
         }
         return true;
@@ -58,7 +58,7 @@ public abstract class ChunkedTransformer extends DataTransformerBase implements 
                         else if (c >= 'A' && c <= 'F')
                             mChunkLength += (c - 'A' + 10);
                         else {
-                            onException(new Exception("invalid chunk length: " + c));
+                            report(new Exception("invalid chunk length: " + c));
                             return;
                         }
                     }
@@ -105,14 +105,14 @@ public abstract class ChunkedTransformer extends DataTransformerBase implements 
                     break;
                 case COMPLETE:
                     Exception fail = new Exception("Continued receiving data after chunk complete");
-                    onException(fail);
+                    report(fail);
                     onCompleted(fail);
                     return;
                 }
             }
         }
         catch (Exception ex) {
-            onException(ex);
+            report(ex);
         }
     }
 }

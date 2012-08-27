@@ -22,7 +22,7 @@ import org.apache.http.conn.ssl.StrictHostnameVerifier;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-public class SSLDataExchange implements DataTransformer, DataExchange, ExceptionEmitter {
+public class SSLDataExchange implements DataTransformer, DataExchange {
     DataExchange mExchange;
     BufferedDataEmitter mEmitter = new BufferedDataEmitter();
     BufferedDataSink mSink;
@@ -36,7 +36,7 @@ public class SSLDataExchange implements DataTransformer, DataExchange, Exception
         
         // SSL needs buffering of data written during handshake.
         // aka exhcange.setDatacallback
-//        mEmitter.buffer(exchange);
+        exchange.setDataCallback(mEmitter);
         
         mEmitter.setDataCallback(new DataCallback() {
             @Override
@@ -280,10 +280,5 @@ public class SSLDataExchange implements DataTransformer, DataExchange, Exception
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         mEmitter.onDataAvailable(emitter, bb);
-    }
-
-    @Override
-    public void onException(Exception error) {
-        report(error);
     }
 }

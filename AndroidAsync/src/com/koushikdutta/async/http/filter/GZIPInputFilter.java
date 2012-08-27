@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http.transform;
+package com.koushikdutta.async.http.filter;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -10,13 +10,13 @@ import java.util.zip.Inflater;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataEmitterStream;
+import com.koushikdutta.async.DataEmitterReader;
 import com.koushikdutta.async.PushParser;
 import com.koushikdutta.async.TapCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.libcore.Memory;
 
-public abstract class GZIPTransformer extends InflaterTransformer {
+public class GZIPInputFilter extends InflaterInputFilter {
     private static final int FCOMMENT = 16;
 
     private static final int FEXTRA = 4;
@@ -27,7 +27,7 @@ public abstract class GZIPTransformer extends InflaterTransformer {
 
 
     
-    public GZIPTransformer() {
+    public GZIPInputFilter() {
         super(new Inflater(true));
     }
     
@@ -38,7 +38,7 @@ public abstract class GZIPTransformer extends InflaterTransformer {
         return b & 0xFF;
     }
     
-    DataEmitterStream mHeaderParser;
+    DataEmitterReader mHeaderParser;
     @Override
     public void onDataAvailable(final DataEmitter emitter, ByteBufferList bb) {
         if (mNeedsHeader) {
@@ -51,7 +51,7 @@ public abstract class GZIPTransformer extends InflaterTransformer {
                 public void tap(byte[] header) {
                     short magic = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
                     if (magic != (short) GZIPInputStream.GZIP_MAGIC) {
-                        onException(new IOException(String.format("unknown format (magic number %x)", magic)));
+                        report(new IOException(String.format("unknown format (magic number %x)", magic)));
                         return;
                     }
                     flags = header[3];
@@ -114,13 +114,13 @@ public abstract class GZIPTransformer extends InflaterTransformer {
                             if (header != null) {
                                 short crc16 = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
                                 if ((short) crc.getValue() != crc16) {
-                                    onException(new IOException("CRC mismatch"));
+                                    report(new IOException("CRC mismatch"));
                                     return;
                                 }
                                 crc.reset();
                             }
                             mNeedsHeader = false;
-                            emitter.setDataCallback(GZIPTransformer.this);
+                            emitter.setDataCallback(GZIPInputFilter.this);
                         }
                     });
                 }

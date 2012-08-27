@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http.transform;
+package com.koushikdutta.async.http.filter;
 
 import java.nio.ByteBuffer;
 import java.util.zip.Inflater;
@@ -10,7 +10,7 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataTransformerBase;
 import com.koushikdutta.async.Util;
 
-public abstract class InflaterTransformer extends DataTransformerBase {
+public class InflaterInputFilter extends DataTransformerBase {
     private Inflater mInflater;
 
     @Override
@@ -48,15 +48,15 @@ public abstract class InflaterTransformer extends DataTransformerBase {
             Util.emitAllData(this, transformed);
         }
         catch (Exception ex) {
-            onException(ex);
+            report(ex);
         }
     }
 
-    public InflaterTransformer() {
+    public InflaterInputFilter() {
         this(new Inflater());
     }
 
-    public InflaterTransformer(Inflater inflater) {
+    public InflaterInputFilter(Inflater inflater) {
         mInflater = inflater;
     }
 }

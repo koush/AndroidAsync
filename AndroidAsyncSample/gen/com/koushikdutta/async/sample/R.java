@@ -5,7 +5,7 @@
  * should not be modified by hand.
  */
 
-package com.koushikdutta.async.test;
+package com.koushikdutta.async.sample;
 
 public final class R {
     public static final class attr {

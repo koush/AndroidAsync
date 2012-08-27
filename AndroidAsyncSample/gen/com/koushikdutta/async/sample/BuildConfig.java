@@ -1,5 +1,5 @@
 /** Automatically generated file. DO NOT MODIFY */
-package com.koushikdutta.async.test;
+package com.koushikdutta.async.sample;
 
 public final class BuildConfig {
     public final static boolean DEBUG = true;

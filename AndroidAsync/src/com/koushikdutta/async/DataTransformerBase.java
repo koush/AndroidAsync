@@ -24,10 +24,21 @@ public class DataTransformerBase implements DataTransformer {
         return false;
     }
     
-    @Override
-    public void onException(Exception error) {
-        error.printStackTrace();
+    protected void report(Exception e) {
+        if (mExceptionCallback != null)
+            mExceptionCallback.onException(e);
     }
+    
+    @Override
+    public ExceptionCallback getExceptionCallback() {
+        return mExceptionCallback;
+    }
+    
+    @Override
+    public void setExceptionCallback(ExceptionCallback callback) {
+        mExceptionCallback = callback;
+    }
+    ExceptionCallback mExceptionCallback;
     
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {

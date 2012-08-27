@@ -25,7 +25,6 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.ResultCallback;
-import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 

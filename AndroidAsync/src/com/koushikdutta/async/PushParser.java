@@ -76,11 +76,12 @@ public class PushParser {
         return this;
     }
 
-    AsyncInputStream mReader;
+    DataEmitterReader mReader;
     DataEmitter mEmitter;
     public PushParser(DataEmitter s) {
         mEmitter = s;
-        mReader = new DataEmitterStream(s);
+        mReader = new DataEmitterReader();
+        mEmitter.setDataCallback(mReader);
     }
     
     private ArrayList<Object> mArgs = new ArrayList<Object>();

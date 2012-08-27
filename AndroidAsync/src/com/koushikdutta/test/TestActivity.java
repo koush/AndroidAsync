@@ -31,7 +31,7 @@ import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpClient.StringCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpResponse;
-import com.koushikdutta.async.http.callback.HttpConnectCallback;
+import com.koushikdutta.async.http.HttpConnectCallback;
 
 @SuppressLint("NewApi")
 public class TestActivity extends Activity {

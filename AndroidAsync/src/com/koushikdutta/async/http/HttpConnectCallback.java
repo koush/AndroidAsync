@@ -1,6 +1,5 @@
-package com.koushikdutta.async.http.callback;
+package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.http.AsyncHttpResponse;
 
 public interface HttpConnectCallback {
     public void onConnectCompleted(Exception ex, AsyncHttpResponse response);

@@ -16,11 +16,11 @@ import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.http.filter.ChunkedInputFilter;
+import com.koushikdutta.async.http.filter.GZIPInputFilter;
+import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
-import com.koushikdutta.async.http.transform.ChunkedTransformer;
-import com.koushikdutta.async.http.transform.GZIPTransformer;
-import com.koushikdutta.async.http.transform.InflaterTransformer;
 
 public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncHttpResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
@@ -55,28 +55,27 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
         });
     }
     
+    private ExceptionCallback mReporter = new ExceptionCallback() {
+        @Override
+        public void onException(Exception error) {
+            report(error);
+        }
+    };
+    
     protected void onHeadersReceived() {
         mHeaders = new ResponseHeaders(mRequest.getUri(), mRawHeaders);
 
         DataCallback callback = this;
         
         if ("gzip".equals(mHeaders.getContentEncoding())) {
-            GZIPTransformer gunzipper = new GZIPTransformer() {
-                @Override
-                public void onException(Exception error) {
-                    report(error);
-                }
-            };
+            GZIPInputFilter gunzipper = new GZIPInputFilter();
             gunzipper.setDataCallback(callback);
+            gunzipper.setExceptionCallback(mReporter);
             callback = gunzipper;
         }        
         else if ("deflate".equals(mHeaders.getContentEncoding())) {
-            InflaterTransformer inflater = new InflaterTransformer() {
-                @Override
-                public void onException(Exception error) {
-                    report(error);
-                }
-            };
+            InflaterInputFilter inflater = new InflaterInputFilter();
+            inflater.setExceptionCallback(mReporter);
             inflater.setDataCallback(callback);
             callback = inflater;
         }
@@ -94,24 +93,21 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
                     Assert.assertTrue(totalRead <= mHeaders.getContentLength());
                     super.onDataAvailable(emitter, bb);
                     if (totalRead == mHeaders.getContentLength())
-                        report(null);
+                        AsyncHttpResponseImpl.this.report(null);
                 }
             };
             contentLengthWatcher.setDataCallback(callback);
             callback = contentLengthWatcher;
         }
         else {
-            ChunkedTransformer chunker = new ChunkedTransformer() {
+            ChunkedInputFilter chunker = new ChunkedInputFilter() {
                 @Override
                 public void onCompleted(Exception ex) {
                     AsyncHttpResponseImpl.this.report(ex);
                 }
-
-                @Override
-                public void onException(Exception error) {
-                    report(error);
-                }
             };
+            
+            chunker.setExceptionCallback(mReporter);
             chunker.setDataCallback(callback);
             callback = chunker;
         }
@@ -139,12 +135,10 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
         }
     };
 
-    void report(Exception ex) {
-        if (ex != null) {
-            if (mErrorCallback != null)
-                mErrorCallback.onException(ex);
-        }
-        onCompleted(ex);
+    @Override
+    protected void report(Exception e) {
+        super.report(e);
+        onCompleted(e);
     }
     
     private boolean hasParsedStatusLine = false;
