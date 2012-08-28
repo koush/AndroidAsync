@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http;
 
 import java.net.URI;
+import java.net.URL;
 
 import junit.framework.Assert;
 
@@ -12,6 +13,9 @@ public class AsyncHttpRequest {
         String path = getUri().getPath();
         if (path.length() == 0)
             path = "/";
+        String query = getUri().getQuery();
+        if (query.length() != 0)
+            path += "?" + getUri().getQuery();
         return String.format("%s %s HTTP/1.1", mMethod, path);
     }
 
@@ -34,13 +38,17 @@ public class AsyncHttpRequest {
         mHeaders.setUserAgent(getDefaultUserAgent());
         mHeaders.setAcceptEncoding("gzip");
     }
-    
+
     public URI getUri() {
         return mHeaders.getUri();
     }
     
     private RawHeaders mRawHeaders = new RawHeaders();
     private RequestHeaders mHeaders;
+    
+    public RequestHeaders getHeaders() {
+        return mHeaders;
+    }
 
     public String getRequestString() {
         return mRawHeaders.toHeaderString();

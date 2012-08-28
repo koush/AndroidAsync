@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpResponse;
 
 public class MainActivity extends Activity {
     ImageView rommanager;
@@ -47,7 +48,7 @@ public class MainActivity extends Activity {
     private void downloadFile(final ImageView iv, String url, final String filename) {
         AsyncHttpClient.download(url, filename, new AsyncHttpClient.FileCallback() {
             @Override
-            public void onCompleted(Exception e, File result) {
+            public void onCompleted(Exception e, AsyncHttpResponse response, File result) {
                 if (e != null) {
                     e.printStackTrace();
                     return;

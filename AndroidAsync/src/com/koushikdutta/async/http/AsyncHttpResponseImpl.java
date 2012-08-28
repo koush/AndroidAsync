@@ -141,7 +141,6 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
         onCompleted(e);
     }
     
-    private boolean hasParsedStatusLine = false;
     private BufferedDataSink mWriter;
     private AsyncSocket mSocket;
     private AsyncHttpRequest mRequest;

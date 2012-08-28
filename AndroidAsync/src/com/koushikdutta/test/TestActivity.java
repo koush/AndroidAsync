@@ -192,7 +192,7 @@ public class TestActivity extends Activity {
             for (int i = 0; i < 5; i++) {
                 AsyncHttpClient.download("http://builder.clockworkmod.com", new StringCallback() {
                     @Override
-                    public void onCompleted(Exception e, String result) {
+                    public void onCompleted(Exception e, AsyncHttpResponse response, String result) {
                         if (e != null) {
                             e.printStackTrace();
                         }
