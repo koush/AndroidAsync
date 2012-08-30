@@ -64,6 +64,10 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
     
     protected void onHeadersReceived() {
         mHeaders = new ResponseHeaders(mRequest.getUri(), mRawHeaders);
+        if (mHeaders.getContentLength() == 0) {
+            report(null);
+            return;
+        }
 
         DataCallback callback = this;
         
@@ -183,5 +187,10 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
     @Override
     public ExceptionCallback getExceptionCallback() {
         return mErrorCallback;
+    }
+
+    @Override
+    public ResponseHeaders getHeaders() {
+        return mHeaders;
     }
 }
