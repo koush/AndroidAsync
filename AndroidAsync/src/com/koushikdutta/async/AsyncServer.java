@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -112,19 +113,23 @@ public class AsyncServer {
     protected void onDataTransmitted(int transmitted) {
     }
     
-    public void listen(InetAddress host, int port, final ListenCallback handler) throws IOException {
-        ServerSocketChannel server = ServerSocketChannel.open();
-        final ServerSocketChannelWrapper wrapper = new ServerSocketChannelWrapper(server);
-        InetSocketAddress isa = new InetSocketAddress(host, port);
-        server.socket().bind(isa);
+    public void listen(final InetAddress host, final int port, final ListenCallback handler) {
         post(new Runnable() {
             @Override
             public void run() {
                 try {
+                    ServerSocketChannel server = ServerSocketChannel.open();
+                    final ServerSocketChannelWrapper wrapper = new ServerSocketChannelWrapper(server);
+                    InetSocketAddress isa;
+                    if (host == null)
+                        isa = new InetSocketAddress(port);
+                    else
+                        isa = new InetSocketAddress(host, port);
+                    server.socket().bind(isa);
                     SelectionKey key = wrapper.register(mSelector);
                     key.attach(handler);
                 }
-                catch (ClosedChannelException e) {
+                catch (IOException e) {
                     e.printStackTrace();
                 }
             }

@@ -23,15 +23,21 @@ import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.PushParser;
 import com.koushikdutta.async.TapCallback;
-import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpClient.StringCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.HttpConnectCallback;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+import com.koushikdutta.async.http.server.HttpServerRequestCallback;
+import com.koushikdutta.async.http.server.WebSocket;
+import com.koushikdutta.async.http.server.WebSocketCallback;
 
 @SuppressLint("NewApi")
 public class TestActivity extends Activity {
@@ -72,6 +78,33 @@ public class TestActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        AsyncHttpServer server = new AsyncHttpServer(3000);
+        server.get("/", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+//                response.send("hellO!");
+                response.responseCode(200);
+                response.write(ByteBuffer.wrap("oh sweet!".getBytes()));
+                response.write(ByteBuffer.wrap("oh sweet!".getBytes()));
+                response.end();
+            }
+        });
+        server.websocket("/test", new WebSocketCallback() {
+            @Override
+            public void onConnected(final WebSocket webSocket) {
+                webSocket.setStringCallback(new WebSocket.StringCallback() {
+                    @Override
+                    public void onStringAvailable(String s) {
+                        Log.i(TAG, s);
+                        webSocket.send(s);
+                    }
+                });
+            }
+        });
+        if (true)
+            return;
+        
         
 //        try {
 //            ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -270,6 +303,11 @@ public class TestActivity extends Activity {
                            
                        }
                     });
+                }
+
+                @Override
+                public void onException(Exception error) {
+                    error.printStackTrace();
                 }
             });
 

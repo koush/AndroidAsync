@@ -1,8 +1,9 @@
 package com.koushikdutta.async.callback;
 
 import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.ExceptionCallback;
 
 
-public interface ListenCallback {
+public interface ListenCallback extends ExceptionCallback {
     public void onAccepted(AsyncSocket handler);
 }

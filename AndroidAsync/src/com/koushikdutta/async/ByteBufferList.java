@@ -132,6 +132,10 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         trim();
     }
     
+    public void add(int location, ByteBuffer b) {
+        mBuffers.add(location, b);
+    }
+    
     public void add(ByteBufferList b) {
         if (b.remaining() <= 0)
             return;
