@@ -34,11 +34,14 @@ public class WebSocketImpl implements WebSocket {
         String key = request.getHeaders().getHeaders().get("Sec-WebSocket-Key");
         String concat = key + MAGIC;
         String sha1 = SHA1(concat);
+        String origin = request.getHeaders().getHeaders().get("Origin");
         
         response.responseCode(101);
-        response.getHeaders().getHeaders().set("Upgrade", "websocket");
+        response.getHeaders().getHeaders().set("Upgrade", "WebSocket");
         response.getHeaders().getHeaders().set("Connection", "Upgrade");
         response.getHeaders().getHeaders().set("Sec-WebSocket-Accept", sha1);
+        if (origin != null)
+            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
         response.writeHead();
         
         mParser = new HybiParser(request) {

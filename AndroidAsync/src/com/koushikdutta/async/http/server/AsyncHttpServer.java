@@ -120,7 +120,18 @@ public class AsyncHttpServer implements ExceptionEmitter {
         get(regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                if (!"websocket".equals(request.getHeaders().getHeaders().get("Upgrade")) || !"Upgrade".equals(request.getHeaders().getHeaders().get("Connection"))) {
+                boolean hasUpgrade = false;
+                String connection = request.getHeaders().getHeaders().get("Connection");
+                if (connection != null) {
+                    String[] connections = connection.split(",");
+                    for (String c: connections) {
+                        if ("Upgrade".equalsIgnoreCase(c.trim())) {
+                            hasUpgrade = true;
+                            break;
+                        }
+                    }
+                }
+                if (!"websocket".equals(request.getHeaders().getHeaders().get("Upgrade")) || !hasUpgrade) {
                     response.responseCode(404);
                     response.end();
                     return;
