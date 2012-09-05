@@ -87,6 +87,9 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
 
     public ByteBuffer read(int count) {
         Assert.assertTrue(count <= remaining());
+        if (count == 0) {
+            return ByteBuffer.wrap(new byte[0]);
+        }
         
         ByteBuffer first = mBuffers.peek();
         while (first.position() == first.limit()) {

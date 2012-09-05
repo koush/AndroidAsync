@@ -1,5 +1,7 @@
 package com.koushikdutta.test;
 
+import java.io.DataInputStream;
+import java.io.OutputStream;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -79,6 +81,7 @@ public class TestActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
+        /*
         AsyncHttpServer server = new AsyncHttpServer(3000);
         server.get("/", new HttpServerRequestCallback() {
             @Override
@@ -93,18 +96,52 @@ public class TestActivity extends Activity {
         server.websocket("/test", new WebSocketCallback() {
             @Override
             public void onConnected(final WebSocket webSocket) {
+                new Thread() {
+                    public void run() {
+                        try {
+                            final Process process = Runtime.getRuntime().exec("su -c /system/bin/logcat");
+                            new Thread() {
+                                public void run() {
+                                    try {
+                                        DataInputStream dd = new DataInputStream(process.getErrorStream());
+                                        String s;
+                                        while (null != (s = dd.readLine())) {
+                                            if (s.length() == 0)
+                                                continue;
+                                            webSocket.send(s);
+                                        }
+                                    }
+                                    catch (Exception ex) {
+                                        
+                                    }
+                                };
+                                
+                            }.start();
+                            DataInputStream dis = new DataInputStream(process.getInputStream());
+                            OutputStream os = process.getOutputStream();
+                            String s;
+                            while (null != (s = dis.readLine())) {
+                                if (s.length() == 0)
+                                    continue;
+                                webSocket.send(s);
+                                os.write("\n".getBytes());
+                            }
+                        }
+                        catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        Log.i(TAG, "Done!!!!");
+                    };
+                }.start();
                 webSocket.setStringCallback(new WebSocket.StringCallback() {
                     @Override
                     public void onStringAvailable(String s) {
                         Log.i(TAG, s);
-                        webSocket.send(s);
                     }
                 });
             }
         });
-        if (true)
-            return;
-        
+        */
         
 //        try {
 //            ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -160,17 +197,7 @@ public class TestActivity extends Activity {
 //        if (true)
 //            return;
         
-        ThreadPolicy.Builder b = new Builder();
-        StrictMode.setThreadPolicy(b.permitAll().build());
         
-
-        final String host = "builder.clockworkmod.com";
-        final int port = 443;
-
-        final String shit = "GET / HTTP/1.1\n"
-                + "User-Agent: curl/7.25.0 (x86_64-apple-darwin11.3.0) libcurl/7.25.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.22\n"
-                + String.format("Host: %s\n", host)
-                + "Accept: */*\n" + "\n\n";
 
 //        final AsyncServer server = new AsyncServer();
         try {
@@ -221,19 +248,28 @@ public class TestActivity extends Activity {
             if (true)
                 return;
             */
-            
-            for (int i = 0; i < 5; i++) {
-                AsyncHttpClient.download("http://builder.clockworkmod.com", new StringCallback() {
-                    @Override
-                    public void onCompleted(Exception e, AsyncHttpResponse response, String result) {
-                        if (e != null) {
-                            e.printStackTrace();
+
+            new Thread() {
+                public void run() {
+                    try {
+                        for (int i = 0; i < 5; i++) {
+                            AsyncHttpClient.download("http://builder.clockworkmod.com", new StringCallback() {
+                                @Override
+                                public void onCompleted(Exception e, AsyncHttpResponse response, String result) {
+                                    if (e != null) {
+                                        e.printStackTrace();
+                                    }
+                                    System.out.println(result);
+                                }
+                            });
+                            Thread.sleep(5000);
                         }
-                        System.out.println(result);
                     }
-                });
-                Thread.sleep(5000);
-            }
+                    catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                };
+            }.start();
             
             if (true)
                 return;

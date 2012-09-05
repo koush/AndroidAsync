@@ -98,7 +98,6 @@ public class AsyncHttpClient {
                             }
                             
                             String kas = headers.get("Connection");
-                            // wip
                             if (kas != null && "keep-alive".toLowerCase().equals(kas.toLowerCase()))
                                 keepalive = true;
                         }
@@ -161,7 +160,6 @@ public class AsyncHttpClient {
                 for (final SocketExchange se: sockets) {
                     final AsyncSocket socket = se.socket;
                     if (socket.isConnected()) {
-                        System.out.println("reuing socket");
                         sockets.remove(se);
                         socket.setClosedCallback(null);
                         server.post(new Runnable() {
@@ -317,7 +315,7 @@ public class AsyncHttpClient {
     }
     
     private static void download(AsyncHttpRequest req, final ResultPairCallback callback, final ResultConvert convert) {
-        final Handler handler = new Handler();
+        final Handler handler = Looper.myLooper() == null ? null : new Handler();
         connect(req, new HttpConnectCallback() {
             ByteBufferList buffer = new ByteBufferList();
             @Override

@@ -25,7 +25,7 @@ import android.util.Log;
 public class AsyncServer {
     private static final String LOGTAG = "NIO";
     
-    static AsyncServer mInstance;
+    static AsyncServer mInstance = new AsyncServer();
     public static AsyncServer getDefault() {
         if (mInstance == null)
             mInstance = new AsyncServer();
@@ -229,6 +229,8 @@ public class AsyncServer {
         while (mRun) {
             try {
                 runLoop();
+                if (mSelector.keys().size() == 0)
+                    mRun = false;
             }
             catch (Exception e) {
                 Log.i(LOGTAG, "exception?");
@@ -253,11 +255,17 @@ public class AsyncServer {
         mSelector = null;
         mShuttingDown = false;
         mAffinity = null;
+        Log.i(LOGTAG, "****AsyncServer has shut down.****");
     }
 
     private void runLoop() throws IOException {
-        mSelector.select();
         runQueue();
+        int readyNow = mSelector.selectNow();
+        if (readyNow == 0) {
+            if (mSelector.keys().size() == 0)
+                return;
+            mSelector.select();
+        }
         Set<SelectionKey> readyKeys = mSelector.selectedKeys();
         for (SelectionKey key : readyKeys) {
             if (key.isAcceptable()) {

@@ -14,7 +14,7 @@ public class AsyncHttpRequest {
         if (path.length() == 0)
             path = "/";
         String query = getUri().getQuery();
-        if (query.length() != 0)
+        if (query != null && query.length() != 0)
             path += "?" + getUri().getQuery();
         return String.format("%s %s HTTP/1.1", mMethod, path);
     }

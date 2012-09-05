@@ -40,8 +40,8 @@ public class WebSocketImpl implements WebSocket {
         response.getHeaders().getHeaders().set("Upgrade", "WebSocket");
         response.getHeaders().getHeaders().set("Connection", "Upgrade");
         response.getHeaders().getHeaders().set("Sec-WebSocket-Accept", sha1);
-        if (origin != null)
-            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
+//        if (origin != null)
+//            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
         response.writeHead();
         
         mParser = new HybiParser(request) {
