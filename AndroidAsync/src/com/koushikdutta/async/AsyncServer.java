@@ -279,6 +279,7 @@ public class AsyncServer {
     }
 
     private static void runLoop(AsyncServer server, Selector selector, LinkedList<Runnable> queue, boolean keepRunning) throws IOException {
+        boolean needsSelect = true;
         synchronized (server) {
             // run the queue to populate the selector with keys
             runQueue(queue);
@@ -288,14 +289,19 @@ public class AsyncServer {
             if (readyNow == 0) {
                 // if there is nothing to select now, make sure we don't have an empty key set
                 // which means it would be time to turn this thread off.
-                if (selector.keys().size() == 0) {
+                if (selector.keys().size() == 0 && !keepRunning) {
                     return;
                 }
-                // nothing to select immediately but there are keys available to select on,
-                // so let's block and wait.
-                selector.select();
+            }
+            else {
+                needsSelect = false;
             }
         }
+        if (needsSelect) {
+            // nothing to select immediately but there so let's block and wait.
+            selector.select();
+        }
+
         // process whatever keys are ready
         Set<SelectionKey> readyKeys = selector.selectedKeys();
         for (SelectionKey key : readyKeys) {
