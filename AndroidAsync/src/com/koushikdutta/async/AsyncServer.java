@@ -1,7 +1,6 @@
 package com.koushikdutta.async;
 
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -15,37 +14,19 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
-
-import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.ListenCallback;
+import java.util.concurrent.SynchronousQueue;
 
 import junit.framework.Assert;
 import android.util.Log;
+
+import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.callback.ListenCallback;
 
 public class AsyncServer {
     private static final String LOGTAG = "NIO";
     
     static AsyncServer mInstance = new AsyncServer();
     public static AsyncServer getDefault() {
-        if (mInstance == null)
-            mInstance = new AsyncServer();
-        
-        if (!mInstance.mRun) {
-            try {
-                mInstance.initialize();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            new Thread() {
-                @Override
-                public void run() {
-                    mInstance.run();
-                }
-            }.start();
-        }
-
         return mInstance;
     }
 
@@ -62,14 +43,15 @@ public class AsyncServer {
     }
     
     public void post(Runnable runnable) {
-        synchronized (mQueue) {
+        synchronized (this) {
             mQueue.add(runnable);
-        }
-        if (Thread.currentThread() == mAffinity) {
-            runQueue();
-        }
-        else {
-            mSelector.wakeup();
+            if (Thread.currentThread() != mAffinity) {
+                if (mSelector != null)
+                    mSelector.wakeup();
+            }
+            else {
+                runQueue(mQueue);
+            }
         }
     }
     
@@ -90,24 +72,33 @@ public class AsyncServer {
         }
     }
     
-    private void runQueue() {
-        Assert.assertEquals(Thread.currentThread(), mAffinity);
-        synchronized (mQueue) {
-            while (mQueue.size() > 0) {
-                Runnable run = mQueue.remove();
-                run.run();
-            }
+    private static void runQueue(LinkedList<Runnable> queue) {
+        while (queue.size() > 0) {
+            Runnable run = queue.remove();
+            run.run();
         }
     }
 
-    boolean mRun = false;
-    boolean mShuttingDown = false;
     LinkedList<Runnable> mQueue = new LinkedList<Runnable>();
 
     public void stop() {
-        mRun = false;
-        mShuttingDown = true;
-        mSelector.wakeup();
+        synchronized (this) {
+            if (mSelector == null)
+                return;
+            // replace the current queue with a new queue
+            // and post a shutdown.
+            // this is guaranteed to be the last job on the queue.
+            final Selector currentSelector = mSelector;
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    shutdownEverything(currentSelector);
+                }
+            });
+            mQueue = new LinkedList<Runnable>();
+            mSelector = null;
+            mAffinity = null;
+        }
     }
     
     protected void onDataTransmitted(int transmitted) {
@@ -188,7 +179,7 @@ public class AsyncServer {
         final AsyncSocketImpl handler = new AsyncSocketImpl();
         handler.attach(socket);
         // ugh.. this should really be post to make it nonblocking...
-        // but i want datagrams to be immediately writreable.
+        // but i want datagrams to be immediately writable.
         // they're not really used anyways.
         run(new Runnable() {
             @Override
@@ -204,42 +195,75 @@ public class AsyncServer {
         return handler;
     }
 
-    public void initialize() throws IOException {
-        synchronized (this) {
-            if (mSelector == null)
-                mSelector = SelectorProvider.provider().openSelector();
-        }
-    }
+//    public void initialize() throws IOException {
+//        synchronized (this) {
+//            if (mSelector == null)
+//                mSelector = SelectorProvider.provider().openSelector();
+//        }
+//    }
 
     Thread mAffinity;
     public void run() {
+        run(false, false);
+    }
+    public void run(final boolean keepRunning, boolean newThread) {
+        final Selector selector;
+        final LinkedList<Runnable> queue;
         synchronized (this) {
-            if (mRun) {
+            if (mSelector != null) {
                 Log.i(LOGTAG, "Already running.");
                 return;
             }
-            if (mShuttingDown) {
-                Log.i(LOGTAG, "Shutdown in progress.");
+            try {
+                selector = mSelector = SelectorProvider.provider().openSelector();
+                queue = mQueue;
+            }
+            catch (IOException e) {
                 return;
             }
-            mRun = true;
+            if (newThread) {
+                mAffinity = new Thread() {
+                    public void run() {
+                        AsyncServer.run(AsyncServer.this, selector, queue, keepRunning);
+                    };
+                };
+                // kicked off the new thread, let's bail.
+                return;
+            }
             mAffinity = Thread.currentThread();
+            // fall through to outside of the synchronization scope
+            // to allow the thread to run without locking.
         }
 
-        while (mRun) {
+        run(this, selector, queue, keepRunning);
+    }
+    
+    private static void run(AsyncServer server, Selector selector, LinkedList<Runnable> queue, boolean keepRunning) {
+        // at this point, this local queue and selector are owned
+        // by this thread.
+        // if a stop is called, the instance queue and selector
+        // will be replaced and nulled respectively.
+        // this will allow the old queue and selector to shut down
+        // gracefully, while also allowing a new selector thread
+        // to start up while the old one is still shutting down.
+        do {
             try {
-                runLoop();
-                if (mSelector.keys().size() == 0)
-                    mRun = false;
+                runLoop(server, selector, queue, keepRunning);
             }
             catch (Exception e) {
                 Log.i(LOGTAG, "exception?");
                 e.printStackTrace();
             }
         }
+        while (selector.isOpen() && (selector.keys().size() > 0 || keepRunning));
 
+        shutdownEverything(selector);
+        Log.i(LOGTAG, "****AsyncServer has shut down.****");
+    }
+    
+    private static void shutdownEverything(Selector selector) {
         // SHUT. DOWN. EVERYTHING.
-        for (SelectionKey key : mSelector.keys()) {
+        for (SelectionKey key : selector.keys()) {
             try {
                 key.channel().close();
             }
@@ -248,25 +272,32 @@ public class AsyncServer {
         }
 
         try {
-            mSelector.close();
+            selector.close();
         }
         catch (IOException e) {
         }
-        mSelector = null;
-        mShuttingDown = false;
-        mAffinity = null;
-        Log.i(LOGTAG, "****AsyncServer has shut down.****");
     }
 
-    private void runLoop() throws IOException {
-        runQueue();
-        int readyNow = mSelector.selectNow();
-        if (readyNow == 0) {
-            if (mSelector.keys().size() == 0)
-                return;
-            mSelector.select();
+    private static void runLoop(AsyncServer server, Selector selector, LinkedList<Runnable> queue, boolean keepRunning) throws IOException {
+        synchronized (server) {
+            // run the queue to populate the selector with keys
+            runQueue(queue);
+            // select now to see if anything is ready immediately. this
+            // also clears the canceled key queue.
+            int readyNow = selector.selectNow();
+            if (readyNow == 0) {
+                // if there is nothing to select now, make sure we don't have an empty key set
+                // which means it would be time to turn this thread off.
+                if (selector.keys().size() == 0) {
+                    return;
+                }
+                // nothing to select immediately but there are keys available to select on,
+                // so let's block and wait.
+                selector.select();
+            }
         }
-        Set<SelectionKey> readyKeys = mSelector.selectedKeys();
+        // process whatever keys are ready
+        Set<SelectionKey> readyKeys = selector.selectedKeys();
         for (SelectionKey key : readyKeys) {
             if (key.isAcceptable()) {
                 ServerSocketChannel nextReady = (ServerSocketChannel) key.channel();
@@ -274,7 +305,7 @@ public class AsyncServer {
                 if (sc == null)
                     continue;
                 sc.configureBlocking(false);
-                SelectionKey ckey = sc.register(mSelector, SelectionKey.OP_READ);
+                SelectionKey ckey = sc.register(selector, SelectionKey.OP_READ);
                 ListenCallback serverHandler = (ListenCallback) key.attachment();
                 AsyncSocketImpl handler = new AsyncSocketImpl();
                 handler.attach(sc);
@@ -285,7 +316,7 @@ public class AsyncServer {
             else if (key.isReadable()) {
                 AsyncSocketImpl handler = (AsyncSocketImpl) key.attachment();
                 int transmitted = handler.onReadable();
-                onDataTransmitted(transmitted);
+                server.onDataTransmitted(transmitted);
             }
             else if (key.isWritable()) {
                 AsyncSocketImpl handler = (AsyncSocketImpl) key.attachment();
