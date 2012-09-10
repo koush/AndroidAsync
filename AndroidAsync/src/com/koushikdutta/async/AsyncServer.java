@@ -195,13 +195,6 @@ public class AsyncServer {
         return handler;
     }
 
-//    public void initialize() throws IOException {
-//        synchronized (this) {
-//            if (mSelector == null)
-//                mSelector = SelectorProvider.provider().openSelector();
-//        }
-//    }
-
     Thread mAffinity;
     public void run() {
         run(false, false);
