@@ -87,14 +87,15 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
 
     public ByteBuffer read(int count) {
         Assert.assertTrue(count <= remaining());
-        if (count == 0) {
-            return ByteBuffer.wrap(new byte[0]);
-        }
         
         ByteBuffer first = mBuffers.peek();
-        while (first.position() == first.limit()) {
+        while (first != null && first.position() == first.limit()) {
             mBuffers.remove();
             first = mBuffers.peek();
+        }
+        
+        if (first == null) {
+            return ByteBuffer.wrap(new byte[0]);
         }
 
         if (first.remaining() >= count) {
@@ -124,8 +125,9 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
     
     public void trim() {
         // this clears out buffers that are empty in the beginning of the list
-        if (size() > 0)
-            read(0);
+        read(0);
+        if (remaining() == 0)
+            mBuffers = new LinkedList<ByteBuffer>();
     }
     
     public void add(ByteBuffer b) {

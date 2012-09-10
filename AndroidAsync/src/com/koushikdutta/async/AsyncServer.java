@@ -158,10 +158,10 @@ public class AsyncServer {
                 @Override
                 public void run() {
                     try {
-                        SocketAddress remote = new InetSocketAddress(host, port);
-                        socket.connect(remote);
                         SelectionKey ckey = sc.register(mSelector);
                         ckey.attach(handler);
+                        SocketAddress remote = new InetSocketAddress(host, port);
+                        socket.connect(remote);
                     }
                     catch (Exception e) {
                         handler.onConnectCompleted(e, null);
@@ -298,50 +298,56 @@ public class AsyncServer {
         // process whatever keys are ready
         Set<SelectionKey> readyKeys = selector.selectedKeys();
         for (SelectionKey key : readyKeys) {
-            if (key.isAcceptable()) {
-                ServerSocketChannel nextReady = (ServerSocketChannel) key.channel();
-                SocketChannel sc = nextReady.accept();
-                if (sc == null)
-                    continue;
-                sc.configureBlocking(false);
-                SelectionKey ckey = sc.register(selector, SelectionKey.OP_READ);
-                ListenCallback serverHandler = (ListenCallback) key.attachment();
-                AsyncSocketImpl handler = new AsyncSocketImpl();
-                handler.attach(sc);
-                handler.mKey = ckey;
-                ckey.attach(handler);
-                serverHandler.onAccepted(handler);
-            }
-            else if (key.isReadable()) {
-                AsyncSocketImpl handler = (AsyncSocketImpl) key.attachment();
-                int transmitted = handler.onReadable();
-                server.onDataTransmitted(transmitted);
-            }
-            else if (key.isWritable()) {
-                AsyncSocketImpl handler = (AsyncSocketImpl) key.attachment();
-                handler.onDataWritable();
-            }
-            else if (key.isConnectable()) {
-                ConnectCallback handler = (ConnectCallback) key.attachment();
-                SocketChannel sc = (SocketChannel) key.channel();
-                key.interestOps(SelectionKey.OP_READ);
-                try {
-                    sc.finishConnect();
-                    AsyncSocketImpl newHandler = new AsyncSocketImpl();
-                    newHandler.mKey = key;
-                    newHandler.attach(sc);
-                    key.attach(newHandler);
-                    handler.onConnectCompleted(null, newHandler);
+            try {
+                if (key.isAcceptable()) {
+                    ServerSocketChannel nextReady = (ServerSocketChannel) key.channel();
+                    SocketChannel sc = nextReady.accept();
+                    if (sc == null)
+                        continue;
+                    sc.configureBlocking(false);
+                    SelectionKey ckey = sc.register(selector, SelectionKey.OP_READ);
+                    ListenCallback serverHandler = (ListenCallback) key.attachment();
+                    AsyncSocketImpl handler = new AsyncSocketImpl();
+                    handler.attach(sc);
+                    handler.mKey = ckey;
+                    ckey.attach(handler);
+                    serverHandler.onAccepted(handler);
                 }
-                catch (Exception ex) {
-                    key.cancel();
-                    sc.close();
-                    handler.onConnectCompleted(ex, null);
+                else if (key.isReadable()) {
+                    AsyncSocketImpl handler = (AsyncSocketImpl) key.attachment();
+                    int transmitted = handler.onReadable();
+                    server.onDataTransmitted(transmitted);
+                }
+                else if (key.isWritable()) {
+                    AsyncSocketImpl handler = (AsyncSocketImpl) key.attachment();
+                    handler.onDataWritable();
+                }
+                else if (key.isConnectable()) {
+                    ConnectCallback handler = (ConnectCallback) key.attachment();
+                    SocketChannel sc = (SocketChannel) key.channel();
+                    key.interestOps(SelectionKey.OP_READ);
+                    try {
+                        sc.finishConnect();
+                        AsyncSocketImpl newHandler = new AsyncSocketImpl();
+                        newHandler.mKey = key;
+                        newHandler.attach(sc);
+                        key.attach(newHandler);
+                        handler.onConnectCompleted(null, newHandler);
+                    }
+                    catch (Exception ex) {
+                        key.cancel();
+                        sc.close();
+                        handler.onConnectCompleted(ex, null);
+                    }
+                }
+                else {
+                    Log.i(LOGTAG, "wtf");
+                    Assert.fail();
                 }
             }
-            else {
-                Log.i(LOGTAG, "wtf");
-                Assert.fail();
+            catch (Exception ex) {
+                Log.i(LOGTAG, "inner loop exception");
+                ex.printStackTrace();
             }
         }
         readyKeys.clear();

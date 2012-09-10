@@ -24,23 +24,47 @@ public class BufferedDataSink implements DataSink {
 
     private void writePending() {
         mDataSink.write(mPendingWrites);
+        if (mPendingWrites.remaining() == 0) {
+            mPendingWrites = null;
+        }
     }
     
-    ByteBufferList mPendingWrites = new ByteBufferList();
+    ByteBufferList mPendingWrites;
 
     @Override
     public void write(ByteBuffer bb) {
-        mPendingWrites.add(ByteBuffer.wrap(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
-        bb.position(0);
-        bb.limit(0);
-        writePending();
+        if (mPendingWrites == null) {
+            mDataSink.write(bb);
+            if (bb.remaining() > 0) {
+                mPendingWrites = new ByteBufferList();
+                mPendingWrites.add(bb);
+                bb.position(0);
+                bb.limit(0);
+            }
+        }
+        else {
+            mPendingWrites.add(ByteBuffer.wrap(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
+            bb.position(0);
+            bb.limit(0);
+            writePending();
+        }
     }
 
     @Override
     public void write(ByteBufferList bb) {
-        mPendingWrites.add(bb);
-        bb.clear();
-        writePending();
+        if (mPendingWrites == null) {
+            mDataSink.write(bb);
+            if (bb.remaining() > 0) {
+                mPendingWrites = new ByteBufferList();
+                mPendingWrites.add(bb);
+            }
+            bb.clear();
+        }
+        else {
+            mPendingWrites.add(bb);
+            bb.clear();
+            writePending();
+        }
     }
 
     @Override
