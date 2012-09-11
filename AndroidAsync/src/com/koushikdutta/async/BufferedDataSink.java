@@ -3,6 +3,7 @@ package com.koushikdutta.async;
 import java.nio.ByteBuffer;
 
 import junit.framework.Assert;
+import android.util.Log;
 
 import com.koushikdutta.async.callback.WritableCallback;
 
@@ -23,9 +24,11 @@ public class BufferedDataSink implements DataSink {
     }
 
     private void writePending() {
+//        Log.i("NIO", "Writing to buffer...");
         mDataSink.write(mPendingWrites);
         if (mPendingWrites.remaining() == 0) {
             mPendingWrites = null;
+            onFlushed();
         }
     }
     
@@ -76,5 +79,14 @@ public class BufferedDataSink implements DataSink {
     public WritableCallback getWriteableCallback() {
         Assert.fail("BufferingDataSink is always writeable.");
         return null;
+    }
+    
+    public int remaining() {
+        if (mPendingWrites == null)
+            return 0;
+        return mPendingWrites.remaining();
+    }
+
+    public void onFlushed() {
     }
 }

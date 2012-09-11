@@ -272,6 +272,7 @@ public class AsyncServer {
     }
 
     private static void runLoop(AsyncServer server, Selector selector, LinkedList<Runnable> queue, boolean keepRunning) throws IOException {
+//        Log.i(LOGTAG, "Keys: " + selector.keys().size());
         boolean needsSelect = true;
         synchronized (server) {
             // run the queue to populate the selector with keys

@@ -36,5 +36,4 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
 
         onDataAvailable();        
     }
-
 }

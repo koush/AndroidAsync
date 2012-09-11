@@ -7,6 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 import junit.framework.Assert;
+import android.util.Log;
 
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -85,17 +86,26 @@ class AsyncSocketImpl implements AsyncSocket {
         }
     }
 
+    int mToAlloc = 0;
     int onReadable() {
         int total = 0;
         try {
             boolean closed = false;
             ByteBufferList list = new ByteBufferList();
+            ByteBuffer b = null;
+            // keep track of the max mount read during this read cycle
+            // so we can be quicker about allocations during the next
+            // time this socket reads.
+            int maxRead = 0;
             while (true) {
-                ByteBuffer b = ByteBuffer.allocate(2 << 10);
-                list.add(b);
+                if (b == null) {
+                    b = ByteBuffer.allocate(Math.min(Math.max(mToAlloc, 2 << 11), 1024 * 1024));
+                }
+                else {
+                    b = ByteBuffer.allocate(Math.min(b.capacity() * 2, 1024 * 1024));
+                }
                 int read = mChannel.read(b);
-                b.limit(b.position());
-                b.position(0);
+                maxRead = Math.max(read, maxRead);
                 if (read < 0) {
                     close();
                     closed = true;
@@ -105,24 +115,21 @@ class AsyncSocketImpl implements AsyncSocket {
                 }
                 if (read <= 0)
                     break;
-                if (mChannel.isChunked()) {
-                    Assert.assertNotNull(mDataHandler);
-                    mDataHandler.onDataAvailable(this, list);
+
+                mToAlloc = read;
+                b.limit(b.position());
+                b.position(0);
+                list.add(b);
+                if (mChannel.isChunked() || b.capacity() == 1024 * 1024) {
+                    Util.emitAllData(this, list);
                     list = new ByteBufferList();
                 }
             }
+            
+            mToAlloc = maxRead;
+            
             if (!mChannel.isChunked()) {
-//                Util.emitAllData(this, list);
-                int remaining;
-                while (mDataHandler != null && (remaining = list.remaining()) > 0) {
-                    DataCallback handler = mDataHandler;
-                    mDataHandler.onDataAvailable(this, list);
-                    if (remaining == list.remaining() && handler == mDataHandler) {
-                        Assert.fail("mDataHandler failed to consume data, yet remains the mDataHandler.");
-                        break;
-                    }
-                }
-//                Assert.assertEquals(list.remaining(), 0);
+                Util.emitAllData(this, list);
             }
         
             if (closed)
@@ -206,5 +213,15 @@ class AsyncSocketImpl implements AsyncSocket {
     @Override
     public boolean isConnected() {
         return mChannel.isConnected();
+    }
+    
+    @Override
+    public void pause() {
+        mKey.interestOps(~SelectionKey.OP_READ & mKey.interestOps());
+    }
+    
+    @Override
+    public void resume() {
+        mKey.interestOps(SelectionKey.OP_READ | mKey.interestOps());
     }
 }
