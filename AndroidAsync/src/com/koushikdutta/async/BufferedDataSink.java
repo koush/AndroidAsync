@@ -40,7 +40,7 @@ public class BufferedDataSink implements DataSink {
             mDataSink.write(bb);
             if (bb.remaining() > 0) {
                 mPendingWrites = new ByteBufferList();
-                mPendingWrites.add(bb);
+                mPendingWrites.add(ByteBuffer.wrap(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
                 bb.position(0);
                 bb.limit(0);
             }

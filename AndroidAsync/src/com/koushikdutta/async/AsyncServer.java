@@ -14,7 +14,6 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.SynchronousQueue;
 
 import junit.framework.Assert;
 import android.util.Log;
@@ -25,12 +24,31 @@ import com.koushikdutta.async.callback.ListenCallback;
 public class AsyncServer {
     private static final String LOGTAG = "NIO";
     
-    static AsyncServer mInstance = new AsyncServer();
+    static AsyncServer mInstance = new AsyncServer() {
+        {
+            setAutostart(true);
+        }
+    };
     public static AsyncServer getDefault() {
         return mInstance;
     }
+    
+    private boolean mAutoStart = false;
+    public void setAutostart(boolean autoStart) {
+        mAutoStart = autoStart;
+    }
+    
+    public boolean getAutoStart() {
+        return mAutoStart;
+    }
+    
+    private void autostart() {
+        if (mAutoStart) {
+            run(false, true);
+        }
+    }
 
-    Selector mSelector;
+    private Selector mSelector;
 
     public AsyncServer() {
     }
@@ -45,6 +63,7 @@ public class AsyncServer {
     public void post(Runnable runnable) {
         synchronized (this) {
             mQueue.add(runnable);
+            autostart();
             if (Thread.currentThread() != mAffinity) {
                 if (mSelector != null)
                     mSelector.wakeup();
@@ -204,7 +223,7 @@ public class AsyncServer {
         final LinkedList<Runnable> queue;
         synchronized (this) {
             if (mSelector != null) {
-                Log.i(LOGTAG, "Already running.");
+//                Log.i(LOGTAG, "Already running.");
                 return;
             }
             try {
@@ -220,6 +239,7 @@ public class AsyncServer {
                         AsyncServer.run(AsyncServer.this, selector, queue, keepRunning);
                     };
                 };
+                mAffinity.start();
                 // kicked off the new thread, let's bail.
                 return;
             }
@@ -251,6 +271,13 @@ public class AsyncServer {
         while (selector.isOpen() && (selector.keys().size() > 0 || keepRunning));
 
         shutdownEverything(selector);
+        synchronized (server) {
+            if (server.mSelector == selector) {
+                server.mQueue = new LinkedList<Runnable>();
+                server.mSelector = null;
+                server.mAffinity = null;
+            }
+        }
         Log.i(LOGTAG, "****AsyncServer has shut down.****");
     }
     
