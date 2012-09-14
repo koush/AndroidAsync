@@ -1,23 +1,24 @@
 package com.koushikdutta.async.http.server;
 
-import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
-import android.util.Base64;
+import android.content.Context;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.ExceptionEmitter;
-import com.koushikdutta.async.callback.ClosedCallback;
-import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.Util;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 
@@ -43,19 +44,26 @@ public class AsyncHttpServer implements ExceptionEmitter {
                                 for (Pair p: pairs) {
                                     Matcher m = p.regex.matcher(path);
                                     if (m.matches()) {
+                                        mMatcher = m;
                                         match = p;
                                         break;
                                     }
                                 }
                             }
                         }
-                        AsyncHttpServerResponseImpl res = new AsyncHttpServerResponseImpl(socket);
+                        AsyncHttpServerResponseImpl res = new AsyncHttpServerResponseImpl(socket) {
+                            @Override
+                            protected void onCompleted() {
+                                // reuse the socket for a subsequent request.
+                                onAccepted(socket);
+                            }
+                        };
                         if (match == null) {
                             res.responseCode(404);
                             res.end();
                             return;
                         }
-                        
+
                         match.callback.onRequest(this, res);
                     }
                     @Override
@@ -145,6 +153,49 @@ public class AsyncHttpServer implements ExceptionEmitter {
     
     public void get(String regex, HttpServerRequestCallback callback) {
         addAction("GET", regex, callback);
+    }
+    
+    InputStream getAssetStream(final Context context, String asset) {
+        String apkPath = context.getPackageResourcePath();
+        String assetPath = "assets/" + asset;
+        try {
+            ZipFile zip = new ZipFile(apkPath);
+            Enumeration<?> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = (ZipEntry) entries.nextElement();
+                if (entry.getName().equals(assetPath)) {
+                    return zip.getInputStream(entry);
+                }
+            }
+        }
+        catch (Exception ex) {
+        }
+        return null;
+    }
+
+
+    public void directory(Context _context, String regex, final String assetPath) {
+        final Context context = _context.getApplicationContext();
+        addAction("GET", regex, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                System.out.println(request);
+                String path = request.getMatcher().replaceAll("");
+                InputStream is = getAssetStream(context, assetPath + path);
+                if (is == null) {
+                    response.responseCode(404);
+                    response.end();
+                    return;
+                }
+                response.responseCode(200);
+                Util.pump(is, response, new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        response.end();
+                    }
+                });
+            }
+        });
     }
     
     

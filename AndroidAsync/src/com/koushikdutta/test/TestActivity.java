@@ -25,6 +25,7 @@ import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.PushParser;
 import com.koushikdutta.async.TapCallback;
+import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -81,7 +82,6 @@ public class TestActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        /*
         AsyncHttpServer server = new AsyncHttpServer(3000);
         server.get("/", new HttpServerRequestCallback() {
             @Override
@@ -93,13 +93,18 @@ public class TestActivity extends Activity {
                 response.end();
             }
         });
+        
+        server.directory(this, "/bootstrap/.*?", "bootstrap/");
+        server.directory(this, "/site/.*?", "site/");
+        
         server.websocket("/test", new WebSocketCallback() {
+            Process process;
             @Override
             public void onConnected(final WebSocket webSocket) {
                 new Thread() {
                     public void run() {
                         try {
-                            final Process process = Runtime.getRuntime().exec("su -c /system/bin/logcat");
+                            process = Runtime.getRuntime().exec("su -c /system/bin/logcat");
                             new Thread() {
                                 public void run() {
                                     try {
@@ -139,9 +144,25 @@ public class TestActivity extends Activity {
                         Log.i(TAG, s);
                     }
                 });
+                webSocket.setClosedCallback(new ClosedCallback() {
+                    @Override
+                    public void onClosed() {
+                        try {
+                            process.destroy();
+                        }
+                        catch (Exception e)  {
+                            // destroy will cause some angry noise in logcat and throw, since
+                            // we are trying to destroy a root process.
+                            // the kill succeeds, but it still gets angry.
+                            // i assume it succeeds because the various streams are closed.
+                        }
+                    }
+                });
             }
         });
-        */
+        
+        if (true)
+            return;
         
 //        try {
 //            ByteArrayOutputStream bout = new ByteArrayOutputStream();

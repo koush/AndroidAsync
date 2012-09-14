@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http.server;
 
+import java.util.regex.Matcher;
+
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
@@ -10,6 +12,7 @@ import com.koushikdutta.async.http.libcore.RequestHeaders;
 public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
     private RawHeaders mRawHeaders = new RawHeaders();
     AsyncSocket mSocket;
+    Matcher mMatcher;
 
     protected void report(Exception e) {
     }
@@ -70,6 +73,11 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
     @Override
     public boolean isChunked() {
         return mSocket.isChunked();
+    }
+
+    @Override
+    public Matcher getMatcher() {
+        return mMatcher;
     }
 
 }

@@ -66,9 +66,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     public void end() {
         if (null == mRawHeaders.get("Transfer-Encoding")) {
             send("text/html", "");
+            onCompleted();
             return;
         }
         write(ByteBuffer.wrap(new byte[0]));
+        onCompleted();
     }
     
     private boolean mHeadWritten = false;
@@ -82,7 +84,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private void send(String contentType, String string) {
         try {
             Assert.assertTrue(mContentLength < 0);
-            responseCode(200);
             byte[] bytes = string.getBytes("UTF-8");
             mContentLength = bytes.length;
             mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
@@ -105,6 +106,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void send(String string) {
+        responseCode(200);
         send("text/html", string);
     }
 

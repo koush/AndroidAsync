@@ -31,6 +31,14 @@ public class WebSocketImpl implements WebSocket {
         mSocket = request.mSocket;
         mSink = new BufferedDataSink(mSocket);
         
+        mSocket.setClosedCallback(new ClosedCallback() {
+            @Override
+            public void onClosed() {
+                if (WebSocketImpl.this.mClosedCallback != null)
+                    WebSocketImpl.this.mClosedCallback.onClosed();
+            }
+        });
+        
         String key = request.getHeaders().getHeaders().get("Sec-WebSocket-Key");
         String concat = key + MAGIC;
         String sha1 = SHA1(concat);
