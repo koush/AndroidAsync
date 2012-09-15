@@ -70,7 +70,6 @@ public class Util {
                         ds.write(pending);
                     }
                     while (remaining != pending.remaining());
-                    Log.i("Util", "waiting");
                 }
                 catch (Exception e) {
                     close();
