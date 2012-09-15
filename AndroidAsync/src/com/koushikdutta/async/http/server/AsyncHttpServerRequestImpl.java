@@ -20,12 +20,20 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
     protected void onHeadersReceived() {
     }
     
+    protected void onNotHttp() {
+        
+    }
+    
     StringCallback mHeaderCallback = new StringCallback() {
         @Override
         public void onStringAvailable(String s) {
             try {
                 if (mRawHeaders.getStatusLine() == null) {
                     mRawHeaders.setStatusLine(s);
+                    if (!mRawHeaders.getStatusLine().contains("HTTP/")) {
+                        onNotHttp();
+                        mSocket.setDataCallback(null);
+                    }
                 }
                 else if (!"\r".equals(s)){
                     mRawHeaders.addLine(s);

@@ -96,7 +96,7 @@ public class AsyncHttpServer implements ExceptionEmitter {
             }
         });
     }
-    
+
     private void report(Exception ex) {
         if (mExceptionCallback != null)
             mExceptionCallback.onException(ex);
@@ -194,6 +194,7 @@ public class AsyncHttpServer implements ExceptionEmitter {
         mContentTypes.put("png", "image/png");
         mContentTypes.put("jpg", "image/jpeg");
         mContentTypes.put("html", "text/html");
+        mContentTypes.put("css", "text/css");
     }
     
     static String getContentType(String path) {
