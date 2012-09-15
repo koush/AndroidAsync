@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 import junit.framework.Assert;
+import android.util.Log;
 
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -69,6 +70,7 @@ public class Util {
                         ds.write(pending);
                     }
                     while (remaining != pending.remaining());
+                    Log.i("Util", "waiting");
                 }
                 catch (Exception e) {
                     close();

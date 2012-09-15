@@ -13,12 +13,14 @@ import java.util.Enumeration;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
 import android.os.StrictMode.ThreadPolicy.Builder;
 import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
@@ -96,6 +98,7 @@ public class TestActivity extends Activity {
         
         server.directory(this, "/bootstrap/.*?", "bootstrap/");
         server.directory(this, "/site/.*?", "site/");
+        server.directory("/sdcard/.*?", Environment.getExternalStorageDirectory(), true);
         
         server.websocket("/test", new WebSocketCallback() {
             Process process;
@@ -365,6 +368,10 @@ public class TestActivity extends Activity {
                 @Override
                 public void onException(Exception error) {
                     error.printStackTrace();
+                }
+
+                @Override
+                public void onListening(AsyncServerSocket socket) {
                 }
             });
 

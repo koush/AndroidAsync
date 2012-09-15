@@ -1,19 +1,23 @@
 package com.koushikdutta.async.http.server;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import junit.framework.Assert;
 import android.content.Context;
 
 import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.ExceptionEmitter;
@@ -23,6 +27,11 @@ import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 
 public class AsyncHttpServer implements ExceptionEmitter {
+    AsyncServerSocket mListener;
+    public void stop() {
+        if (mListener != null)
+            mListener.stop();
+    }
     public AsyncHttpServer(AsyncServer server, int port) {
         server.listen(null, port, new ListenCallback() {
             @Override
@@ -36,6 +45,7 @@ public class AsyncHttpServer implements ExceptionEmitter {
                         String statusLine = headers.getStatusLine();
                         String[] parts = statusLine.split(" ");
                         String path = parts[1];
+                        path = path.split("\\?")[0];
                         String action = parts[0];
                         Pair match = null;
                         synchronized (mActions) {
@@ -79,6 +89,11 @@ public class AsyncHttpServer implements ExceptionEmitter {
             public void onException(Exception error) {
                 report(error);
             }
+
+            @Override
+            public void onListening(AsyncServerSocket socket) {
+                mListener = socket;
+            }
         });
     }
     
@@ -109,9 +124,9 @@ public class AsyncHttpServer implements ExceptionEmitter {
     
     Hashtable<String, ArrayList<Pair>> mActions = new Hashtable<String, ArrayList<Pair>>();
     
-    private void addAction(String action, String regex, HttpServerRequestCallback callback) {
+    public void addAction(String action, String regex, HttpServerRequestCallback callback) {
         Pair p = new Pair();
-        p.regex = Pattern.compile(regex);
+        p.regex = Pattern.compile("^" + regex);
         p.callback = callback;
         
         synchronized (mActions) {
@@ -172,14 +187,31 @@ public class AsyncHttpServer implements ExceptionEmitter {
         }
         return null;
     }
-
+    
+    static Hashtable<String, String> mContentTypes = new Hashtable<String, String>();
+    {
+        mContentTypes.put("js", "application/javascript");
+        mContentTypes.put("png", "image/png");
+        mContentTypes.put("jpg", "image/jpeg");
+        mContentTypes.put("html", "text/html");
+    }
+    
+    static String getContentType(String path) {
+        int index = path.lastIndexOf(".");
+        if (index != -1) {
+            String e = path.substring(index + 1);
+            String ct = mContentTypes.get(e);
+            if (ct != null)
+                return ct;
+        }
+        return "text/plain";
+    }
 
     public void directory(Context _context, String regex, final String assetPath) {
         final Context context = _context.getApplicationContext();
         addAction("GET", regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                System.out.println(request);
                 String path = request.getMatcher().replaceAll("");
                 InputStream is = getAssetStream(context, assetPath + path);
                 if (is == null) {
@@ -188,6 +220,7 @@ public class AsyncHttpServer implements ExceptionEmitter {
                     return;
                 }
                 response.responseCode(200);
+                response.getHeaders().getHeaders().add("Content-Type", getContentType(path));
                 Util.pump(is, response, new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
@@ -197,7 +230,66 @@ public class AsyncHttpServer implements ExceptionEmitter {
             }
         });
     }
+
+    public void directory(String regex, final File directory) {
+        directory(regex, directory, false);
+    }
     
+    public void directory(String regex, final File directory, final boolean list) {
+        Assert.assertTrue(directory.isDirectory());
+        addAction("GET", regex, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                String path = request.getMatcher().replaceAll("");
+                File file = new File(directory, path);
+                
+                if (file.isDirectory() && list) {
+                    ArrayList<File> dirs = new ArrayList<File>();
+                    ArrayList<File> files = new ArrayList<File>();
+                    for (File f: file.listFiles()) {
+                        if (f.isDirectory())
+                            dirs.add(f);
+                        else
+                            files.add(f);
+                    }
+                    
+                    Comparator<File> c = new Comparator<File>() {
+                        @Override
+                        public int compare(File lhs, File rhs) {
+                            return lhs.getName().compareTo(rhs.getName());
+                        }
+                    };
+                    
+                    Collections.sort(dirs, c);
+                    Collections.sort(files, c);
+                    
+                    files.addAll(0, dirs);
+                    
+                    return;
+                }
+                if (!file.isFile()) {
+                    response.responseCode(404);
+                    response.end();
+                    return;
+                }
+                try {
+                    FileInputStream is = new FileInputStream(file);
+                    response.responseCode(200);
+                    Util.pump(is, response, new CompletedCallback() {
+                        @Override
+                        public void onCompleted(Exception ex) {
+                            response.end();
+                        }
+                    });
+                }
+                catch (Exception ex) {
+                    response.responseCode(404);
+                    response.end();
+                    return;
+                }
+            }
+        });
+    }
     
     private static Hashtable<Integer, String> mCodes = new Hashtable<Integer, String>();
     static {

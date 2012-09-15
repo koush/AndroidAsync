@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -18,8 +19,11 @@ import java.util.concurrent.Semaphore;
 import junit.framework.Assert;
 import android.util.Log;
 
+import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.callback.WritableCallback;
 
 public class AsyncServer {
     private static final String LOGTAG = "NIO";
@@ -128,7 +132,7 @@ public class AsyncServer {
             @Override
             public void run() {
                 try {
-                    ServerSocketChannel server = ServerSocketChannel.open();
+                    final ServerSocketChannel server = ServerSocketChannel.open();
                     final ServerSocketChannelWrapper wrapper = new ServerSocketChannelWrapper(server);
                     InetSocketAddress isa;
                     if (host == null)
@@ -138,6 +142,17 @@ public class AsyncServer {
                     server.socket().bind(isa);
                     SelectionKey key = wrapper.register(mSelector);
                     key.attach(handler);
+                    handler.onListening(new AsyncServerSocket() {
+                        @Override
+                        public void stop() {
+                            try {
+                                server.close();
+                            }
+                            catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
                 }
                 catch (IOException e) {
                     e.printStackTrace();
@@ -283,14 +298,6 @@ public class AsyncServer {
     
     private static void shutdownEverything(Selector selector) {
         // SHUT. DOWN. EVERYTHING.
-        for (SelectionKey key : selector.keys()) {
-            try {
-                key.channel().close();
-            }
-            catch (IOException e) {
-            }
-        }
-
         try {
             selector.close();
         }

@@ -38,8 +38,16 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         write(list);
     }
 
+    ByteBufferList mLastChunk = null;
     @Override
     public void write(ByteBufferList bb) {
+        if (mLastChunk != null) {
+            mSocket.write(mLastChunk);
+            if (mLastChunk.remaining() == 0)
+                mLastChunk = null;
+            else
+                return;
+        }
         Assert.assertTrue(mContentLength < 0);
         if (null == mRawHeaders.get("Transfer-Encoding")) {
             Assert.assertNotNull(mRawHeaders.getStatusLine());
@@ -50,16 +58,23 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         bb.add(0, ByteBuffer.wrap(chunkLen.getBytes()));
         bb.add(ByteBuffer.wrap("\r\n".getBytes()));
         mSocket.write(bb);
+        // this will only buffer entire chunks.
+        if (bb.remaining() > 0) {
+            mLastChunk = new ByteBufferList();
+            ByteBuffer data = bb.read(bb.remaining());
+            mLastChunk.add(data);
+            bb.clear();
+        }
     }
 
     @Override
     public void setWriteableCallback(WritableCallback handler) {
+        mSocket.setWriteableCallback(handler);
     }
 
     @Override
     public WritableCallback getWriteableCallback() {
-        // TODO Auto-generated method stub
-        return null;
+        return mSocket.getWriteableCallback();
     }
 
     @Override
@@ -81,8 +96,10 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         mSink.write(ByteBuffer.wrap(mRawHeaders.toHeaderString().getBytes()));
     }
     
-    private void send(String contentType, String string) {
+    public void send(String contentType, String string) {
         try {
+            if (mRawHeaders.getStatusLine() == null)
+                responseCode(200);
             Assert.assertTrue(mContentLength < 0);
             byte[] bytes = string.getBytes("UTF-8");
             mContentLength = bytes.length;
@@ -91,6 +108,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             
             writeHead();
             mSink.write(ByteBuffer.wrap(string.getBytes()));
+            onCompleted();
         }
         catch (UnsupportedEncodingException e) {
             Assert.fail();

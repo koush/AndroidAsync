@@ -7,6 +7,7 @@ import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
 public interface AsyncHttpServerResponse extends DataSink {
     public void end();
+    public void send(String contentType, String string);
     public void send(String string);
     public void send(JSONObject json);
     public void responseCode(int code);
