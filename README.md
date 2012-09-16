@@ -44,14 +44,19 @@ AsyncHttpClient.download(url, filename, new AsyncHttpClient.FileCallback() {
 ```
 
 
+
+
+
 ### AndroidAsync also let's you create simple HTTP servers:
 
 ```java
-AsyncHttpServer server = new AsyncHttpServer();
-mServer.get(regex, new HttpServerRequestCallback() {
+// listen on port 5000
+AsyncHttpServer server = new AsyncHttpServer(5000);
+mServer.get("/", new HttpServerRequestCallback() {
     @Override
     public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
         response.send("Hello!!!");
     }
 });
+// browsing http://localhost:5000 will return Hello!!!
 ```
