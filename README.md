@@ -43,3 +43,15 @@ AsyncHttpClient.download(url, filename, new AsyncHttpClient.FileCallback() {
 
 ```
 
+
+### AndroidAsync also let's you create simple HTTP servers:
+
+```java
+AsyncHttpServer server = new AsyncHttpServer();
+mServer.get(regex, new HttpServerRequestCallback() {
+    @Override
+    public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+        response.send("Hello!!!");
+    }
+});
+```
