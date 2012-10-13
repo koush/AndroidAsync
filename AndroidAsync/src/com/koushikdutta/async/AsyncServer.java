@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -17,16 +16,21 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 
 import junit.framework.Assert;
+import android.os.Build;
 import android.util.Log;
 
-import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.ListenCallback;
-import com.koushikdutta.async.callback.WritableCallback;
 
 public class AsyncServer {
     private static final String LOGTAG = "NIO";
+    
+    static {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.FROYO) {
+            java.lang.System.setProperty("java.net.preferIPv4Stack", "true");
+            java.lang.System.setProperty("java.net.preferIPv6Addresses", "false");
+        }
+    }
     
     static AsyncServer mInstance = new AsyncServer() {
         {

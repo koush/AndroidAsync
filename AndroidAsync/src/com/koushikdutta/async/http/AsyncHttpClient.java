@@ -75,6 +75,7 @@ public class AsyncHttpClient {
             }
         }
         final String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
+        final int finalPort = port;
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
             @Override
@@ -143,7 +144,7 @@ public class AsyncHttpClient {
                 if (exchange == null) {
                     exchange = socket;
                     if (request.getUri().getScheme().equals("https")) {
-                        SSLDataExchange ssl = new SSLDataExchange(socket);
+                        SSLDataExchange ssl = new SSLDataExchange(socket, uri.getHost(), finalPort);
                         exchange = ssl;
                         socket.setDataCallback(ssl);
                     }

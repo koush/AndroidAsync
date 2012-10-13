@@ -20,7 +20,7 @@ public class MainActivity extends Activity {
     ImageView rommanager;
     ImageView tether;
     ImageView desksms;
-    
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
