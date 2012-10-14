@@ -28,9 +28,15 @@ public class SSLDataExchange implements DataTransformer, DataExchange {
     BufferedDataSink mSink;
     ByteBuffer mReadTmp = ByteBuffer.allocate(8192);
     boolean mUnwrapping = false;
-    public SSLDataExchange(DataExchange exchange) {
+    public SSLDataExchange(DataExchange exchange, String host, int port) {
         mExchange = exchange;
 
+        if (host != null) {
+            engine = ctx.createSSLEngine(host, port);
+        }
+        else {
+            engine = ctx.createSSLEngine();
+        }
         engine.setUseClientMode(true);
         mSink = new BufferedDataSink(exchange);
         
@@ -41,9 +47,9 @@ public class SSLDataExchange implements DataTransformer, DataExchange {
         mEmitter.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                if (mUnwrapping)
+                    return;
                 try {
-                    if (mUnwrapping)
-                        return;
                     mUnwrapping = true;
                     
                     ByteBufferList out = new ByteBufferList();
@@ -77,6 +83,7 @@ public class SSLDataExchange implements DataTransformer, DataExchange {
                     Util.emitAllData(SSLDataExchange.this, out);
                 }
                 catch (Exception ex) {
+                    ex.printStackTrace();
                     report(ex);
                 }
                 finally {
@@ -95,16 +102,35 @@ public class SSLDataExchange implements DataTransformer, DataExchange {
         }
     }
 
+    static SSLContext ctx;
     static {
         try {
             ctx = SSLContext.getInstance("Default");
         }
         catch (Exception ex) {
+            try {
+                ctx = SSLContext.getInstance("TLS");
+                TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+                } };
+                ctx.init(null, trustAllCerts, new java.security.SecureRandom());
+            }
+            catch (Exception ex2) {
+                ex.printStackTrace();
+                ex2.printStackTrace();
+            }
         }
     }
-    static SSLContext ctx;
 
-    SSLEngine engine = ctx.createSSLEngine();
+    SSLEngine engine;
     boolean finishedHandshake = false;
 
     DataCallback mDataCallback;
