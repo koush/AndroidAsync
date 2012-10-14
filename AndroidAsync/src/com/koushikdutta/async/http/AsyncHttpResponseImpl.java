@@ -33,8 +33,7 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
         mExchange = exchange;
 
         mWriter = new BufferedDataSink(exchange);
-        String rs = mRequest.getRequestString();
-        mWriter.write(ByteBuffer.wrap(rs.getBytes()));
+        mWriter.write(ByteBuffer.wrap(mRequest.getRequestData()));
         
         LineEmitter liner = new LineEmitter(exchange);
         liner.setLineCallback(mHeaderCallback);

@@ -92,7 +92,7 @@ public class AsyncHttpClient {
                         try {
                             RawHeaders headers = getRawHeaders();
                             if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
-                                AsyncHttpRequest newReq = new AsyncHttpRequest(new URI(headers.get("Location")), request.getMethod());
+                                AsyncHttpRequest newReq = new AsyncHttpRequest(new URI(headers.get("Location")), request.getMethod(), request.getData(), request.getHeaders().getContentType(), request.getContentEncoding());
                                 connect(server, newReq, callback);
                                 
                                 setDataCallback(new NullDataCallback());
@@ -228,6 +228,19 @@ public class AsyncHttpClient {
             }
         });
     }
+    
+    public static void download(AsyncHttpRequest req, final StringCallback callback) {
+        download(req, callback, new ResultConvert() {
+            @Override
+            public Object convert(ByteBufferList bb) {
+                StringBuilder builder = new StringBuilder();
+                for (ByteBuffer b: bb) {
+                    builder.append(new String(b.array(), b.arrayOffset() + b.position(), b.remaining()));
+                }
+                return builder.toString();
+            }
+        });
+    }
 
     public static void download(String uri, final JSONObjectCallback callback) {
         download(uri, callback, new ResultConvert() {
@@ -269,6 +282,14 @@ public class AsyncHttpClient {
     }
     
     public static void download(String uri, final String filename, final FileCallback callback) {
+        try{
+            download(new AsyncHttpGet(uri), filename, callback);
+        }catch (URISyntaxException e) {
+            callback.onCompleted(e, null, null);
+        }
+    }
+    
+    public static void download(AsyncHttpRequest req, final String filename, final FileCallback callback) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
         final File file = new File(filename);
         final FileOutputStream fout;
@@ -279,7 +300,7 @@ public class AsyncHttpClient {
             invoke(handler, callback, null, e, null);
             return;
         }
-        connect(uri, new HttpConnectCallback() {
+        connect(req, new HttpConnectCallback() {
             ByteBufferList buffer = new ByteBufferList();
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {

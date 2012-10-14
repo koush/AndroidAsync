@@ -7,10 +7,10 @@ public class AsyncHttpGet extends AsyncHttpRequest {
     public static final String METHOD = "GET";
     
     public AsyncHttpGet(String uri) throws URISyntaxException {
-        super(new URI(uri), METHOD);
+        super(new URI(uri), METHOD, null, null, null);
     }
 
     public AsyncHttpGet(URI uri) {
-        super(uri, METHOD);
+        super(uri, METHOD, null, null, null);
     }
 }

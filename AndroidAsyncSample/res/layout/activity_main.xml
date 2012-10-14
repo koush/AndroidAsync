@@ -13,6 +13,11 @@
     </Button>
 
     <ImageView
+        android:id="@+id/googlechart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <ImageView
         android:id="@+id/rommanager"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />

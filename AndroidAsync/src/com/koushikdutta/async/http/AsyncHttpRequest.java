@@ -1,7 +1,7 @@
 package com.koushikdutta.async.http;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.net.URL;
 
 import junit.framework.Assert;
 
@@ -28,16 +28,42 @@ public class AsyncHttpRequest {
     public String getMethod() {
        return mMethod; 
     }
+    
+    private byte[] mData;
+    public byte[] getData() {
+        return mData;
+    }
+    
+    protected static String CONTENT_ENCODING_DEFAULT = "UTF-8";
+    private String mContentEncoding;
+    public String getContentEncoding() {
+        if (mContentEncoding != null) { 
+            return mContentEncoding; 
+        }
+        return CONTENT_ENCODING_DEFAULT;
+    }
 
-    public AsyncHttpRequest(URI uri, String method) {
+    public AsyncHttpRequest(URI uri, String method, byte[] data, String contentType, String contentEncoding) {
         Assert.assertNotNull(uri);
+        Assert.assertNotNull(method);
         mMethod = method;
+        mData = data;
         mHeaders = new RequestHeaders(uri, mRawHeaders);
         mRawHeaders.setStatusLine(getRequestLine());
         mHeaders.setHost(uri.getHost());
         mHeaders.setUserAgent(getDefaultUserAgent());
         mHeaders.setAcceptEncoding("gzip");
+        if (contentType != null){
+            mHeaders.setContentType(contentType);
+        }
+        if (mData != null){
+            mHeaders.setContentLength(mData.length);
+        }
+        if (contentEncoding != null){
+            mContentEncoding = contentEncoding;
+        }
     }
+    
 
     public URI getUri() {
         return mHeaders.getUri();
@@ -52,6 +78,19 @@ public class AsyncHttpRequest {
 
     public String getRequestString() {
         return mRawHeaders.toHeaderString();
+    }
+    
+    public byte[] getRequestData(){
+        ByteArrayOutputStream responseDataArray = new ByteArrayOutputStream();
+        try {
+            responseDataArray.write(mRawHeaders.toHeaderString().getBytes(getContentEncoding()));
+            if (mData != null){
+                responseDataArray.write(mData);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return responseDataArray.toByteArray();
     }
     
     private boolean mFollowRedirect = true;
