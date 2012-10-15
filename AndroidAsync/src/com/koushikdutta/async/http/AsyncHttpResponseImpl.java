@@ -174,7 +174,7 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
     }
 
     @Override
-    public CompletedCallback getCloseHandler() {
+    public CompletedCallback getCompletedCallback() {
         return mCompletedCallback;
     }
 

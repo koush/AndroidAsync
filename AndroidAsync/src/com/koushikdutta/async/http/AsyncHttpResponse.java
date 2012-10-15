@@ -7,6 +7,6 @@ import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
 public interface AsyncHttpResponse extends DataEmitter, ExceptionEmitter {
     public void setCompletedCallback(CompletedCallback handler);
-    public CompletedCallback getCloseHandler();
+    public CompletedCallback getCompletedCallback();
     public ResponseHeaders getHeaders();
 }

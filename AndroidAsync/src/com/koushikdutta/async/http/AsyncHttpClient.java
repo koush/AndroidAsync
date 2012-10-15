@@ -101,6 +101,7 @@ public class AsyncHttpClient {
                             String kas = headers.get("Connection");
                             if (kas != null && "keep-alive".toLowerCase().equals(kas.toLowerCase()))
                                 keepalive = true;
+                            callback.onConnectCompleted(null, this);
                         }
                         catch (Exception ex) {
                             callback.onConnectCompleted(ex, null);
@@ -151,7 +152,6 @@ public class AsyncHttpClient {
                 }
 
                 ret.setSocket(socket, exchange);
-                callback.onConnectCompleted(null, ret);
             }
         };
 
@@ -280,7 +280,6 @@ public class AsyncHttpClient {
             return;
         }
         connect(uri, new HttpConnectCallback() {
-            ByteBufferList buffer = new ByteBufferList();
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
