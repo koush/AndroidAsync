@@ -22,7 +22,7 @@ import org.apache.http.conn.ssl.StrictHostnameVerifier;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-public class SSLDataExchange implements DataTransformer, DataExchange {
+public class SSLDataExchange extends FilteredDataCallback implements DataExchange {
     DataExchange mExchange;
     BufferedDataEmitter mEmitter = new BufferedDataEmitter();
     BufferedDataSink mSink;
@@ -133,20 +133,6 @@ public class SSLDataExchange implements DataTransformer, DataExchange {
     SSLEngine engine;
     boolean finishedHandshake = false;
 
-    DataCallback mDataCallback;
-    @Override
-    public void setDataCallback(DataCallback callback) {
-        mDataCallback = callback;
-    }
-    @Override
-    public DataCallback getDataCallback() {
-        return mDataCallback;
-    }
-    @Override
-    public boolean isChunked() {
-        return false;
-    }
-    
     private String mHost;
     public String getHost() {
         return mHost;
@@ -209,11 +195,6 @@ public class SSLDataExchange implements DataTransformer, DataExchange {
         catch (Exception ex) {
             report(ex);
         }
-    }
-    
-    private void report(Exception e) {
-        if (mErrorCallback != null)
-            mErrorCallback.onException(e);
     }
     
     private void writeTmp() {
@@ -289,15 +270,6 @@ public class SSLDataExchange implements DataTransformer, DataExchange {
         mWriteableCallback = handler;
     }
     
-    private ExceptionCallback mErrorCallback;
-    @Override
-    public void setExceptionCallback(ExceptionCallback callback) {
-        mErrorCallback = callback;        
-    }
-    @Override
-    public ExceptionCallback getExceptionCallback() {
-        return mErrorCallback;
-    }
     @Override
     public WritableCallback getWriteableCallback() {
         return mWriteableCallback;

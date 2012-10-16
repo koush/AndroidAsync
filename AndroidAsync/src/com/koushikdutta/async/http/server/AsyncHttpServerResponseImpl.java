@@ -10,7 +10,9 @@ import org.json.JSONObject;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.FilteredDataSink;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
@@ -33,11 +35,18 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     
     @Override
     public void write(ByteBuffer bb) {
-        ByteBufferList list = new ByteBufferList();
-        list.add(bb);
-        write(list);
+        if (!mHasWritten) {
+            Assert.assertTrue(mContentLength < 0);
+            Assert.assertNotNull(mRawHeaders.getStatusLine());
+            mRawHeaders.set("Transfer-Encoding", "Chunked");
+            writeHead();
+            mHasWritten = true;
+            initChunker();
+        }
+        mChunker.write(bb);
     }
 
+    /*
     ByteBufferList mLastChunk = null;
     @Override
     public void write(ByteBufferList bb) {
@@ -66,15 +75,39 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             bb.clear();
         }
     }
+    */
+
+    boolean mHasWritten = false;
+    FilteredDataSink mChunker;
+    void initChunker() {
+        if (mChunker != null)
+            return;
+        mChunker = new ChunkedOutputFilter(mSocket);
+    }
+    @Override
+    public void write(ByteBufferList bb) {
+        if (!mHasWritten) {
+            Assert.assertTrue(mContentLength < 0);
+            Assert.assertNotNull(mRawHeaders.getStatusLine());
+            mRawHeaders.set("Transfer-Encoding", "Chunked");
+            writeHead();
+            mHasWritten = true;
+            initChunker();
+        }
+        mChunker.write(bb);
+    }
 
     @Override
     public void setWriteableCallback(WritableCallback handler) {
-        mSocket.setWriteableCallback(handler);
+//        mSocket.setWriteableCallback(handler);
+        initChunker();
+        mChunker.setWriteableCallback(handler);
     }
 
     @Override
     public WritableCallback getWriteableCallback() {
-        return mSocket.getWriteableCallback();
+//        return mSocket.getWriteableCallback();
+        return mChunker.getWriteableCallback();
     }
 
     @Override
@@ -87,7 +120,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         write(ByteBuffer.wrap(new byte[0]));
         onCompleted();
     }
-    
+
     private boolean mHeadWritten = false;
     @Override
     public void writeHead() {

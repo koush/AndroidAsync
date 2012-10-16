@@ -9,20 +9,21 @@ import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataExchange;
-import com.koushikdutta.async.DataTransformerBase;
+import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
-public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncHttpResponse {
+public class AsyncHttpResponseImpl extends FilteredDataCallback implements AsyncHttpResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
     RawHeaders getRawHeaders() {
         return mRawHeaders;
@@ -89,7 +90,7 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
                 report(new Exception("not using chunked encoding, and no content-length found."));
                 return;
             }
-            DataTransformerBase contentLengthWatcher = new DataTransformerBase() {
+            FilteredDataCallback contentLengthWatcher = new FilteredDataCallback() {
                 int totalRead = 0;
                 @Override
                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -192,5 +193,35 @@ public class AsyncHttpResponseImpl extends DataTransformerBase implements AsyncH
     @Override
     public ResponseHeaders getHeaders() {
         return mHeaders;
+    }
+
+    private boolean mFirstWrite = true;
+    private void assertContent() {
+        if (!mFirstWrite)
+            return;
+        mFirstWrite = false;
+        Assert.assertNotNull(mRequest.getHeaders().getHeaders().get("Content-Type"));
+    }
+
+    @Override
+    public void write(ByteBuffer bb) {
+        assertContent();
+    }
+
+    @Override
+    public void write(ByteBufferList bb) {
+        assertContent();
+    }
+
+    @Override
+    public void setWriteableCallback(WritableCallback handler) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public WritableCallback getWriteableCallback() {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

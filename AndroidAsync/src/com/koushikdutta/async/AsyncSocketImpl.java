@@ -53,6 +53,7 @@ class AsyncSocketImpl implements AsyncSocket {
             handleRemaining(list.remaining());
         }
         catch (IOException e) {
+            e.printStackTrace();
         }
     }
     

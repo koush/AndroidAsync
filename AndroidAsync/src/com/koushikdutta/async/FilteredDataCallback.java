@@ -4,8 +4,8 @@ import junit.framework.Assert;
 
 import com.koushikdutta.async.callback.DataCallback;
 
-public class DataTransformerBase implements DataTransformer {
-    public DataTransformerBase() {
+public class FilteredDataCallback implements DataEmitter, DataCallback, ExceptionEmitter {
+    public FilteredDataCallback() {
     }
 
     private DataCallback mDataCallback;

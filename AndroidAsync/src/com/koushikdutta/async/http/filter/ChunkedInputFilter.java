@@ -4,11 +4,11 @@ import junit.framework.Assert;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataTransformerBase;
+import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 
-public abstract class ChunkedInputFilter extends DataTransformerBase implements CompletedCallback {
+public abstract class ChunkedInputFilter extends FilteredDataCallback implements CompletedCallback {
     private int mChunkLength = 0;
     private int mChunkLengthRemaining = 0;
     private State mState = State.CHUNK_LEN;

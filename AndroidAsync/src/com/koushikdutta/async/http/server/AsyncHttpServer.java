@@ -195,9 +195,10 @@ public class AsyncHttpServer implements ExceptionEmitter {
         mContentTypes.put("jpg", "image/jpeg");
         mContentTypes.put("html", "text/html");
         mContentTypes.put("css", "text/css");
+        mContentTypes.put("mp4", "video/mp4");
     }
     
-    static String getContentType(String path) {
+    public static String getContentType(String path) {
         int index = path.lastIndexOf(".");
         if (index != -1) {
             String e = path.substring(index + 1);
