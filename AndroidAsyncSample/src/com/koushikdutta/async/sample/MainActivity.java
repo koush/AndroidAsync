@@ -45,8 +45,8 @@ public class MainActivity extends Activity {
         return true;
     }
     
-    private void downloadFile(final ImageView iv, String url, final String filename) {
-        AsyncHttpClient.download(url, filename, new AsyncHttpClient.FileCallback() {
+    private void getFile(final ImageView iv, String url, final String filename) {
+        AsyncHttpClient.get(url, filename, new AsyncHttpClient.FileCallback() {
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse response, File result) {
                 if (e != null) {
@@ -73,8 +73,8 @@ public class MainActivity extends Activity {
         tether.setImageBitmap(null);
         desksms.setImageBitmap(null);
         
-        downloadFile(rommanager, "https://raw.github.com/koush/AndroidAsync/master/rommanager.png", getFileStreamPath(randomFile()).getAbsolutePath());
-        downloadFile(tether, "https://raw.github.com/koush/AndroidAsync/master/tether.png", getFileStreamPath(randomFile()).getAbsolutePath());
-        downloadFile(desksms, "https://raw.github.com/koush/AndroidAsync/master/desksms.png", getFileStreamPath(randomFile()).getAbsolutePath());
+        getFile(rommanager, "https://raw.github.com/koush/AndroidAsync/master/rommanager.png", getFileStreamPath(randomFile()).getAbsolutePath());
+        getFile(tether, "https://raw.github.com/koush/AndroidAsync/master/tether.png", getFileStreamPath(randomFile()).getAbsolutePath());
+        getFile(desksms, "https://raw.github.com/koush/AndroidAsync/master/desksms.png", getFileStreamPath(randomFile()).getAbsolutePath());
     }
 }

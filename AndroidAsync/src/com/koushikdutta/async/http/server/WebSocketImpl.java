@@ -137,4 +137,9 @@ public class WebSocketImpl implements WebSocket {
     public DataCallback getDataCallback() {
         return mDataCallback;
     }
+
+    @Override
+    public boolean isOpen() {
+        return mSocket.isOpen();
+    }
 }

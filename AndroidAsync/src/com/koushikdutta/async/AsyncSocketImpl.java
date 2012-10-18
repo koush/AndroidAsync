@@ -7,7 +7,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 import junit.framework.Assert;
-import android.util.Log;
 
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -53,7 +52,9 @@ class AsyncSocketImpl implements AsyncSocket {
             handleRemaining(list.remaining());
         }
         catch (IOException e) {
-            e.printStackTrace();
+            close();
+            report(e);
+            reportClose();
         }
     }
     
@@ -83,7 +84,9 @@ class AsyncSocketImpl implements AsyncSocket {
             handleRemaining(b.remaining());
         }
         catch (IOException ex) {
-            ex.printStackTrace();
+            close();
+            report(ex);
+            reportClose();
         }
     }
 
@@ -213,6 +216,11 @@ class AsyncSocketImpl implements AsyncSocket {
     
     @Override
     public boolean isConnected() {
+        return mChannel.isConnected();
+    }
+    
+    @Override
+    public boolean isOpen() {
         return mChannel.isConnected();
     }
     

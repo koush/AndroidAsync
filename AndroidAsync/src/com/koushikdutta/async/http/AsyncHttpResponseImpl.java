@@ -11,13 +11,16 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataExchange;
 import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.ExceptionCallback;
+import com.koushikdutta.async.FilteredDataSink;
 import com.koushikdutta.async.LineEmitter;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
+import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
@@ -33,9 +36,8 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         mSocket = socket;
         mExchange = exchange;
 
-        mWriter = new BufferedDataSink(exchange);
         String rs = mRequest.getRequestString();
-        mWriter.write(ByteBuffer.wrap(rs.getBytes()));
+        Util.writeAll(exchange, rs.getBytes());
         
         LineEmitter liner = new LineEmitter(exchange);
         liner.setLineCallback(mHeaderCallback);
@@ -146,7 +148,6 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         onCompleted(e);
     }
     
-    private BufferedDataSink mWriter;
     private AsyncSocket mSocket;
     private AsyncHttpRequest mRequest;
     private DataExchange mExchange;
@@ -201,27 +202,39 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
             return;
         mFirstWrite = false;
         Assert.assertNotNull(mRequest.getHeaders().getHeaders().get("Content-Type"));
+        Assert.assertTrue(mRequest.getHeaders().getHeaders().get("Transfer-Encoding") != null || mRequest.getHeaders().getContentLength() != -1); 
+    }
+
+    FilteredDataSink mChunker;
+    void initChunker() {
+        if (mChunker != null)
+            return;
+        mChunker = new ChunkedOutputFilter(mSocket);
     }
 
     @Override
     public void write(ByteBuffer bb) {
         assertContent();
+        initChunker();
+        mChunker.write(bb);
     }
 
     @Override
     public void write(ByteBufferList bb) {
         assertContent();
+        initChunker();
+        mChunker.write(bb);
     }
 
     @Override
     public void setWriteableCallback(WritableCallback handler) {
-        // TODO Auto-generated method stub
-        
+        initChunker();
+        mChunker.setWriteableCallback(handler);
     }
 
     @Override
     public WritableCallback getWriteableCallback() {
-        // TODO Auto-generated method stub
-        return null;
+        initChunker();
+        return mChunker.getWriteableCallback();
     }
 }

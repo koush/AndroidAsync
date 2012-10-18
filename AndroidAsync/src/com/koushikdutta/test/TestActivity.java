@@ -277,7 +277,7 @@ public class TestActivity extends Activity {
                 public void run() {
                     try {
                         for (int i = 0; i < 5; i++) {
-                            AsyncHttpClient.download("http://builder.clockworkmod.com", new StringCallback() {
+                            AsyncHttpClient.get("http://builder.clockworkmod.com", new StringCallback() {
                                 @Override
                                 public void onCompleted(Exception e, AsyncHttpResponse response, String result) {
                                     if (e != null) {

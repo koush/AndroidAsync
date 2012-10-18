@@ -82,4 +82,22 @@ public class Util {
 
         cb.onWriteable();
     }
+    
+    public static void writeAll(final DataSink sink, final ByteBufferList bb) {
+        sink.setWriteableCallback(new WritableCallback() {
+            @Override
+            public void onWriteable() {
+                if (bb.remaining() == 0)
+                    return;
+                sink.write(bb);
+            }
+        });
+        sink.write(bb);
+    }
+    public static void writeAll(DataSink sink, byte[] bytes) {
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        ByteBufferList bbl = new ByteBufferList();
+        bbl.add(bb);
+        writeAll(sink, bbl);
+    }
 }

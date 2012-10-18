@@ -25,60 +25,48 @@ public class BufferedDataSink implements DataSink {
 
     private void writePending() {
 //        Log.i("NIO", "Writing to buffer...");
-        mDataSink.write(mPendingWrites);
-        if (mPendingWrites.remaining() == 0) {
-            mPendingWrites = null;
-            onFlushed();
+        if (mPendingWrites != null) {
+            mDataSink.write(mPendingWrites);
+            if (mPendingWrites.remaining() == 0)
+                mPendingWrites = null;
         }
+        if (mPendingWrites == null && mWritable != null)
+            mWritable.onWriteable();
     }
     
     ByteBufferList mPendingWrites;
 
     @Override
     public void write(ByteBuffer bb) {
-        if (mPendingWrites == null) {
-            mDataSink.write(bb);
-            if (bb.remaining() > 0) {
-                mPendingWrites = new ByteBufferList();
-                mPendingWrites.add(ByteBuffer.wrap(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
-                bb.position(0);
-                bb.limit(0);
-            }
-        }
-        else {
-            mPendingWrites.add(ByteBuffer.wrap(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
-            bb.position(0);
-            bb.limit(0);
-            writePending();
-        }
+        ByteBufferList bbl = new ByteBufferList();
+        bbl.add(bb);
+        write(bbl);
     }
 
     @Override
     public void write(ByteBufferList bb) {
-        if (mPendingWrites == null) {
+        if (mPendingWrites == null)
             mDataSink.write(bb);
-            if (bb.remaining() > 0) {
-                mPendingWrites = new ByteBufferList();
-                mPendingWrites.add(bb);
+        
+        if (bb.remaining() > 0) {
+            int toRead = Math.min(bb.remaining(), mMaxBuffer);
+            if (toRead > 0) {
+                if (mPendingWrites == null)
+                    mPendingWrites = new ByteBufferList();
+                mPendingWrites.add(bb.get(toRead));
             }
-            bb.clear();
-        }
-        else {
-            mPendingWrites.add(bb);
-            bb.clear();
-            writePending();
         }
     }
 
+    WritableCallback mWritable;
     @Override
     public void setWriteableCallback(WritableCallback handler) {
-        Assert.fail("BufferingDataSink is always writeable.");
+        mWritable = handler;
     }
 
     @Override
     public WritableCallback getWriteableCallback() {
-        Assert.fail("BufferingDataSink is always writeable.");
-        return null;
+        return mWritable;
     }
     
     public int remaining() {
@@ -86,7 +74,14 @@ public class BufferedDataSink implements DataSink {
             return 0;
         return mPendingWrites.remaining();
     }
-
-    public void onFlushed() {
+    
+    int mMaxBuffer = Integer.MAX_VALUE;
+    public int getMaxBuffer() {
+        return mMaxBuffer;
+    }
+    
+    public void setMaxBuffer(int maxBuffer) {
+        Assert.assertTrue(maxBuffer >= 0);
+        mMaxBuffer = maxBuffer;
     }
 }
