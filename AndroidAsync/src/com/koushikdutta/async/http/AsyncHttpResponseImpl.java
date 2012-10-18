@@ -32,12 +32,25 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         return mRawHeaders;
     }
 
+    private AsyncHttpRequestContentWriter mWriter;
     void setSocket(AsyncSocket socket, DataExchange exchange) {
         mSocket = socket;
         mExchange = exchange;
 
+        mWriter = mRequest.getContentWriter();
+        if (mWriter != null) {
+            mRequest.getHeaders().setContentType(mWriter.getContentType());
+            mRequest.getHeaders().getHeaders().set("Transfer-Encoding", "Chunked");
+        }
+        
         String rs = mRequest.getRequestString();
-        Util.writeAll(exchange, rs.getBytes());
+        Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                if (mWriter != null)
+                    mWriter.write(mRequest, AsyncHttpResponseImpl.this);
+            }
+        });
         
         LineEmitter liner = new LineEmitter(exchange);
         liner.setLineCallback(mHeaderCallback);
@@ -67,6 +80,7 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
     
     protected void onHeadersReceived() {
         mHeaders = new ResponseHeaders(mRequest.getUri(), mRawHeaders);
+        
         if (mHeaders.getContentLength() == 0) {
             report(null);
             return;
@@ -205,7 +219,7 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         Assert.assertTrue(mRequest.getHeaders().getHeaders().get("Transfer-Encoding") != null || mRequest.getHeaders().getContentLength() != -1); 
     }
 
-    FilteredDataSink mChunker;
+    ChunkedOutputFilter mChunker;
     void initChunker() {
         if (mChunker != null)
             return;
@@ -225,6 +239,12 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         initChunker();
         mChunker.write(bb);
     }
+
+    @Override
+    public void end() {
+        write(ByteBuffer.wrap(new byte[0]));
+    }
+
 
     @Override
     public void setWriteableCallback(WritableCallback handler) {

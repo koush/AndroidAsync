@@ -68,4 +68,14 @@ public class AsyncHttpRequest {
     
     protected void onConnect(AsyncHttpResponse response) {
     }
+
+    
+    private AsyncHttpRequestContentWriter mWriter;
+    public void setContentWriter(AsyncHttpRequestContentWriter writer) {
+        mWriter = writer;
+    }
+    
+    public AsyncHttpRequestContentWriter getContentWriter() {
+        return mWriter;
+    }
 }

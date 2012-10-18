@@ -35,28 +35,27 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     
     @Override
     public void write(ByteBuffer bb) {
-        if (!mHasWritten)
-            initFirstWrite();
+        initFirstWrite();
         mChunker.write(bb);
     }
 
     boolean mHasWritten = false;
     FilteredDataSink mChunker;
     void initFirstWrite() {
+        if (mHasWritten)
+            return;
+
         Assert.assertTrue(mContentLength < 0);
         Assert.assertNotNull(mRawHeaders.getStatusLine());
         mRawHeaders.set("Transfer-Encoding", "Chunked");
         writeHead();
         mSink.setMaxBuffer(0);
         mHasWritten = true;
-        if (mChunker != null)
-            return;
         mChunker = new ChunkedOutputFilter(mSink);
     }
     @Override
     public void write(ByteBufferList bb) {
-        if (!mHasWritten)
-            initFirstWrite();
+        initFirstWrite();
         mChunker.write(bb);
     }
 

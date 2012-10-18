@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 import junit.framework.Assert;
-import android.util.Log;
 
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -83,21 +82,25 @@ public class Util {
         cb.onWriteable();
     }
     
-    public static void writeAll(final DataSink sink, final ByteBufferList bb) {
+    public static void writeAll(final DataSink sink, final ByteBufferList bb, final CompletedCallback callback) {
         sink.setWriteableCallback(new WritableCallback() {
             @Override
             public void onWriteable() {
                 if (bb.remaining() == 0)
                     return;
                 sink.write(bb);
+                if (bb.remaining() == 0 && callback != null)
+                    callback.onCompleted(null);
             }
         });
         sink.write(bb);
+        if (bb.remaining() == 0 && callback != null)
+            callback.onCompleted(null);
     }
-    public static void writeAll(DataSink sink, byte[] bytes) {
+    public static void writeAll(DataSink sink, byte[] bytes, CompletedCallback callback) {
         ByteBuffer bb = ByteBuffer.wrap(bytes);
         ByteBufferList bbl = new ByteBufferList();
         bbl.add(bb);
-        writeAll(sink, bbl);
+        writeAll(sink, bbl, callback);
     }
 }

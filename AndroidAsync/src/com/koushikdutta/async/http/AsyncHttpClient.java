@@ -28,7 +28,7 @@ import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.callback.ResultPairCallback;
+import com.koushikdutta.async.callback.RequestCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
@@ -192,16 +192,16 @@ public class AsyncHttpClient {
         }
     }
     
-    public static interface DownloadCallback extends ResultPairCallback<AsyncHttpResponse, ByteBufferList> {
+    public static interface DownloadCallback extends RequestCallback<ByteBufferList> {
     }
     
-    public static interface StringCallback extends ResultPairCallback<AsyncHttpResponse, String> {
+    public static interface StringCallback extends RequestCallback<String> {
     }
 
-    public static interface JSONObjectCallback extends ResultPairCallback<AsyncHttpResponse, JSONObject> {
+    public static interface JSONObjectCallback extends RequestCallback<JSONObject> {
     }
     
-    public static interface FileCallback extends ResultPairCallback<AsyncHttpResponse, File> {
+    public static interface FileCallback extends RequestCallback<File> {
     }
     
     private interface ResultConvert {
@@ -261,7 +261,7 @@ public class AsyncHttpClient {
         });
     }
     
-    private static void invoke(Handler handler, final ResultPairCallback callback, final AsyncHttpResponse response, final Exception e, final Object result) {
+    private static void invoke(Handler handler, final RequestCallback callback, final AsyncHttpResponse response, final Exception e, final Object result) {
         if (handler == null) {
             callback.onCompleted(e, response, result);
             return;
@@ -329,7 +329,7 @@ public class AsyncHttpClient {
         });
     }
     
-    private static void execute(AsyncHttpRequest req, final ResultPairCallback callback, final ResultConvert convert) {
+    private static void execute(AsyncHttpRequest req, final RequestCallback callback, final ResultConvert convert) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
         connect(req, new HttpConnectCallback() {
             ByteBufferList buffer = new ByteBufferList();
@@ -363,7 +363,7 @@ public class AsyncHttpClient {
         });
     }
 
-    private static void get(String uri, final ResultPairCallback callback, final ResultConvert convert) {
+    private static void get(String uri, final RequestCallback callback, final ResultConvert convert) {
         try {
             execute(new AsyncHttpGet(new URI(uri)), callback, convert);
         }
