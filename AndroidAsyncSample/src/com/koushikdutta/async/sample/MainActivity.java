@@ -113,24 +113,6 @@ public class MainActivity extends Activity {
     }
     
     private void refresh() {
-        ArrayList<NameValuePair> pairs = new ArrayList<NameValuePair>();
-        pairs.add(new BasicNameValuePair("foo", "bar"));
-        UrlEncodedFormWriter writer = new UrlEncodedFormWriter(pairs);
-        try {
-            AsyncHttpPost post = new AsyncHttpPost("http://192.168.1.2:3000");
-            post.setContentWriter(writer);
-            AsyncHttpClient.execute(post, new StringCallback() {
-                @Override
-                public void onCompleted(Exception arg0, AsyncHttpResponse response, String result) {
-                    System.out.println(arg0);
-                }
-            });
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        
         rommanager.setImageBitmap(null);
         tether.setImageBitmap(null);
         desksms.setImageBitmap(null);
