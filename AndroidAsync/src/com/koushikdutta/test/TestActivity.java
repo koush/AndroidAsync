@@ -302,7 +302,7 @@ public class TestActivity extends Activity {
 //                AsyncHttpGet get = new AsyncHttpGet("https://soighoisdfoihsiohsdf.com");
 //                AsyncHttpGet get = new AsyncHttpGet("http://www.cnn.com");
                 AsyncHttpGet get = new AsyncHttpGet("https://builder.clockworkmod.com");
-                AsyncHttpClient.connect(get, new HttpConnectCallback() {
+                AsyncHttpClient.execute(get, new HttpConnectCallback() {
                     @Override
                     public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
                         if (ex != null) {

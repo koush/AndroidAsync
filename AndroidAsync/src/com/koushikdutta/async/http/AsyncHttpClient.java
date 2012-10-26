@@ -33,14 +33,8 @@ import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
-    private static class InternalConnectCallback implements ConnectCallback {
+    private static abstract class InternalConnectCallback implements ConnectCallback {
         DataExchange exchange;
-        @Override
-        public void onConnectCompleted(Exception ex, AsyncSocket socket) {
-            // TODO Auto-generated method stub
-            
-        }
-        
     }
     
     private static class SocketExchange {
@@ -49,15 +43,15 @@ public class AsyncHttpClient {
     }
     private static Hashtable<String, HashSet<SocketExchange>> mSockets = new Hashtable<String, HashSet<SocketExchange>>();
     
-    public static void connect(final AsyncHttpRequest request, final HttpConnectCallback callback) {
-        connect(AsyncServer.getDefault(), request, callback);
+    public static void execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
+        execute(AsyncServer.getDefault(), request, callback);
     }
 
-    public static void connect(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback) {
-        connect(server, request, callback, 0);
+    public static void execute(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback) {
+        execute(server, request, callback, 0);
     }
 
-    private static void connect(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback, int redirectCount) {
+    private static void execute(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback, int redirectCount) {
         if (redirectCount > 5) {
             callback.onConnectCompleted(new Exception("too many redirects"), null);
             return;
@@ -93,7 +87,7 @@ public class AsyncHttpClient {
                             RawHeaders headers = getRawHeaders();
                             if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
                                 AsyncHttpRequest newReq = new AsyncHttpRequest(new URI(headers.get("Location")), request.getMethod());
-                                connect(server, newReq, callback);
+                                execute(server, newReq, callback);
                                 
                                 setDataCallback(new NullDataCallback());
                             }
@@ -179,13 +173,13 @@ public class AsyncHttpClient {
         server.connectSocket(uri.getHost(), port, socketConnected);
     }
     
-    public static void connect(URI uri, final HttpConnectCallback callback) {
-        connect(AsyncServer.getDefault(), new AsyncHttpGet(uri), callback);
+    public static void execute(URI uri, final HttpConnectCallback callback) {
+        execute(AsyncServer.getDefault(), new AsyncHttpGet(uri), callback);
     }
 
-    public static void connect(String uri, final HttpConnectCallback callback) {
+    public static void execute(String uri, final HttpConnectCallback callback) {
         try {
-            connect(AsyncServer.getDefault(), new AsyncHttpGet(new URI(uri)), callback);
+            execute(AsyncServer.getDefault(), new AsyncHttpGet(new URI(uri)), callback);
         }
         catch (URISyntaxException e) {
             callback.onConnectCompleted(e, null);
@@ -294,7 +288,7 @@ public class AsyncHttpClient {
             invoke(handler, callback, null, e, null);
             return;
         }
-        connect(req, new HttpConnectCallback() {
+        execute(req, new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
@@ -331,7 +325,7 @@ public class AsyncHttpClient {
     
     private static void execute(AsyncHttpRequest req, final RequestCallback callback, final ResultConvert convert) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
-        connect(req, new HttpConnectCallback() {
+        execute(req, new HttpConnectCallback() {
             ByteBufferList buffer = new ByteBufferList();
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {

@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -301,11 +302,19 @@ public class AsyncServer {
     }
     
     private static void shutdownEverything(Selector selector) {
+        for (SelectionKey key: selector.keys()) {
+            try {
+                key.cancel();
+            }
+            catch (Exception e) {
+            }
+        }
+
         // SHUT. DOWN. EVERYTHING.
         try {
             selector.close();
         }
-        catch (IOException e) {
+        catch (Exception e) {
         }
     }
 
