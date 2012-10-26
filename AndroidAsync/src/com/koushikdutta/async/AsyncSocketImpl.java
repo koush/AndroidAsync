@@ -101,12 +101,17 @@ class AsyncSocketImpl implements AsyncSocket {
             // so we can be quicker about allocations during the next
             // time this socket reads.
             int maxRead = 0;
+            int maxAlloc = 1024 * 1024;
+            // keep udp at roughly the mtu, which is 1540 or something
+            // letting it grow freaks out nio apparently.
+            if (mChannel.isChunked())
+                maxAlloc = 8192;
             while (true) {
                 if (b == null) {
-                    b = ByteBuffer.allocate(Math.min(Math.max(mToAlloc, 2 << 11), 1024 * 1024));
+                    b = ByteBuffer.allocate(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
                 }
                 else {
-                    b = ByteBuffer.allocate(Math.min(b.capacity() * 2, 1024 * 1024));
+                    b = ByteBuffer.allocate(Math.min(b.capacity() * 2, maxAlloc));
                 }
                 int read = mChannel.read(b);
                 maxRead = Math.max(read, maxRead);
@@ -128,6 +133,10 @@ class AsyncSocketImpl implements AsyncSocket {
                     Util.emitAllData(this, list);
                     list = new ByteBufferList();
                 }
+                // attempting to read a udp channel more than once
+                // causes nio to freak out on gb.
+                if (mChannel.isChunked())
+                    break;
             }
             
             mToAlloc = maxRead;
