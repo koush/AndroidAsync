@@ -3,7 +3,6 @@ package com.koushikdutta.async;
 import java.nio.ByteBuffer;
 
 import junit.framework.Assert;
-import android.util.Log;
 
 import com.koushikdutta.async.callback.WritableCallback;
 

@@ -7,6 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 import junit.framework.Assert;
+import android.util.Log;
 
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -92,56 +93,38 @@ class AsyncSocketImpl implements AsyncSocket {
 
     int mToAlloc = 0;
     int onReadable() {
+        // even if the socket is paused,
+        // it may end up getting a queued readable event if it is
+        // already in the selector's ready queue.
+        if (mPaused)
+            return 0;
         int total = 0;
         try {
             boolean closed = false;
-            ByteBufferList list = new ByteBufferList();
-            ByteBuffer b = null;
-            // keep track of the max mount read during this read cycle
-            // so we can be quicker about allocations during the next
-            // time this socket reads.
-            int maxRead = 0;
-            int maxAlloc = 1024 * 1024;
+            int maxAlloc = 256 * 1024; // 256K
             // keep udp at roughly the mtu, which is 1540 or something
             // letting it grow freaks out nio apparently.
             if (mChannel.isChunked())
                 maxAlloc = 8192;
-            while (true) {
-                if (b == null) {
-                    b = ByteBuffer.allocate(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
-                }
-                else {
-                    b = ByteBuffer.allocate(Math.min(b.capacity() * 2, maxAlloc));
-                }
-                int read = mChannel.read(b);
-                maxRead = Math.max(read, maxRead);
-                if (read < 0) {
-                    close();
-                    closed = true;
-                }
-                else {
-                    total += read;
-                }
-                if (read <= 0)
-                    break;
-
-                mToAlloc = read;
+            
+            ByteBuffer b = ByteBuffer.allocate(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
+            // keep track of the max mount read during this read cycle
+            // so we can be quicker about allocations during the next
+            // time this socket reads.
+            int read = mChannel.read(b);
+            if (read < 0) {
+                close();
+                closed = true;
+            }
+            else {
+                total += read;
+            }
+            if (read > 0) {
+                mToAlloc = read * 2;
                 b.limit(b.position());
                 b.position(0);
+                ByteBufferList list = new ByteBufferList();
                 list.add(b);
-                if (mChannel.isChunked() || b.capacity() == 1024 * 1024) {
-                    Util.emitAllData(this, list);
-                    list = new ByteBufferList();
-                }
-                // attempting to read a udp channel more than once
-                // causes nio to freak out on gb.
-                if (mChannel.isChunked())
-                    break;
-            }
-            
-            mToAlloc = maxRead;
-            
-            if (!mChannel.isChunked()) {
                 Util.emitAllData(this, list);
             }
         
@@ -233,13 +216,33 @@ class AsyncSocketImpl implements AsyncSocket {
         return mChannel.isConnected();
     }
     
+    boolean mPaused = false;
     @Override
     public void pause() {
-        mKey.interestOps(~SelectionKey.OP_READ & mKey.interestOps());
+        if (mPaused)
+            return;
+        mPaused = true;
+        try {
+            mKey.interestOps(~SelectionKey.OP_READ & mKey.interestOps());
+        }
+        catch (Exception ex) {
+        }
     }
     
     @Override
     public void resume() {
-        mKey.interestOps(SelectionKey.OP_READ | mKey.interestOps());
+        if (!mPaused)
+            return;
+        mPaused = false;
+        try {
+            mKey.interestOps(SelectionKey.OP_READ | mKey.interestOps());
+        }
+        catch (Exception ex) {
+        }
+    }
+    
+    @Override
+    public boolean isPaused() {
+        return mPaused;
     }
 }

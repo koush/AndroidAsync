@@ -5,4 +5,5 @@ public interface AsyncSocket extends DataExchange, CloseableData, ExceptionEmitt
     public boolean isConnected();
     public void pause();
     public void resume();
+    public boolean isPaused();
 }
