@@ -16,6 +16,9 @@ public class PushParser {
         int length;
     }
     
+    static class StringWaiter extends BufferWaiter {
+    }
+    
     static class UntilWaiter {
         byte value;
         DataCallback callback;
@@ -58,6 +61,14 @@ public class PushParser {
     public PushParser readLenBuffer() {
         readInt();
         BufferWaiter bw = new BufferWaiter();
+        bw.length = -1;
+        mWaiting.add(bw);
+        return this;
+    }
+    
+    public PushParser readString() {
+        readInt();
+        StringWaiter bw = new StringWaiter();
         bw.length = -1;
         mWaiting.add(bw);
         return this;
@@ -163,7 +174,7 @@ public class PushParser {
                                 throw new Exception();
                             }
                         }
-                        else if (waiting instanceof BufferWaiter) {
+                        else if (waiting instanceof BufferWaiter || waiting instanceof StringWaiter) {
                             BufferWaiter bw = (BufferWaiter)waiting;
                             int length = bw.length;
                             if (length == -1) {
@@ -185,7 +196,10 @@ public class PushParser {
                                 bb.get(bytes);
                             }
                             mNeeded -= length;
-                            mArgs.add(bytes);
+                            if (waiting instanceof StringWaiter)
+                                mArgs.add(new String(bytes));
+                            else
+                                mArgs.add(bytes);
                         }
                         else {
                             Assert.fail();

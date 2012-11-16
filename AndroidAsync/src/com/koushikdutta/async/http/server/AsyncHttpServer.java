@@ -170,7 +170,7 @@ public class AsyncHttpServer implements ExceptionEmitter {
         addAction("GET", regex, callback);
     }
     
-    InputStream getAssetStream(final Context context, String asset) {
+    public static InputStream getAssetStream(final Context context, String asset) {
         String apkPath = context.getPackageResourcePath();
         String assetPath = "assets/" + asset;
         try {

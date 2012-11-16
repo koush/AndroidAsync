@@ -12,11 +12,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
-        android:icon="@drawable/ic_launcher"
-        android:label="@string/name" >
+        android:icon="@drawable/ic_launcher">
         <activity
-            android:name="com.koushikdutta.test.TestActivity"
-            android:label="@string/name" >
+            android:name="com.koushikdutta.test.TestActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

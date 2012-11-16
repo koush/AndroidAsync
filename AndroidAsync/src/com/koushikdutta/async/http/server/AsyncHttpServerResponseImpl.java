@@ -1,5 +1,8 @@
 package com.koushikdutta.async.http.server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
@@ -11,6 +14,8 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.FilteredDataSink;
+import com.koushikdutta.async.Util;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
@@ -125,6 +130,24 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void send(JSONObject json) {
         send("application/json", json.toString());
+    }
+    
+    public void sendFile(File file) {
+        try {
+            FileInputStream fin = new FileInputStream(file);
+            mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
+            responseCode(200);
+            Util.pump(fin, this, new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception ex) {
+                    end();
+                }
+            });
+        }
+        catch (FileNotFoundException e) {
+            responseCode(404);
+            end();
+        }
     }
 
     @Override

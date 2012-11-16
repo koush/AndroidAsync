@@ -27,9 +27,13 @@ public class AsyncServer {
     private static final String LOGTAG = "NIO";
     
     static {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.FROYO) {
-            java.lang.System.setProperty("java.net.preferIPv4Stack", "true");
-            java.lang.System.setProperty("java.net.preferIPv6Addresses", "false");
+        try {
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.FROYO) {
+                java.lang.System.setProperty("java.net.preferIPv4Stack", "true");
+                java.lang.System.setProperty("java.net.preferIPv6Addresses", "false");
+            }
+        }
+        catch (Throwable ex) {
         }
     }
     
