@@ -19,6 +19,6 @@
 #   public *;
 #}
 
--keep class com.koushikdutta.async.** {
+-keep class * extends com.koushikdutta.async.TapCallback {
   public protected private *;
 }
