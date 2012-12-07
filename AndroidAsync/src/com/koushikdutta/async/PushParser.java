@@ -247,7 +247,7 @@ public class PushParser {
         }
         String fail =
         "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
-        "    public protected private *;\n" +
+        "    *;\n" +
         "}\n";
 
         Assert.fail("AndroidAsync: tap callback could not be found. Proguard? Use this in your proguard config:\n" + fail);
