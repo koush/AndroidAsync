@@ -1,8 +1,12 @@
 package com.koushikdutta.async;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.LinkedList;
 
 import junit.framework.Assert;
@@ -220,7 +224,7 @@ public class PushParser {
                     mArgs.clear();
                     TapCallback callback = mCallback;
                     mCallback = null;
-                    Method method = callback.getTap();
+                    Method method = getTap(callback);
                     method.invoke(callback, args);
                 }
                 catch (Exception ex) {
@@ -228,5 +232,25 @@ public class PushParser {
                 }
             }
         };
+    }
+
+    static Hashtable<Class, Method> mTable = new Hashtable<Class, Method>();
+    static Method getTap(TapCallback callback) {
+        Method found = mTable.get(callback.getClass());
+        if (found != null)
+            return found;
+        for (Method method : callback.getClass().getMethods()) {
+            if ("tap".equals(method.getName())) {
+                mTable.put(callback.getClass(), method);
+                return method;
+            }
+        }
+        String fail =
+        "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
+        "    public protected private *;\n" +
+        "}\n";
+
+        Assert.fail("AndroidAsync: tap callback could not be found. Proguard? Use this in your proguard config:\n" + fail);
+        return null;
     }
 }

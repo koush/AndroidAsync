@@ -186,16 +186,22 @@ public class AsyncHttpClient {
         }
     }
     
-    public static interface DownloadCallback extends RequestCallback<ByteBufferList> {
+    public static abstract class RequestCallbackBase<T> implements RequestCallback<T> {
+        @Override
+        public void onProgress(AsyncHttpResponse response, int downloaded, int total) {
+        }
     }
     
-    public static interface StringCallback extends RequestCallback<String> {
+    public static abstract class DownloadCallback extends RequestCallbackBase<ByteBufferList> {
+    }
+    
+    public static abstract class StringCallback extends RequestCallbackBase<String> {
     }
 
-    public static interface JSONObjectCallback extends RequestCallback<JSONObject> {
+    public static abstract class JSONObjectCallback extends RequestCallbackBase<JSONObject> {
     }
     
-    public static interface FileCallback extends RequestCallback<File> {
+    public static abstract class FileCallback extends RequestCallbackBase<File> {
     }
     
     private interface ResultConvert {
@@ -268,6 +274,19 @@ public class AsyncHttpClient {
         });
     }
     
+    private static void invokeProgress(Handler handler, final RequestCallback callback, final AsyncHttpResponse response, final int downloaded, final int total) {
+        if (handler == null) {
+            callback.onProgress(response, downloaded, total);
+            return;
+        }
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                callback.onProgress(response, downloaded, total);
+            }
+        });
+    }
+
     public static void get(String uri, final String filename, final FileCallback callback) {
         try {
             execute(new AsyncHttpGet(uri), filename, callback);
@@ -280,6 +299,7 @@ public class AsyncHttpClient {
     public static void execute(AsyncHttpRequest req, final String filename, final FileCallback callback) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
         final File file = new File(filename);
+        file.getParentFile().mkdirs();
         final FileOutputStream fout;
         try {
             fout = new FileOutputStream(file);
@@ -289,6 +309,7 @@ public class AsyncHttpClient {
             return;
         }
         execute(req, new HttpConnectCallback() {
+            int mDownloaded = 0;
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
@@ -301,7 +322,16 @@ public class AsyncHttpClient {
                     return;
                 }
                 
-                response.setDataCallback(new OutputStreamDataCallback(fout));
+                final int contentLength = response.getHeaders().getContentLength();
+                
+                response.setDataCallback(new OutputStreamDataCallback(fout) {
+                    @Override
+                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                        mDownloaded += bb.remaining();
+                        super.onDataAvailable(emitter, bb);
+                        invokeProgress(handler, callback, response, mDownloaded, contentLength);
+                    }
+                });
                 response.setCompletedCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
@@ -326,6 +356,7 @@ public class AsyncHttpClient {
     private static void execute(AsyncHttpRequest req, final RequestCallback callback, final ResultConvert convert) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
         execute(req, new HttpConnectCallback() {
+            int mDownloaded = 0;
             ByteBufferList buffer = new ByteBufferList();
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
@@ -334,11 +365,15 @@ public class AsyncHttpClient {
                     return;
                 }
                 
+                final int contentLength = response.getHeaders().getContentLength();
+
                 response.setDataCallback(new DataCallback() {
                     @Override
                     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                        mDownloaded += bb.remaining();
                         buffer.add(bb);
                         bb.clear();
+                        invokeProgress(handler, callback, response, mDownloaded, contentLength);
                     }
                 });
                 response.setCompletedCallback(new CompletedCallback() {

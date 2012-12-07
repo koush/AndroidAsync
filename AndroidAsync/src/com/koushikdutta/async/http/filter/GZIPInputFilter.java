@@ -1,6 +1,5 @@
 package com.koushikdutta.async.http.filter;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -40,6 +39,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
     
     DataEmitterReader mHeaderParser;
     @Override
+    @SuppressWarnings("unused")
     public void onDataAvailable(final DataEmitter emitter, ByteBufferList bb) {
         if (mNeedsHeader) {
             final PushParser parser = new PushParser(emitter);
@@ -84,7 +84,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
 
                     next();
                 }
-                public void next() {
+                private void next() {
                     PushParser parser = new PushParser(emitter);
                     DataCallback summer = new DataCallback() {
                         @Override
