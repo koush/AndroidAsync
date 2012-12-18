@@ -13,6 +13,7 @@ import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.FilteredDataSink;
 import com.koushikdutta.async.LineEmitter;
+import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.ClosedCallback;
@@ -173,7 +174,15 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
     boolean mCompleted = false;
     protected void onCompleted(Exception ex) {
         // DISCONNECT. EVERYTHING.
-        mExchange.setDataCallback(null);
+        // should not get any data after this point...
+        // if so, eat it and disconnect.
+        mExchange.setDataCallback(new NullDataCallback() {
+            @Override
+            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                super.onDataAvailable(emitter, bb);
+                mSocket.close();
+            }
+        });
         mExchange.setWriteableCallback(null);
         mSocket.setClosedCallback(null);
         mSocket.setExceptionCallback(null);

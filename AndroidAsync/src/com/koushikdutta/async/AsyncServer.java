@@ -24,7 +24,7 @@ import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 
 public class AsyncServer {
-    private static final String LOGTAG = "NIO";
+    public static final String LOGTAG = "NIO";
     
     static {
         try {
