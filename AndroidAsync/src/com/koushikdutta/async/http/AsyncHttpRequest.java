@@ -62,14 +62,6 @@ public class AsyncHttpRequest {
         mFollowRedirect = follow;
     }
     
-    void onConnectInternal(AsyncHttpResponse response) {
-        onConnect(response);
-    }
-    
-    protected void onConnect(AsyncHttpResponse response) {
-    }
-
-    
     private AsyncHttpRequestContentWriter mWriter;
     public void setContentWriter(AsyncHttpRequestContentWriter writer) {
         mWriter = writer;

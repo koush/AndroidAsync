@@ -51,7 +51,7 @@ public class AsyncHttpClient {
         execute(server, request, callback, 0);
     }
 
-    private static void execute(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback, int redirectCount) {
+    private static void execute(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback, final int redirectCount) {
         if (redirectCount > 5) {
             callback.onConnectCompleted(new Exception("too many redirects"), null);
             return;
@@ -85,17 +85,19 @@ public class AsyncHttpClient {
 
                         try {
                             RawHeaders headers = getRawHeaders();
-                            if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
-                                AsyncHttpRequest newReq = new AsyncHttpRequest(new URI(headers.get("Location")), request.getMethod());
-                                execute(server, newReq, callback);
-                                
-                                setDataCallback(new NullDataCallback());
-                            }
-                            
+
                             String kas = headers.get("Connection");
                             if (kas != null && "keep-alive".toLowerCase().equals(kas.toLowerCase()))
                                 keepalive = true;
-                            request.onConnect(this);
+
+                            if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
+                                AsyncHttpRequest newReq = new AsyncHttpRequest(new URI(headers.get("Location")), request.getMethod());
+                                execute(server, newReq, callback, redirectCount + 1);
+                                
+                                setDataCallback(new NullDataCallback());
+                                return;
+                            }
+
                             callback.onConnectCompleted(null, this);
                         }
                         catch (Exception ex) {
@@ -262,6 +264,8 @@ public class AsyncHttpClient {
     }
     
     private static void invoke(Handler handler, final RequestCallback callback, final AsyncHttpResponse response, final Exception e, final Object result) {
+        if (callback == null)
+            return;
         if (handler == null) {
             callback.onCompleted(e, response, result);
             return;
@@ -275,6 +279,8 @@ public class AsyncHttpClient {
     }
     
     private static void invokeProgress(Handler handler, final RequestCallback callback, final AsyncHttpResponse response, final int downloaded, final int total) {
+        if (callback == null)
+            return;
         if (handler == null) {
             callback.onProgress(response, downloaded, total);
             return;

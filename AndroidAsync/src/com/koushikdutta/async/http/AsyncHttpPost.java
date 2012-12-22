@@ -13,8 +13,4 @@ public class AsyncHttpPost extends AsyncHttpRequest {
     public AsyncHttpPost(URI uri) {
         super(uri, METHOD);
     }
-    
-    @Override
-    protected void onConnect(AsyncHttpResponse response) {
-    }
 }
