@@ -16,4 +16,5 @@ public interface AsyncHttpServerResponse extends DataSink {
     public void responseCode(int code);
     public ResponseHeaders getHeaders();
     public void writeHead();
+    public void setContentType(String contentType);
 }

@@ -40,6 +40,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     
     @Override
     public void write(ByteBuffer bb) {
+        if (bb.remaining() == 0)
+            return;
+        writeInternal(bb);
+    }
+
+    private void writeInternal(ByteBuffer bb) {
         initFirstWrite();
         mChunker.write(bb);
     }
@@ -58,10 +64,17 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         mHasWritten = true;
         mChunker = new ChunkedOutputFilter(mSink);
     }
-    @Override
-    public void write(ByteBufferList bb) {
+
+    private void writeInternal(ByteBufferList bb) {
         initFirstWrite();
         mChunker.write(bb);
+    }
+
+    @Override
+    public void write(ByteBufferList bb) {
+        if (bb.remaining() == 0)
+            return;
+        writeInternal(bb);
     }
 
     @Override
@@ -83,7 +96,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             onCompleted();
             return;
         }
-        write(ByteBuffer.wrap(new byte[0]));
+        writeInternal(ByteBuffer.wrap(new byte[0]));
         onCompleted();
     }
 
@@ -93,6 +106,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         Assert.assertFalse(mHeadWritten);
         mHeadWritten = true;
         mSink.write(ByteBuffer.wrap(mRawHeaders.toHeaderString().getBytes()));
+    }
+
+    @Override
+    public void setContentType(String contentType) {
+        Assert.assertFalse(mHeadWritten);
+        mRawHeaders.set("Content-Type", contentType);
     }
     
     public void send(String contentType, String string) {
