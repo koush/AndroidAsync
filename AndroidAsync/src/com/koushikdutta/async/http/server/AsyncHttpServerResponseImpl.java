@@ -174,4 +174,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         String status = AsyncHttpServer.getResponseCodeDescription(code);
         mRawHeaders.setStatusLine(String.format("HTTP/1.1 %d %s", code, status));
     }
+
+    @Override
+    public void redirect(String location) {
+        responseCode(302);
+        mRawHeaders.set("Location", location);
+        end();
+    }
 }
