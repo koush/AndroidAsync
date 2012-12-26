@@ -1,7 +1,6 @@
 package com.koushikdutta.async.http;
 
 import java.net.URI;
-import java.net.URL;
 
 import junit.framework.Assert;
 
@@ -13,9 +12,10 @@ public class AsyncHttpRequest {
         String path = getUri().getPath();
         if (path.length() == 0)
             path = "/";
-        String query = getUri().getQuery();
-        if (query != null && query.length() != 0)
-            path += "?" + getUri().getQuery();
+        String query = getUri().getRawQuery();
+        if (query != null && query.length() != 0) {
+            path += "?" + query;
+        }
         return String.format("%s %s HTTP/1.1", mMethod, path);
     }
 

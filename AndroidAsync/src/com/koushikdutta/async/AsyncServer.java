@@ -163,7 +163,8 @@ public class AsyncServer {
                         }
                     });
                 }
-                catch (IOException e) {
+                catch (Exception e) {
+                    handler.onException(e);
                     e.printStackTrace();
                 }
             }
@@ -306,12 +307,16 @@ public class AsyncServer {
     }
     
     private static void shutdownEverything(Selector selector) {
-        for (SelectionKey key: selector.keys()) {
-            try {
-                key.cancel();
+        try {
+            for (SelectionKey key: selector.keys()) {
+                try {
+                    key.cancel();
+                }
+                catch (Exception e) {
+                }
             }
-            catch (Exception e) {
-            }
+        }
+        catch (Exception ex) {
         }
 
         // SHUT. DOWN. EVERYTHING.
