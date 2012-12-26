@@ -5,25 +5,19 @@ import java.nio.ByteBuffer;
 import junit.framework.Assert;
 
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataExchange;
-import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.ExceptionCallback;
-import com.koushikdutta.async.FilteredDataSink;
+import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.LineEmitter;
-import com.koushikdutta.async.NullDataCallback;
-import com.koushikdutta.async.Util;
 import com.koushikdutta.async.LineEmitter.StringCallback;
+import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
-import com.koushikdutta.async.http.filter.ChunkedInputFilter;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
-import com.koushikdutta.async.http.filter.GZIPInputFilter;
-import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
@@ -33,19 +27,19 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         return mRawHeaders;
     }
 
-    private AsyncHttpRequestContentWriter mWriter;
+    private AsyncHttpRequestBody mWriter;
     void setSocket(AsyncSocket socket, DataExchange exchange) {
         mSocket = socket;
         mExchange = exchange;
 
-        mWriter = mRequest.getContentWriter();
+        mWriter = mRequest.getBody();
         if (mWriter != null) {
             mRequest.getHeaders().setContentType(mWriter.getContentType());
             mRequest.getHeaders().getHeaders().set("Transfer-Encoding", "Chunked");
         }
         
         String rs = mRequest.getRequestString();
-        Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
+        com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
                 if (mWriter != null)
@@ -87,52 +81,7 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
             return;
         }
 
-        DataCallback callback = this;
-        
-        if ("gzip".equals(mHeaders.getContentEncoding())) {
-            GZIPInputFilter gunzipper = new GZIPInputFilter();
-            gunzipper.setDataCallback(callback);
-            gunzipper.setExceptionCallback(mReporter);
-            callback = gunzipper;
-        }        
-        else if ("deflate".equals(mHeaders.getContentEncoding())) {
-            InflaterInputFilter inflater = new InflaterInputFilter();
-            inflater.setExceptionCallback(mReporter);
-            inflater.setDataCallback(callback);
-            callback = inflater;
-        }
-
-        if (!mHeaders.isChunked()) {
-            if (mHeaders.getContentLength() < 0) {
-                report(new Exception("not using chunked encoding, and no content-length found."));
-                return;
-            }
-            FilteredDataCallback contentLengthWatcher = new FilteredDataCallback() {
-                int totalRead = 0;
-                @Override
-                public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                    totalRead += bb.remaining();
-                    Assert.assertTrue(totalRead <= mHeaders.getContentLength());
-                    super.onDataAvailable(emitter, bb);
-                    if (totalRead == mHeaders.getContentLength())
-                        AsyncHttpResponseImpl.this.report(null);
-                }
-            };
-            contentLengthWatcher.setDataCallback(callback);
-            callback = contentLengthWatcher;
-        }
-        else {
-            ChunkedInputFilter chunker = new ChunkedInputFilter() {
-                @Override
-                public void onCompleted(Exception ex) {
-                    AsyncHttpResponseImpl.this.report(ex);
-                }
-            };
-            
-            chunker.setExceptionCallback(mReporter);
-            chunker.setDataCallback(callback);
-            callback = chunker;
-        }
+        DataCallback callback = Util.getBodyDecoder(this, mRawHeaders, mReporter);
         mExchange.setDataCallback(callback);
     }
     
@@ -148,7 +97,6 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
                 }
                 else {
                     onHeadersReceived();
-//                    System.out.println(mRawHeaders.toHeaderString());
                 }
             }
             catch (Exception ex) {

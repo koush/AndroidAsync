@@ -5,12 +5,14 @@ import java.util.List;
 
 import org.apache.http.NameValuePair;
 
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 
-public class UrlEncodedFormWriter implements AsyncHttpRequestContentWriter {
+public class UrlEncodedFormBody implements AsyncHttpRequestBody {
     List<NameValuePair> mParameters;
-    public UrlEncodedFormWriter(List<NameValuePair> parameters) {
+    public UrlEncodedFormBody(List<NameValuePair> parameters) {
         mParameters = parameters;
     }
     @Override
@@ -36,5 +38,15 @@ public class UrlEncodedFormWriter implements AsyncHttpRequestContentWriter {
     @Override
     public String getContentType() {
         return "application/x-www-form-urlencoded";
+    }
+    @Override
+    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+        // TODO Auto-generated method stub
+        
+    }
+    @Override
+    public void onCompleted(Exception ex) {
+        // TODO Auto-generated method stub
+        
     }
 }

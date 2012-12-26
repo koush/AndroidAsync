@@ -62,12 +62,12 @@ public class AsyncHttpRequest {
         mFollowRedirect = follow;
     }
     
-    private AsyncHttpRequestContentWriter mWriter;
-    public void setContentWriter(AsyncHttpRequestContentWriter writer) {
-        mWriter = writer;
+    private AsyncHttpRequestBody mBody;
+    public void setBody(AsyncHttpRequestBody body) {
+        mBody = body;
     }
     
-    public AsyncHttpRequestContentWriter getContentWriter() {
-        return mWriter;
+    public AsyncHttpRequestBody getBody() {
+        return mBody;
     }
 }

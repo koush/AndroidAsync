@@ -21,9 +21,13 @@ import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.ExceptionEmitter;
+import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpGet;
+import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 
 public class AsyncHttpServer implements ExceptionEmitter {
@@ -40,6 +44,8 @@ public class AsyncHttpServer implements ExceptionEmitter {
                     @Override
                     protected void onHeadersReceived() {
                         super.onHeadersReceived();
+                        
+                        socket.setDataCallback(new NullDataCallback());
                         RawHeaders headers = getRawHeaders();
                         
                         String statusLine = headers.getStatusLine();
@@ -167,7 +173,11 @@ public class AsyncHttpServer implements ExceptionEmitter {
     }
     
     public void get(String regex, HttpServerRequestCallback callback) {
-        addAction("GET", regex, callback);
+        addAction(AsyncHttpGet.METHOD, regex, callback);
+    }
+    
+    public void post(String regex, HttpServerRequestCallback callback) {
+        addAction(AsyncHttpPost.METHOD, regex, callback);
     }
     
     public static InputStream getAssetStream(final Context context, String asset) {

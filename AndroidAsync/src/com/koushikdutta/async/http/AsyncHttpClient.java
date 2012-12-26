@@ -11,6 +11,8 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Hashtable;
 
+import junit.framework.Assert;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -22,6 +24,8 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataExchange;
+import com.koushikdutta.async.ExceptionCallback;
+import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.SSLDataExchange;
 import com.koushikdutta.async.callback.ClosedCallback;
@@ -29,7 +33,11 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.RequestCallback;
+import com.koushikdutta.async.http.filter.ChunkedInputFilter;
+import com.koushikdutta.async.http.filter.GZIPInputFilter;
+import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.libcore.ResponseHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
