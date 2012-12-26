@@ -66,6 +66,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     private void writeInternal(ByteBufferList bb) {
+        Assert.assertTrue(!mCompleted);
         initFirstWrite();
         mChunker.write(bb);
     }
@@ -133,7 +134,9 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         }
     }
     
+    boolean mCompleted;
     protected void onCompleted() {
+        mCompleted = true;
     }
     
     protected void report(Exception e) {

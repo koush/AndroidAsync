@@ -20,7 +20,6 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.CompletedEmitter;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;

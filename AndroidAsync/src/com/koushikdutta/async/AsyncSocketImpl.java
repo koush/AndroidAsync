@@ -172,13 +172,13 @@ class AsyncSocketImpl implements AsyncSocket {
     DataCallback mDataHandler;
     @Override
     public void setDataCallback(DataCallback callback) {
-        try {
-            throw new Exception();
-        }
-        catch (Exception ex) {
-            System.out.println("data callback set " + this);
-            ex.printStackTrace();
-        }
+//        try {
+//            throw new Exception();
+//        }
+//        catch (Exception ex) {
+//            System.out.println("data callback set " + this);
+//            ex.printStackTrace();
+//        }
         mDataHandler = callback;
     }
 
