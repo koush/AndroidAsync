@@ -7,8 +7,8 @@ import android.util.Base64;
 
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
-import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.callback.ClosedCallback;
+import com.koushikdutta.async.callback.CompletedCallback;
 
 public class WebSocketImpl implements WebSocket {
     private static String SHA1(String text) {
@@ -56,7 +56,7 @@ public class WebSocketImpl implements WebSocket {
             @Override
             protected void report(Exception ex) {
                 if (WebSocketImpl.this.mExceptionCallback != null)
-                    WebSocketImpl.this.mExceptionCallback.onException(ex);
+                    WebSocketImpl.this.mExceptionCallback.onCompleted(ex);
             }
             @Override
             protected void onMessage(byte[] payload) {
@@ -95,14 +95,14 @@ public class WebSocketImpl implements WebSocket {
         return mClosedCallback;
     }
 
-    ExceptionCallback mExceptionCallback;
+    CompletedCallback mExceptionCallback;
     @Override
-    public void setExceptionCallback(ExceptionCallback callback) {
-        mExceptionCallback = callback;        
+    public void setCompletedCallback(CompletedCallback callback) {
+        mExceptionCallback = callback;
     }
 
     @Override
-    public ExceptionCallback getExceptionCallback() {
+    public CompletedCallback getCompletedCallback() {
         return mExceptionCallback;
     }
 

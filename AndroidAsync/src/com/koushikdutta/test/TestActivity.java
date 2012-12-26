@@ -366,8 +366,9 @@ public class TestActivity extends Activity {
                 }
 
                 @Override
-                public void onException(Exception error) {
-                    error.printStackTrace();
+                public void onCompleted(Exception error) {
+                    if (error != null)
+                        error.printStackTrace();
                 }
 
                 @Override

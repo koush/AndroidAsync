@@ -7,7 +7,7 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     }
     
     public void onDataAvailable() {
-        if (mDataCallback != null)
+        if (mDataCallback != null && !mPaused && mBuffers.remaining() > 0)
             mDataCallback.onDataAvailable(this, mBuffers);
     }
     
@@ -35,5 +35,24 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
         bb.clear();
 
         onDataAvailable();        
+    }
+
+    private boolean mPaused;
+    @Override
+    public void pause() {
+        mPaused = true;
+    }
+
+    @Override
+    public void resume() {
+        if (!mPaused)
+            return;
+        mPaused = false;
+        onDataAvailable();
+    }
+
+    @Override
+    public boolean isPaused() {
+        return mPaused;
     }
 }

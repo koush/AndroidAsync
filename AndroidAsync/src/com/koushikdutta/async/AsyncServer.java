@@ -164,7 +164,7 @@ public class AsyncServer {
                     });
                 }
                 catch (Exception e) {
-                    handler.onException(e);
+                    handler.onCompleted(e);
                     e.printStackTrace();
                 }
             }

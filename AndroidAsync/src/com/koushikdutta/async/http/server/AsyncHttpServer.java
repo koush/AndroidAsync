@@ -19,18 +19,16 @@ import android.content.Context;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ExceptionCallback;
-import com.koushikdutta.async.ExceptionEmitter;
+import com.koushikdutta.async.CompletedEmitter;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
-import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 
-public class AsyncHttpServer implements ExceptionEmitter {
+public class AsyncHttpServer implements CompletedEmitter {
     AsyncServerSocket mListener;
     public void stop() {
         if (mListener != null)
@@ -41,12 +39,14 @@ public class AsyncHttpServer implements ExceptionEmitter {
             @Override
             public void onAccepted(final AsyncSocket socket) {
                 AsyncHttpServerRequestImpl req = new AsyncHttpServerRequestImpl() {
+                    boolean responseComplete;
+                    boolean requestComplete;
                     @Override
                     protected void onHeadersReceived() {
                         super.onHeadersReceived();
                         
-                        socket.setDataCallback(new NullDataCallback());
                         RawHeaders headers = getRawHeaders();
+                        System.out.println(headers.toHeaderString());
                         
                         String statusLine = headers.getStatusLine();
                         String[] parts = statusLine.split(" ");
@@ -70,8 +70,9 @@ public class AsyncHttpServer implements ExceptionEmitter {
                         AsyncHttpServerResponseImpl res = new AsyncHttpServerResponseImpl(socket) {
                             @Override
                             protected void onCompleted() {
+                                responseComplete = true;
                                 // reuse the socket for a subsequent request.
-                                onAccepted(socket);
+                                handleOnCompleted();
                             }
                         };
                         if (match == null) {
@@ -83,16 +84,26 @@ public class AsyncHttpServer implements ExceptionEmitter {
                         match.callback.onRequest(this, res);
                     }
                     @Override
-                    protected void report(Exception e) {
-                        super.report(e);
-                        AsyncHttpServer.this.report(e);
+                    protected void onCompleted(Exception e) {
+                        requestComplete = true;
+                        super.onCompleted(e);
+                        mSocket.setDataCallback(null);
+                        mSocket.pause();
+                        handleOnCompleted();
+                    }
+                    
+                    private void handleOnCompleted() {
+                        if (requestComplete && responseComplete) {
+                            onAccepted(socket);
+                        }
                     }
                 };
                 req.setSocket(socket);
+                socket.resume();
             }
 
             @Override
-            public void onException(Exception error) {
+            public void onCompleted(Exception error) {
                 report(error);
             }
 
@@ -104,23 +115,23 @@ public class AsyncHttpServer implements ExceptionEmitter {
     }
 
     private void report(Exception ex) {
-        if (mExceptionCallback != null)
-            mExceptionCallback.onException(ex);
+        if (mCompletedCallback != null)
+            mCompletedCallback.onCompleted(ex);
     }
     
     public AsyncHttpServer(int port) {
         this(AsyncServer.getDefault(), port);
     }
 
-    ExceptionCallback mExceptionCallback;
+    CompletedCallback mCompletedCallback;
     @Override
-    public void setExceptionCallback(ExceptionCallback callback) {
-        mExceptionCallback = callback;        
+    public void setCompletedCallback(CompletedCallback callback) {
+        mCompletedCallback = callback;        
     }
 
     @Override
-    public ExceptionCallback getExceptionCallback() {
-        return mExceptionCallback;
+    public CompletedCallback getCompletedCallback() {
+        return mCompletedCallback;
     }
     
     private static class Pair {

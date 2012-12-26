@@ -2,9 +2,10 @@ package com.koushikdutta.async;
 
 import junit.framework.Assert;
 
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 
-public class FilteredDataCallback implements DataEmitter, DataCallback, ExceptionEmitter {
+public class FilteredDataCallback implements DataEmitter, DataCallback, CompletedEmitter {
     public FilteredDataCallback() {
     }
 
@@ -25,24 +26,51 @@ public class FilteredDataCallback implements DataEmitter, DataCallback, Exceptio
     }
     
     protected void report(Exception e) {
-        if (mExceptionCallback != null)
-            mExceptionCallback.onException(e);
+        if (mCompletedCallback != null)
+            mCompletedCallback.onCompleted(e);
     }
     
     @Override
-    public ExceptionCallback getExceptionCallback() {
-        return mExceptionCallback;
+    public CompletedCallback getCompletedCallback() {
+        return mCompletedCallback;
     }
     
     @Override
-    public void setExceptionCallback(ExceptionCallback callback) {
-        mExceptionCallback = callback;
+    public void setCompletedCallback(CompletedCallback callback) {
+        mCompletedCallback = callback;
     }
-    ExceptionCallback mExceptionCallback;
+    CompletedCallback mCompletedCallback;
     
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         Assert.assertNotNull(mDataCallback);
         Util.emitAllData(this, bb);
+        if (bb.remaining() > 0)
+            pending = bb;
+    }
+
+    private ByteBufferList pending;
+    private boolean mPaused;
+    @Override
+    public void pause() {
+        mPaused = true;
+    }
+
+    @Override
+    public void resume() {
+        if (!mPaused)
+            return;
+        mPaused = false;
+        if (pending != null) {
+            Assert.assertNotNull(mDataCallback);
+            Util.emitAllData(this, pending);
+            if (pending.remaining() == 0)
+                pending = null;
+        }
+    }
+
+    @Override
+    public boolean isPaused() {
+        return mPaused;
     }
 }

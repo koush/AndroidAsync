@@ -1,10 +1,10 @@
 package com.koushikdutta.async.http.server;
 
 import com.koushikdutta.async.CloseableData;
-import com.koushikdutta.async.ExceptionEmitter;
+import com.koushikdutta.async.CompletedEmitter;
 
 
-public interface WebSocket extends CloseableData, ExceptionEmitter {
+public interface WebSocket extends CloseableData, CompletedEmitter {
     static public interface StringCallback {
         public void onStringAvailable(String s);
     }

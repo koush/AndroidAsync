@@ -7,9 +7,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 import junit.framework.Assert;
-import android.util.Log;
 
 import com.koushikdutta.async.callback.ClosedCallback;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
@@ -91,8 +91,16 @@ class AsyncSocketImpl implements AsyncSocket {
         }
     }
 
+    private ByteBuffer pending;
+    private void spit(ByteBuffer b) {
+        ByteBufferList list = new ByteBufferList();
+        list.add(b);
+        Util.emitAllData(this, list);
+    }
+    
     int mToAlloc = 0;
     int onReadable() {
+        Assert.assertTrue(pending == null);
         // even if the socket is paused,
         // it may end up getting a queued readable event if it is
         // already in the selector's ready queue.
@@ -123,11 +131,11 @@ class AsyncSocketImpl implements AsyncSocket {
                 mToAlloc = read * 2;
                 b.limit(b.position());
                 b.position(0);
-                ByteBufferList list = new ByteBufferList();
-                list.add(b);
-                Util.emitAllData(this, list);
+                spit(b);
+                if (b.remaining() != 0)
+                    pending = b;
             }
-        
+
             if (closed)
                 reportClose();
         }
@@ -164,6 +172,13 @@ class AsyncSocketImpl implements AsyncSocket {
     DataCallback mDataHandler;
     @Override
     public void setDataCallback(DataCallback callback) {
+        try {
+            throw new Exception();
+        }
+        catch (Exception ex) {
+            System.out.println("data callback set " + this);
+            ex.printStackTrace();
+        }
         mDataHandler = callback;
     }
 
@@ -190,19 +205,19 @@ class AsyncSocketImpl implements AsyncSocket {
 
     void report(Exception e) {
         if (mExceptionCallback != null)
-            mExceptionCallback.onException(e);
+            mExceptionCallback.onCompleted(e);
         else
             e.printStackTrace();
     }
     
-    private ExceptionCallback mExceptionCallback;
+    private CompletedCallback mExceptionCallback;
     @Override
-    public void setExceptionCallback(ExceptionCallback callback) {
+    public void setCompletedCallback(CompletedCallback callback) {
         mExceptionCallback = callback;
     }
 
     @Override
-    public ExceptionCallback getExceptionCallback() {
+    public CompletedCallback getCompletedCallback() {
         return mExceptionCallback;
     }
     
@@ -238,6 +253,11 @@ class AsyncSocketImpl implements AsyncSocket {
             mKey.interestOps(SelectionKey.OP_READ | mKey.interestOps());
         }
         catch (Exception ex) {
+        }
+        if (pending != null) {
+            spit(pending);
+            if (pending.remaining() == 0)
+                pending = null;
         }
     }
     

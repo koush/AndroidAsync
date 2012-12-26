@@ -177,4 +177,12 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
             }
         }
     }
+
+    public String debug() {
+        StringBuilder builder = new StringBuilder();
+        for (ByteBuffer bb: this) {
+            builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
+        }
+        return builder.toString();
+    }
 }

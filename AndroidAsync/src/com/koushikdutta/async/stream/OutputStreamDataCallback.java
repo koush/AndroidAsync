@@ -6,10 +6,10 @@ import java.nio.ByteBuffer;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.ExceptionCallback;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 
-public class OutputStreamDataCallback implements DataCallback, ExceptionCallback {
+public class OutputStreamDataCallback implements DataCallback, CompletedCallback {
     private OutputStream mOutput;
     public OutputStreamDataCallback(OutputStream os) {
         mOutput = os;
@@ -23,7 +23,7 @@ public class OutputStreamDataCallback implements DataCallback, ExceptionCallback
             }
         }
         catch (Exception ex) {
-            onException(ex);
+            onCompleted(ex);
         }
         bb.clear();
     }
@@ -33,12 +33,12 @@ public class OutputStreamDataCallback implements DataCallback, ExceptionCallback
             mOutput.close();
         }
         catch (IOException e) {
-            onException(e);
+            onCompleted(e);
         }
     }
 
     @Override
-    public void onException(Exception error) {
+    public void onCompleted(Exception error) {
         error.printStackTrace();       
     }
 }

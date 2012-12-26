@@ -8,7 +8,6 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataExchange;
-import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
@@ -50,12 +49,7 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         LineEmitter liner = new LineEmitter(exchange);
         liner.setLineCallback(mHeaderCallback);
         
-        mSocket.setExceptionCallback(new ExceptionCallback() {
-            @Override
-            public void onException(Exception error) {
-                report(error);
-            }
-        });
+        mSocket.setCompletedCallback(mReporter);
         mSocket.setClosedCallback(new ClosedCallback() {
             @Override
             public void onClosed() {
@@ -66,9 +60,9 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         });
     }
     
-    private ExceptionCallback mReporter = new ExceptionCallback() {
+    private CompletedCallback mReporter = new CompletedCallback() {
         @Override
-        public void onException(Exception error) {
+        public void onCompleted(Exception error) {
             report(error);
         }
     };
@@ -133,7 +127,7 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         });
         mExchange.setWriteableCallback(null);
         mSocket.setClosedCallback(null);
-        mSocket.setExceptionCallback(null);
+        mSocket.setCompletedCallback(null);
         mCompleted = true;
 //        System.out.println("closing up shop");
         if (mCompletedCallback != null)
@@ -149,17 +143,6 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
     @Override
     public CompletedCallback getCompletedCallback() {
         return mCompletedCallback;
-    }
-
-    ExceptionCallback mErrorCallback;
-    @Override
-    public void setExceptionCallback(ExceptionCallback callback) {
-        mErrorCallback = callback;
-    }
-
-    @Override
-    public ExceptionCallback getExceptionCallback() {
-        return mErrorCallback;
     }
 
     @Override

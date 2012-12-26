@@ -4,8 +4,8 @@ import junit.framework.Assert;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.FilteredDataCallback;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
@@ -18,16 +18,16 @@ public class Util {
         return new UnknownRequestBody(emitter, headers.get("Content-Type"));
     }
     
-    public static DataCallback getBodyDecoder(DataCallback callback, RawHeaders headers, final ExceptionCallback reporter) {
+    public static DataCallback getBodyDecoder(DataCallback callback, RawHeaders headers, final CompletedCallback reporter) {
         if ("gzip".equals(headers.get("Content-Encoding"))) {
             GZIPInputFilter gunzipper = new GZIPInputFilter();
             gunzipper.setDataCallback(callback);
-            gunzipper.setExceptionCallback(reporter);
+            gunzipper.setCompletedCallback(reporter);
             callback = gunzipper;
         }        
         else if ("deflate".equals(headers.get("Content-Encoding"))) {
             InflaterInputFilter inflater = new InflaterInputFilter();
-            inflater.setExceptionCallback(reporter);
+            inflater.setCompletedCallback(reporter);
             inflater.setDataCallback(callback);
             callback = inflater;
         }
@@ -40,9 +40,9 @@ public class Util {
             _contentLength = -1;
         }
         final int contentLength = _contentLength;
-        if (!"chunked".equalsIgnoreCase(headers.get("Transfer-Encoding"))) {
+        if (-1 != contentLength) {
             if (contentLength < 0) {
-                reporter.onException(new Exception("not using chunked encoding, and no content-length found."));
+                reporter.onCompleted(new Exception("not using chunked encoding, and no content-length found."));
             }
             FilteredDataCallback contentLengthWatcher = new FilteredDataCallback() {
                 int totalRead = 0;
@@ -52,23 +52,27 @@ public class Util {
                     Assert.assertTrue(totalRead <= contentLength);
                     super.onDataAvailable(emitter, bb);
                     if (totalRead == contentLength)
-                        reporter.onException(null);
+                        reporter.onCompleted(null);
                 }
             };
             contentLengthWatcher.setDataCallback(callback);
             callback = contentLengthWatcher;
         }
-        else {
+        else if ("chunked".equalsIgnoreCase(headers.get("Transfer-Encoding"))) {
             ChunkedInputFilter chunker = new ChunkedInputFilter() {
                 @Override
                 public void onCompleted(Exception ex) {
-                    reporter.onException(ex);
+                    reporter.onCompleted(ex);
                 }
             };
             
-            chunker.setExceptionCallback(reporter);
+            chunker.setCompletedCallback(reporter);
             chunker.setDataCallback(callback);
             callback = chunker;
+        }
+        else {
+            // we're done I guess.
+            reporter.onCompleted(null);
         }
         return callback;
     }

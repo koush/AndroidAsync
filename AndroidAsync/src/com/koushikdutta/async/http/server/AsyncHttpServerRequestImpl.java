@@ -3,9 +3,9 @@ package com.koushikdutta.async.http.server;
 import java.util.regex.Matcher;
 
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ExceptionCallback;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.Util;
@@ -17,14 +17,14 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
     AsyncSocket mSocket;
     Matcher mMatcher;
 
-    private ExceptionCallback mReporter = new ExceptionCallback() {
+    private CompletedCallback mReporter = new CompletedCallback() {
         @Override
-        public void onException(Exception error) {
-            report(error);
+        public void onCompleted(Exception error) {
+            AsyncHttpServerRequestImpl.this.onCompleted(error);
         }
     };
 
-    protected void report(Exception e) {
+    protected void onCompleted(Exception e) {
         if (mBody != null)
             mBody.onCompleted(e);
     }
@@ -50,13 +50,13 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
                     mRawHeaders.addLine(s);
                 }
                 else {
-                    onHeadersReceived();
                     DataCallback callback = Util.getBodyDecoder(mBody = Util.getBody(mSocket, mRawHeaders), mRawHeaders, mReporter);
                     mSocket.setDataCallback(callback);
+                    onHeadersReceived();
                 }
             }
             catch (Exception ex) {
-                report(ex);
+                onCompleted(ex);
             }
         }
     };
@@ -102,5 +102,20 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
     @Override
     public AsyncHttpRequestBody getBody() {
         return mBody;
+    }
+
+    @Override
+    public void pause() {
+        mSocket.pause();
+    }
+
+    @Override
+    public void resume() {
+        mSocket.resume();
+    }
+
+    @Override
+    public boolean isPaused() {
+        return mSocket.isPaused();
     }
 }

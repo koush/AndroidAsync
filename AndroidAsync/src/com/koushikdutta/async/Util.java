@@ -13,15 +13,18 @@ import com.koushikdutta.async.callback.WritableCallback;
 public class Util {
     public static void emitAllData(DataEmitter emitter, ByteBufferList list) {
         int remaining;
-        while (emitter.getDataCallback() != null && (remaining = list.remaining()) > 0) {
-            DataCallback handler = emitter.getDataCallback();
+        AsyncSocket socket = null;
+        if (emitter instanceof AsyncSocket)
+            socket = (AsyncSocket)emitter;
+        DataCallback handler;
+        while ((socket == null || !socket.isPaused()) && (handler = emitter.getDataCallback()) != null && (remaining = list.remaining()) > 0) {
             handler.onDataAvailable(emitter, list);
             if (remaining == list.remaining() && handler == emitter.getDataCallback()) {
                 Assert.fail("mDataHandler failed to consume data, yet remains the mDataHandler.");
                 break;
             }
         }
-        Assert.assertEquals(list.remaining(), 0);
+        Assert.assertTrue(list.remaining() == 0 || (socket != null && socket.isPaused()));
     }
 
     public static void emitAllData(DataEmitter emitter, ByteBuffer b) {
