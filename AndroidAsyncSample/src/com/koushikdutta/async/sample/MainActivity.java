@@ -18,10 +18,9 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.AsyncHttpClient.StringCallback;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpResponse;
-import com.koushikdutta.async.http.UrlEncodedFormWriter;
+import com.koushikdutta.async.http.UrlEncodedFormBody;
 
 public class MainActivity extends Activity {
     ImageView rommanager;
@@ -82,10 +81,10 @@ public class MainActivity extends Activity {
         pairs.add(new BasicNameValuePair("chs", "512x512"));
         pairs.add(new BasicNameValuePair("chxt", "x"));
         pairs.add(new BasicNameValuePair("chd", "t:40,20,50,20,100"));
-        UrlEncodedFormWriter writer = new UrlEncodedFormWriter(pairs);
+        UrlEncodedFormBody writer = new UrlEncodedFormBody(pairs);
         try {
             AsyncHttpPost post = new AsyncHttpPost("http://chart.googleapis.com/chart");
-            post.setContentWriter(writer);
+            post.setBody(writer);
             AsyncHttpClient.execute(post, filename, new AsyncHttpClient.FileCallback() {
                 @Override
                 public void onCompleted(Exception e, AsyncHttpResponse response, File result) {

@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http;
 
+import java.util.Hashtable;
+
 import junit.framework.Assert;
 
 import com.koushikdutta.async.ByteBufferList;
@@ -15,7 +17,10 @@ import com.koushikdutta.async.http.server.UnknownRequestBody;
 
 public class Util {
     public static AsyncHttpRequestBody getBody(DataEmitter emitter, RawHeaders headers) {
-        return new UnknownRequestBody(emitter, headers.get("Content-Type"));
+        String contentType = headers.get("Content-Type");
+        if (UrlEncodedFormBody.CONTENT_TYPE.equals(contentType))
+            return new UrlEncodedFormBody();
+        return new UnknownRequestBody(emitter, contentType);
     }
     
     public static DataCallback getBodyDecoder(DataCallback callback, RawHeaders headers, final CompletedCallback reporter) {

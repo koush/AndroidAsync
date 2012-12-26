@@ -35,18 +35,19 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
             }
         });
     }
+    public static final String CONTENT_TYPE = "application/x-www-form-urlencoded";
     @Override
     public String getContentType() {
-        return "application/x-www-form-urlencoded";
+        return CONTENT_TYPE;
     }
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        // TODO Auto-generated method stub
-        
+        bb.clear();
     }
     @Override
     public void onCompleted(Exception ex) {
-        // TODO Auto-generated method stub
-        
+        System.out.println("completed");
+    }
+    public UrlEncodedFormBody() {
     }
 }
