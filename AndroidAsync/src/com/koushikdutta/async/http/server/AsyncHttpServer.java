@@ -25,6 +25,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 
 public class AsyncHttpServer implements CompletedEmitter {
@@ -38,21 +39,22 @@ public class AsyncHttpServer implements CompletedEmitter {
             @Override
             public void onAccepted(final AsyncSocket socket) {
                 AsyncHttpServerRequestImpl req = new AsyncHttpServerRequestImpl() {
+                    Pair match;
                     boolean responseComplete;
                     boolean requestComplete;
+                    AsyncHttpServerResponseImpl res;
                     @Override
                     protected void onHeadersReceived() {
                         super.onHeadersReceived();
                         
                         RawHeaders headers = getRawHeaders();
-                        System.out.println(headers.toHeaderString());
+//                        System.out.println(headers.toHeaderString());
                         
                         String statusLine = headers.getStatusLine();
                         String[] parts = statusLine.split(" ");
                         String path = parts[1];
                         path = path.split("\\?")[0];
                         String action = parts[0];
-                        Pair match = null;
                         synchronized (mActions) {
                             ArrayList<Pair> pairs = mActions.get(action);
                             if (pairs != null) {
@@ -66,7 +68,7 @@ public class AsyncHttpServer implements CompletedEmitter {
                                 }
                             }
                         }
-                        AsyncHttpServerResponseImpl res = new AsyncHttpServerResponseImpl(socket) {
+                        res = new AsyncHttpServerResponseImpl(socket) {
                             @Override
                             protected void onCompleted() {
                                 responseComplete = true;
@@ -80,15 +82,28 @@ public class AsyncHttpServer implements CompletedEmitter {
                             return;
                         }
 
-                        match.callback.onRequest(this, res);
+                        if (!getBody().readFullyOnRequest()) {
+//                            Assert.assertTrue(getBody() instanceof CompletedEmitter);
+//                            CompletedEmitter completed = (CompletedEmitter)getBody();
+//                            completed.setCompletedCallback(this);
+                            match.callback.onRequest(this, res);
+                        }
+                        else if (requestComplete) {
+                            match.callback.onRequest(this, res);
+                        }
                     }
+
                     @Override
-                    protected void onCompleted(Exception e) {
+                    public void onCompleted(Exception e) {
                         requestComplete = true;
                         super.onCompleted(e);
                         mSocket.setDataCallback(null);
                         mSocket.pause();
                         handleOnCompleted();
+
+                        if (getBody().readFullyOnRequest()) {
+                            match.callback.onRequest(this, res);
+                        }
                     }
                     
                     private void handleOnCompleted() {

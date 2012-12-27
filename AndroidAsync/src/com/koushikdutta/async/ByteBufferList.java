@@ -178,7 +178,8 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         }
     }
 
-    public String debug() {
+    // not doing toString as this is really nasty in the debugger...
+    public String getString() {
         StringBuilder builder = new StringBuilder();
         for (ByteBuffer bb: this) {
             builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));

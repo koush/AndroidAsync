@@ -96,11 +96,15 @@ class AsyncSocketImpl implements AsyncSocket {
         ByteBufferList list = new ByteBufferList();
         list.add(b);
         Util.emitAllData(this, list);
+        if (list.remaining() == 0) {
+            b.position(0);
+            b.limit(0);
+        }
     }
     
     int mToAlloc = 0;
     int onReadable() {
-        Assert.assertTrue(pending == null);
+        spitPending();
         // even if the socket is paused,
         // it may end up getting a queued readable event if it is
         // already in the selector's ready queue.
@@ -132,8 +136,11 @@ class AsyncSocketImpl implements AsyncSocket {
                 b.limit(b.position());
                 b.position(0);
                 spit(b);
-                if (b.remaining() != 0)
+                if (b.remaining() != 0) {
+                    Assert.assertTrue(pending == null);
+//                    System.out.println("There was data remaining after this op: " + b.remaining());
                     pending = b;
+                }
             }
 
             if (closed)
@@ -244,6 +251,17 @@ class AsyncSocketImpl implements AsyncSocket {
         }
     }
     
+    private void spitPending() {
+        if (pending != null) {
+//            System.out.println("p[ending spit");
+            spit(pending);
+//            System.out.println("pending now: " + pending.remaining());
+            if (pending.remaining() == 0) {
+                pending = null;
+            }
+        }
+    }
+    
     @Override
     public void resume() {
         if (!mPaused)
@@ -254,11 +272,7 @@ class AsyncSocketImpl implements AsyncSocket {
         }
         catch (Exception ex) {
         }
-        if (pending != null) {
-            spit(pending);
-            if (pending.remaining() == 0)
-                pending = null;
-        }
+        spitPending();
     }
     
     @Override

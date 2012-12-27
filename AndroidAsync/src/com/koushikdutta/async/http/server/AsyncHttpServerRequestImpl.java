@@ -12,7 +12,7 @@ import com.koushikdutta.async.http.Util;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
-public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
+public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest, CompletedCallback {
     private RawHeaders mRawHeaders = new RawHeaders();
     AsyncSocket mSocket;
     Matcher mMatcher;
@@ -24,7 +24,8 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
         }
     };
 
-    protected void onCompleted(Exception e) {
+    @Override
+    public void onCompleted(Exception e) {
         if (mBody != null)
             mBody.onCompleted(e);
     }
@@ -50,7 +51,8 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest {
                     mRawHeaders.addLine(s);
                 }
                 else {
-                    DataCallback callback = Util.getBodyDecoder(mBody = Util.getBody(mSocket, mRawHeaders), mRawHeaders, mReporter);
+                    mBody = Util.getBody(mRawHeaders);
+                    DataCallback callback = Util.getBodyDecoder(mBody, mRawHeaders, mReporter);
                     mSocket.setDataCallback(callback);
                     onHeadersReceived();
                 }

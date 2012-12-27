@@ -24,7 +24,10 @@ public class Util {
                 break;
             }
         }
-        Assert.assertTrue(list.remaining() == 0 || (socket != null && socket.isPaused()));
+        if (!(list.remaining() == 0 || (socket != null && socket.isPaused()))) {
+//            System.out.println(list.getString());
+            Assert.fail();
+        }
     }
 
     public static void emitAllData(DataEmitter emitter, ByteBuffer b) {

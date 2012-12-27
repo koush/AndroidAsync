@@ -8,7 +8,7 @@ import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 
-public abstract class ChunkedInputFilter extends FilteredDataCallback implements CompletedCallback {
+public class ChunkedInputFilter extends FilteredDataCallback {
     private int mChunkLength = 0;
     private int mChunkLengthRemaining = 0;
     private State mState = State.CHUNK_LEN;
@@ -99,14 +99,14 @@ public abstract class ChunkedInputFilter extends FilteredDataCallback implements
                     }
                     else {
                         mState = State.COMPLETE;
-                        onCompleted(null);
+                        report(null);
                     }
                     mChunkLength = 0;
                     break;
                 case COMPLETE:
                     Exception fail = new Exception("Continued receiving data after chunk complete");
                     report(fail);
-                    onCompleted(fail);
+                    report(fail);
                     return;
                 }
             }

@@ -1,7 +1,5 @@
 package com.koushikdutta.async.http;
 
-import java.util.Hashtable;
-
 import junit.framework.Assert;
 
 import com.koushikdutta.async.ByteBufferList;
@@ -16,11 +14,11 @@ import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.UnknownRequestBody;
 
 public class Util {
-    public static AsyncHttpRequestBody getBody(DataEmitter emitter, RawHeaders headers) {
+    public static AsyncHttpRequestBody getBody(RawHeaders headers) {
         String contentType = headers.get("Content-Type");
         if (UrlEncodedFormBody.CONTENT_TYPE.equals(contentType))
             return new UrlEncodedFormBody();
-        return new UnknownRequestBody(emitter, contentType);
+        return new UnknownRequestBody(contentType);
     }
     
     public static DataCallback getBodyDecoder(DataCallback callback, RawHeaders headers, final CompletedCallback reporter) {
@@ -49,27 +47,27 @@ public class Util {
             if (contentLength < 0) {
                 reporter.onCompleted(new Exception("not using chunked encoding, and no content-length found."));
             }
+//            System.out.println("Content len: " + contentLength);
             FilteredDataCallback contentLengthWatcher = new FilteredDataCallback() {
                 int totalRead = 0;
                 @Override
                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                     totalRead += bb.remaining();
+//                    System.out.println("read total: " + totalRead);
                     Assert.assertTrue(totalRead <= contentLength);
                     super.onDataAvailable(emitter, bb);
-                    if (totalRead == contentLength)
+                    if (totalRead == contentLength) {
+//                        System.out.println("content length is done");
                         reporter.onCompleted(null);
+                    }
                 }
             };
             contentLengthWatcher.setDataCallback(callback);
+            contentLengthWatcher.setCompletedCallback(reporter);
             callback = contentLengthWatcher;
         }
         else if ("chunked".equalsIgnoreCase(headers.get("Transfer-Encoding"))) {
-            ChunkedInputFilter chunker = new ChunkedInputFilter() {
-                @Override
-                public void onCompleted(Exception ex) {
-                    reporter.onCompleted(ex);
-                }
-            };
+            ChunkedInputFilter chunker = new ChunkedInputFilter();
             
             chunker.setCompletedCallback(reporter);
             chunker.setDataCallback(callback);
