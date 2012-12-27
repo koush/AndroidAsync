@@ -1,14 +1,15 @@
 package com.koushikdutta.async.http;
 
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.http.entity.StringEntity;
+import org.apache.http.message.BasicNameValuePair;
+
+import android.net.Uri;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
@@ -58,13 +59,18 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
 
     @Override
     public void onCompleted(Exception ex) {
-//        System.out.println("completed url form body");
-
-        try {
-            mParameters = URLEncodedUtils.parse(new StringEntity(data.getString()));
-        }
-        catch (Exception e) {
-            e.printStackTrace();
+        ArrayList<NameValuePair> params;
+        mParameters = params = new ArrayList<NameValuePair>();
+        String[] pairs = data.getString().split("&");
+        for (String p : pairs) {
+            String[] pair = p.split("=", 2);
+            if (pair.length == 0)
+                continue;
+            String name = Uri.decode(pair[0]);
+            String value = null;
+            if (pair.length == 2)
+                value = Uri.decode(pair[1]);
+            params.add(new BasicNameValuePair(name, value));
         }
     }
     

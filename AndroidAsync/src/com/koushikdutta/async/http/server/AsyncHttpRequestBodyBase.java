@@ -2,8 +2,6 @@ package com.koushikdutta.async.http.server;
 
 import junit.framework.Assert;
 
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;

@@ -16,8 +16,18 @@ import com.koushikdutta.async.http.server.UnknownRequestBody;
 public class Util {
     public static AsyncHttpRequestBody getBody(RawHeaders headers) {
         String contentType = headers.get("Content-Type");
-        if (UrlEncodedFormBody.CONTENT_TYPE.equals(contentType))
-            return new UrlEncodedFormBody();
+        if (contentType != null) {
+            String[] values = contentType.split(";");
+            for (int i = 0; i < values.length; i++) {
+                values[i] = values[i].trim();
+            }
+            for (String ct: values) {
+                if (UrlEncodedFormBody.CONTENT_TYPE.equals(ct))
+                    return new UrlEncodedFormBody();
+                if (MultipartFormDataBody.CONTENT_TYPE.equals(ct))
+                    return new MultipartFormDataBody(contentType, values);
+            }
+        }
         return new UnknownRequestBody(contentType);
     }
     
@@ -53,7 +63,7 @@ public class Util {
                 @Override
                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                     totalRead += bb.remaining();
-//                    System.out.println("read total: " + totalRead);
+                    System.out.println("read total: " + totalRead);
                     Assert.assertTrue(totalRead <= contentLength);
                     super.onDataAvailable(emitter, bb);
                     if (totalRead == contentLength) {
