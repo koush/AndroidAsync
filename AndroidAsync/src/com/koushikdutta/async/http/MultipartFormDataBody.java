@@ -33,19 +33,26 @@ public class MultipartFormDataBody extends AsyncHttpRequestBodyBase {
                                 headers.addLine(s);
                             }
                             else {
-                                boundaryEmitter.setDataCallback(new DataCallback() {
-                                    @Override
-                                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                                        System.out.println(bb.getString());
-                                        bb.clear();
-                                    }
-                                });
+                                DataCallback callback = onPart(headers);
+                                if (callback == null)
+                                    callback = new DataCallback() {
+                                        int total;
+                                        @Override
+                                        public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                                            total += bb.remaining();
+                                            System.out.println(total);
+                                            System.out.println(bb.peekString());
+                                            bb.clear();
+                                        }
+                                    };
+                                boundaryEmitter.setDataCallback(callback);
                             }
                         }
                     });
                 }
                 @Override
                 protected void onBoundaryEnd() {
+                    System.out.println("boundary end");
                 }
             };
             return;
@@ -56,5 +63,9 @@ public class MultipartFormDataBody extends AsyncHttpRequestBodyBase {
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         boundaryEmitter.onDataAvailable(emitter, bb);
+    }
+    
+    public DataCallback onPart(RawHeaders headers) {
+        return null;
     }
 }

@@ -61,7 +61,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
     public void onCompleted(Exception ex) {
         ArrayList<NameValuePair> params;
         mParameters = params = new ArrayList<NameValuePair>();
-        String[] pairs = data.getString().split("&");
+        String[] pairs = data.peekString().split("&");
         for (String p : pairs) {
             String[] pair = p.split("=", 2);
             if (pair.length == 0)

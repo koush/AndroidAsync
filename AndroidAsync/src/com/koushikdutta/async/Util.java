@@ -25,7 +25,7 @@ public class Util {
             }
         }
         if (!(list.remaining() == 0 || (socket != null && socket.isPaused()))) {
-            System.out.println("Data: " + list.getString());
+            System.out.println("Data: " + list.peekString());
             System.out.println("handler: " + handler);
             Assert.fail();
         }

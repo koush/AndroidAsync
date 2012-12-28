@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http.server;
 
 import java.nio.ByteBuffer;
+import java.util.DuplicateFormatFlagsException;
 
 import junit.framework.Assert;
 
@@ -9,11 +10,9 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataCallback;
 
 public class BoundaryEmitter extends FilteredDataCallback {
-    private int mNearMatch;
     private byte[] boundary;
     public BoundaryEmitter(String boundary) {
         this.boundary = ("--" + boundary).getBytes();
-        mNearMatch = this.boundary.length - 2;
     }
     
     protected void onBoundaryStart() {
@@ -27,7 +26,7 @@ public class BoundaryEmitter extends FilteredDataCallback {
         Assert.assertTrue(count <= a2.length - o2);
         for (int i = 0; i < count; i++, o1++, o2++) {
             if (a1[o1] != a2[o2]) {
-                System.out.println("match fail at " + i);
+//                System.out.println("match fail at " + i);
                 return i;
             }
         }
@@ -49,7 +48,19 @@ public class BoundaryEmitter extends FilteredDataCallback {
     int state = 0;
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        System.out.println(bb.getString());
+//        System.out.println(bb.getString());
+        System.out.println("chunk: " + bb.remaining());
+        
+        System.out.println("state: " + state);
+        
+        // if we were in the middle of a potential match, let's throw that
+        // at the beginning of the buffer and process it too.
+        if (state > 0) {
+            ByteBuffer b = ByteBuffer.wrap(boundary, 0, state).duplicate();
+            bb.add(0, b);
+            state = 0;
+        }
+        
         int last = 0;
         byte[] buf = new byte[bb.remaining()];
         bb.get(buf);
@@ -60,7 +71,10 @@ public class BoundaryEmitter extends FilteredDataCallback {
                     if (state == boundary.length)
                         state = -1;
                 }
-                else {
+                else if (state > 0) {
+                    // let's try matching again one byte after the start
+                    // of last match occurrence
+                    i -= state;
                     state = 0;
                 }
             }
@@ -78,6 +92,7 @@ public class BoundaryEmitter extends FilteredDataCallback {
                         // len can be -1 on the first boundary
                         Assert.assertEquals(-2, len);
                     }
+                    System.out.println("bstart");
                     onBoundaryStart();
                 }
                 else if (buf[i] == '-') {
@@ -104,6 +119,7 @@ public class BoundaryEmitter extends FilteredDataCallback {
                     ByteBufferList list = new ByteBufferList();
                     list.add(b);
                     super.onDataAvailable(emitter, list);
+                    System.out.println("bend");
                     onBoundaryEnd();
                 }
                 else {
@@ -136,9 +152,11 @@ public class BoundaryEmitter extends FilteredDataCallback {
             }
         }
 
-        // TODO: this is derped if it is in the middle of a match
         if (last < buf.length) {
-            ByteBuffer b = ByteBuffer.wrap(buf, last, buf.length - last);
+            System.out.println("amount left at boundary: " + (buf.length - last));
+            System.out.println(state);
+            int keep = Math.max(state, 0);
+            ByteBuffer b = ByteBuffer.wrap(buf, last, buf.length - last - keep);
             ByteBufferList list = new ByteBufferList();
             list.add(b);
             super.onDataAvailable(emitter, list);

@@ -166,20 +166,11 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
     }
     
     public void spewString() {
-        for (ByteBuffer bb: mBuffers) {
-            try {
-                String s = new String(bb.array(), bb.arrayOffset() + bb.position(), bb.limit());
-                System.out.println(s);
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-                
-            }
-        }
+        System.out.println(peekString());
     }
 
     // not doing toString as this is really nasty in the debugger...
-    public String getString() {
+    public String peekString() {
         StringBuilder builder = new StringBuilder();
         for (ByteBuffer bb: this) {
             builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
