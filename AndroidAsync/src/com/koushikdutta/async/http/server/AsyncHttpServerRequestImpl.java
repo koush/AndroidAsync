@@ -12,7 +12,7 @@ import com.koushikdutta.async.http.Util;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
-public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest, CompletedCallback {
+public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest, CompletedCallback {
     private RawHeaders mRawHeaders = new RawHeaders();
     AsyncSocket mSocket;
     Matcher mMatcher;
@@ -20,6 +20,7 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest, Compl
     private CompletedCallback mReporter = new CompletedCallback() {
         @Override
         public void onCompleted(Exception error) {
+//            System.out.println("completion of request");
             AsyncHttpServerRequestImpl.this.onCompleted(error);
         }
     };
@@ -30,10 +31,11 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest, Compl
             mBody.onCompleted(e);
     }
 
-    protected void onHeadersReceived() {
-    }
+    abstract protected void onHeadersReceived();
     
     protected void onNotHttp() {
+        System.out.println("not http: " + mRawHeaders.getStatusLine());
+        System.out.println("not http: " + mRawHeaders.getStatusLine().length());
     }
     
     StringCallback mHeaderCallback = new StringCallback() {
@@ -52,6 +54,7 @@ public class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest, Compl
                 }
                 else {
                     mBody = Util.getBody(mRawHeaders);
+                    System.out.println(mBody.getClass());
                     DataCallback callback = Util.getBodyDecoder(mBody, mRawHeaders, mReporter);
                     mSocket.setDataCallback(callback);
                     onHeadersReceived();

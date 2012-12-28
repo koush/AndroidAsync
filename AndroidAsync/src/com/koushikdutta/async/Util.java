@@ -16,7 +16,7 @@ public class Util {
         AsyncSocket socket = null;
         if (emitter instanceof AsyncSocket)
             socket = (AsyncSocket)emitter;
-        DataCallback handler;
+        DataCallback handler = null;
         while ((socket == null || !socket.isPaused()) && (handler = emitter.getDataCallback()) != null && (remaining = list.remaining()) > 0) {
             handler.onDataAvailable(emitter, list);
             if (remaining == list.remaining() && handler == emitter.getDataCallback()) {
@@ -25,7 +25,8 @@ public class Util {
             }
         }
         if (!(list.remaining() == 0 || (socket != null && socket.isPaused()))) {
-//            System.out.println(list.getString());
+            System.out.println("Data: " + list.getString());
+            System.out.println("handler: " + handler);
             Assert.fail();
         }
     }

@@ -62,14 +62,12 @@ public class Util {
                 int totalRead = 0;
                 @Override
                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                    totalRead += bb.remaining();
-                    System.out.println("read total: " + totalRead);
-                    Assert.assertTrue(totalRead <= contentLength);
-                    super.onDataAvailable(emitter, bb);
-                    if (totalRead == contentLength) {
-//                        System.out.println("content length is done");
-                        reporter.onCompleted(null);
-                    }
+                    Assert.assertTrue(totalRead < contentLength);
+                    ByteBufferList list = bb.get(Math.min(contentLength - totalRead, bb.remaining()));
+                    totalRead += list.remaining();
+                    super.onDataAvailable(emitter, list);
+                    if (totalRead == contentLength)
+                        report(null);
                 }
             };
             contentLengthWatcher.setDataCallback(callback);

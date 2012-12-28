@@ -34,11 +34,18 @@ public class BoundaryEmitter extends FilteredDataCallback {
         return count;
     }
     
+    @Override
+    protected void report(Exception e) {
+        e.printStackTrace();
+        super.report(e);
+    }
+    
     // >= 0 matching
     // -1 matching - (start of boundary end) or \r (boundary start)
     // -2 matching - (end of boundary end)
     // -3 matching \r after boundary
     // -4 matching \n after boundary
+    // defunct: -5 matching start - MUST match the start of the first boundary
     int state = 0;
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -113,14 +120,25 @@ public class BoundaryEmitter extends FilteredDataCallback {
                     report(new Exception("Invalid multipart/form-data. Expected \n"));
                 }
             }
+//            else if (state == -5) {
+//                Assert.assertEquals(i, 0);
+//                if (buf[i] == boundary[i]) {
+//                    state = 1;
+//                }
+//                else {
+//                    report(new Exception("Invalid multipart/form-data. Expected boundary start: '" + (char)boundary[i] + "'"));
+//                    return;
+//                }
+//            }
             else {
                 Assert.fail();
                 report(new Exception("Invalid multipart/form-data. Unknown state?"));
             }
         }
 
+        // TODO: this is derped if it is in the middle of a match
         if (last < buf.length) {
-            ByteBuffer b = ByteBuffer.wrap(buf, last, buf.length);
+            ByteBuffer b = ByteBuffer.wrap(buf, last, buf.length - last);
             ByteBufferList list = new ByteBufferList();
             list.add(b);
             super.onDataAvailable(emitter, list);

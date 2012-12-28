@@ -25,7 +25,6 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpPost;
-import com.koushikdutta.async.http.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 
 public class AsyncHttpServer implements CompletedEmitter {
@@ -43,11 +42,28 @@ public class AsyncHttpServer implements CompletedEmitter {
                     boolean responseComplete;
                     boolean requestComplete;
                     AsyncHttpServerResponseImpl res;
+                    boolean hasContinued;
                     @Override
                     protected void onHeadersReceived() {
-                        super.onHeadersReceived();
-                        
                         RawHeaders headers = getRawHeaders();
+
+                        // should the negotiation of 100 continue be here, or in the request impl?
+                        // probably here, so AsyncResponse can negotiate a 100 continue.
+                        if (!hasContinued && "100-continue".equals(headers.get("Expect"))) {
+//                            System.out.println("continuing...");
+                            Util.writeAll(mSocket, "HTTP/1.1 100 Continue\r\n".getBytes(), new CompletedCallback() {
+                                @Override
+                                public void onCompleted(Exception ex) {
+                                    if (ex != null) {
+                                        report(ex);
+                                        return;
+                                    }
+                                    hasContinued = true;
+                                    onHeadersReceived();
+                                }
+                            });
+                            return;
+                        }
 //                        System.out.println(headers.toHeaderString());
                         
                         String statusLine = headers.getStatusLine();
