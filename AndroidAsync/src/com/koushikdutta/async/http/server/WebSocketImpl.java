@@ -2,6 +2,7 @@ package com.koushikdutta.async.http.server;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
+import java.util.UUID;
 
 import android.util.Base64;
 
@@ -9,6 +10,8 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.http.AsyncHttpResponse;
+import com.koushikdutta.async.http.libcore.RawHeaders;
 
 public class WebSocketImpl implements WebSocket {
     private static String SHA1(String text) {
@@ -25,34 +28,8 @@ public class WebSocketImpl implements WebSocket {
     
     final static String MAGIC = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     
-    private AsyncSocket mSocket;
-    BufferedDataSink mSink;
-    public WebSocketImpl(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-        mSocket = request.getSocket();
-        mSink = new BufferedDataSink(mSocket);
-        
-        mSocket.setClosedCallback(new ClosedCallback() {
-            @Override
-            public void onClosed() {
-                if (WebSocketImpl.this.mClosedCallback != null)
-                    WebSocketImpl.this.mClosedCallback.onClosed();
-            }
-        });
-        
-        String key = request.getHeaders().getHeaders().get("Sec-WebSocket-Key");
-        String concat = key + MAGIC;
-        String sha1 = SHA1(concat);
-        String origin = request.getHeaders().getHeaders().get("Origin");
-        
-        response.responseCode(101);
-        response.getHeaders().getHeaders().set("Upgrade", "WebSocket");
-        response.getHeaders().getHeaders().set("Connection", "Upgrade");
-        response.getHeaders().getHeaders().set("Sec-WebSocket-Accept", sha1);
-//        if (origin != null)
-//            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
-        response.writeHead();
-        
-        mParser = new HybiParser(request) {
+    private void setupParser() {
+        mParser = new HybiParser(mSocket) {
             @Override
             protected void report(Exception ex) {
                 if (WebSocketImpl.this.mExceptionCallback != null)
@@ -76,6 +53,64 @@ public class WebSocketImpl implements WebSocket {
             }
         };
         mParser.setMasking(false);
+        if (mSocket.isPaused())
+            mSocket.resume();
+    }
+    
+    private AsyncSocket mSocket;
+    BufferedDataSink mSink;
+    public WebSocketImpl(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+        this(request.getSocket());
+        
+        String key = request.getHeaders().getHeaders().get("Sec-WebSocket-Key");
+        String concat = key + MAGIC;
+        String sha1 = SHA1(concat);
+        String origin = request.getHeaders().getHeaders().get("Origin");
+        
+        response.responseCode(101);
+        response.getHeaders().getHeaders().set("Upgrade", "WebSocket");
+        response.getHeaders().getHeaders().set("Connection", "Upgrade");
+        response.getHeaders().getHeaders().set("Sec-WebSocket-Accept", sha1);
+//        if (origin != null)
+//            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
+        response.writeHead();
+        
+        setupParser();
+    }
+    
+    public static void addWebSocketUpgradeHeaders(RawHeaders headers) {
+        final String key = UUID.randomUUID().toString();
+        headers.set("Sec-WebSocket-Key", key);
+        headers.set("Connection", "Upgrade");
+        headers.set("Upgrade", "websocket");
+    }
+    
+    public WebSocketImpl(AsyncSocket socket) {
+        mSocket = socket;
+        mSink = new BufferedDataSink(mSocket);
+        
+        mSocket.setClosedCallback(new ClosedCallback() {
+            @Override
+            public void onClosed() {
+                if (WebSocketImpl.this.mClosedCallback != null)
+                    WebSocketImpl.this.mClosedCallback.onClosed();
+            }
+        });
+    }
+    
+    public static WebSocket finishHandshake(RawHeaders requestHeaders, AsyncHttpResponse response) {
+        if (response == null)
+            return null;
+        if (response.getHeaders().getHeaders().getResponseCode() != 101)
+            return null;
+        if (!"websocket".equalsIgnoreCase(response.getHeaders().getHeaders().get("Upgrade")))
+            return null;
+        
+        // TODO: verify accept hash Sec-WebSocket-Accept
+        
+        WebSocketImpl ret = new WebSocketImpl(response.detachSocket());
+        ret.setupParser();
+        return ret;
     }
     
     HybiParser mParser;

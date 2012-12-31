@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.CompletedEmitter;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
@@ -11,4 +12,5 @@ public interface AsyncHttpResponse extends DataEmitter, DataSink, CompletedEmitt
     public CompletedCallback getCompletedCallback();
     public ResponseHeaders getHeaders();
     public void end();
+    public AsyncSocket detachSocket();
 }

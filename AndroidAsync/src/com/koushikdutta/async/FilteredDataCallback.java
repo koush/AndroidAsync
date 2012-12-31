@@ -43,6 +43,7 @@ public class FilteredDataCallback implements DataEmitter, DataCallback, Complete
     
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+        Assert.assertNull(pending);
         Assert.assertNotNull(mDataCallback);
         Util.emitAllData(this, bb);
         if (bb.remaining() > 0)

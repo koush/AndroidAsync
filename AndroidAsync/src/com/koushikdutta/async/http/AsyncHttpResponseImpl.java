@@ -19,16 +19,15 @@ import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
-public class AsyncHttpResponseImpl extends FilteredDataCallback implements AsyncHttpResponse {
+abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements AsyncHttpResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
     RawHeaders getRawHeaders() {
         return mRawHeaders;
     }
 
     private AsyncHttpRequestBody mWriter;
-    void setSocket(AsyncSocket socket, AsyncSocket exchange) {
-        mSocket = socket;
-        mExchange = exchange;
+    void setSocket(AsyncSocket exchange) {
+        mSocket = exchange;
 
         mWriter = mRequest.getBody();
         if (mWriter != null) {
@@ -66,17 +65,7 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
         }
     };
     
-    protected void onHeadersReceived() {
-        mHeaders = new ResponseHeaders(mRequest.getUri(), mRawHeaders);
-        
-        if (mHeaders.getContentLength() == 0) {
-            report(null);
-            return;
-        }
-
-        DataCallback callback = Util.getBodyDecoder(this, mRawHeaders, mReporter);
-        mExchange.setDataCallback(callback);
-    }
+    protected abstract void onHeadersReceived();
     
     StringCallback mHeaderCallback = new StringCallback() {
         @Override
@@ -89,7 +78,13 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
                     mRawHeaders.addLine(s);
                 }
                 else {
+                    mHeaders = new ResponseHeaders(mRequest.getUri(), mRawHeaders);
                     onHeadersReceived();
+                    // socket may get detached after headers (websocket)
+                    if (mSocket == null)
+                        return;
+                    DataCallback callback = Util.getBodyDecoder(AsyncHttpResponseImpl.this, mRawHeaders, mReporter);
+                    mSocket.setDataCallback(callback);
                 }
             }
             catch (Exception ex) {
@@ -101,48 +96,45 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
     @Override
     protected void report(Exception e) {
         super.report(e);
-        onCompleted(e);
-    }
-    
-    private AsyncSocket mSocket;
-    private AsyncHttpRequest mRequest;
-    private AsyncSocket mExchange;
-    private ResponseHeaders mHeaders;
-    public AsyncHttpResponseImpl(AsyncHttpRequest request) {
-        mRequest = request;
-    }
 
-    boolean mCompleted = false;
-    protected void onCompleted(Exception ex) {
         // DISCONNECT. EVERYTHING.
         // should not get any data after this point...
         // if so, eat it and disconnect.
-        mExchange.setDataCallback(new NullDataCallback() {
+        mSocket.setDataCallback(new NullDataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                 super.onDataAvailable(emitter, bb);
                 mSocket.close();
             }
         });
-        mExchange.setWriteableCallback(null);
+        mSocket.setWriteableCallback(null);
         mSocket.setClosedCallback(null);
         mSocket.setCompletedCallback(null);
         mCompleted = true;
 //        System.out.println("closing up shop");
-        if (mCompletedCallback != null)
-            mCompletedCallback.onCompleted(ex);
+//        if (mCompletedCallback != null)
+//            mCompletedCallback.onCompleted(e);
     }
     
-    CompletedCallback mCompletedCallback;
-    @Override
-    public void setCompletedCallback(CompletedCallback handler) {
-        mCompletedCallback = handler;        
+    private AsyncHttpRequest mRequest;
+    AsyncSocket mSocket;
+    private ResponseHeaders mHeaders;
+    public AsyncHttpResponseImpl(AsyncHttpRequest request) {
+        mRequest = request;
     }
 
-    @Override
-    public CompletedCallback getCompletedCallback() {
-        return mCompletedCallback;
-    }
+    boolean mCompleted = false;
+//    
+//    CompletedCallback mCompletedCallback;
+//    @Override
+//    public void setCompletedCallback(CompletedCallback handler) {
+//        mCompletedCallback = handler;        
+//    }
+//
+//    @Override
+//    public CompletedCallback getCompletedCallback() {
+//        return mCompletedCallback;
+//    }
 
     @Override
     public ResponseHeaders getHeaders() {

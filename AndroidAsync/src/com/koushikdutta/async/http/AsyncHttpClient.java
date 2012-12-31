@@ -22,25 +22,22 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.RequestCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.server.WebSocket;
+import com.koushikdutta.async.http.server.WebSocketImpl;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
     private static abstract class InternalConnectCallback implements ConnectCallback {
-        AsyncSocket exchange;
+        boolean reused = false;
     }
-    
-    private static class SocketExchange {
-        AsyncSocket socket;
-        AsyncSocket exchange;
-    }
-    private static Hashtable<String, HashSet<SocketExchange>> mSockets = new Hashtable<String, HashSet<SocketExchange>>();
+
+    private static Hashtable<String, HashSet<AsyncSocket>> mSockets = new Hashtable<String, HashSet<AsyncSocket>>();
     
     public static void execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
         execute(AsyncServer.getDefault(), request, callback);
@@ -72,7 +69,7 @@ public class AsyncHttpClient {
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
             @Override
-            public void onConnectCompleted(Exception ex, final AsyncSocket socket) {
+            public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                 if (ex != null) {
                     callback.onConnectCompleted(ex, null);
                     return;
@@ -80,8 +77,6 @@ public class AsyncHttpClient {
                 final AsyncHttpResponseImpl ret = new AsyncHttpResponseImpl(request) {
                     boolean keepalive = false;
                     protected void onHeadersReceived() {
-                        super.onHeadersReceived();
-
                         try {
                             RawHeaders headers = getRawHeaders();
 
@@ -93,7 +88,7 @@ public class AsyncHttpClient {
                                 AsyncHttpRequest newReq = new AsyncHttpRequest(new URI(headers.get("Location")), request.getMethod());
                                 execute(server, newReq, callback, redirectCount + 1);
                                 
-                                setDataCallback(new NullDataCallback());
+//                                setDataCallback(new NullDataCallback());
                                 return;
                             }
 
@@ -104,63 +99,73 @@ public class AsyncHttpClient {
                         }
                     };
                     
-                    protected void onCompleted(Exception ex) {
-                        super.onCompleted(ex);
+                    @Override
+                    protected void report(Exception ex) {
+                        if (mSocket == null)
+                            return;
+                        super.report(ex);
                         if (!keepalive) {
-                            socket.close();
+                            mSocket.close();
                         }
                         else {
-                            HashSet<SocketExchange> sockets = mSockets.get(lookup);
+                            HashSet<AsyncSocket> sockets = mSockets.get(lookup);
                             if (sockets == null) {
-                                sockets = new HashSet<SocketExchange>();
+                                sockets = new HashSet<AsyncSocket>();
                                 mSockets.put(lookup, sockets);
                             }
-                            final HashSet<SocketExchange> ss = sockets;
+                            final HashSet<AsyncSocket> ss = sockets;
                             synchronized (sockets) {
-                                SocketExchange se = new SocketExchange();
-                                se.socket = socket;
-                                se.exchange = exchange;
-                                sockets.add(se);
-                                socket.setClosedCallback(new ClosedCallback() {
+                                sockets.add(mSocket);
+                                mSocket.setClosedCallback(new ClosedCallback() {
                                     @Override
                                     public void onClosed() {
                                         synchronized (ss) {
-                                            ss.remove(socket);
+                                            ss.remove(mSocket);
                                         }
-                                        socket.setClosedCallback(null);
+                                        mSocket.setClosedCallback(null);
                                     }
                                 });
                             }
                         }
-                    };
+                    }
+
+
+                    @Override
+                    public AsyncSocket detachSocket() {
+                        mSocket.setWriteableCallback(null);
+                        mSocket.setClosedCallback(null);
+                        mSocket.setCompletedCallback(null);
+                        mSocket.setDataCallback(null);
+                        AsyncSocket socket = mSocket;
+                        mSocket = null;
+                        return socket;
+                    }
                 };
                 // socket and exchange are the same for regular http
                 // but different for https (ssl)
                 // the exchange will be a wrapper around socket that does
                 // ssl translation.
-                if (exchange == null) {
-                    exchange = socket;
+                if (!reused) {
                     if (request.getUri().getScheme().equals("https")) {
-                        exchange = new AsyncSSLSocket(socket, uri.getHost(), finalPort);
+                        socket = new AsyncSSLSocket(socket, uri.getHost(), finalPort);
                     }
                 }
 
-                ret.setSocket(socket, exchange);
+                ret.setSocket(socket);
             }
         };
 
-        HashSet<SocketExchange> sockets = mSockets.get(lookup);
+        HashSet<AsyncSocket> sockets = mSockets.get(lookup);
         if (sockets != null) {
             synchronized (sockets) {
-                for (final SocketExchange se: sockets) {
-                    final AsyncSocket socket = se.socket;
+                for (final AsyncSocket socket: sockets) {
                     if (socket.isConnected()) {
-                        sockets.remove(se);
+                        sockets.remove(socket);
                         socket.setClosedCallback(null);
                         server.post(new Runnable() {
                             @Override
                             public void run() {
-                                socketConnected.exchange = se.exchange;
+                                socketConnected.reused = true;
                                 socketConnected.onConnectCompleted(null, socket);
                             }
                         });
@@ -299,23 +304,23 @@ public class AsyncHttpClient {
         }
     }
     
-    public static class WebSocketCallback implements CompletedCallback {
-        @Override
-        public void onCompleted(Exception ex) {
-        }
+    public static interface WebSocketCallback {
+        public void onCompleted(Exception ex, WebSocket webSocket);
     }
     
     public static void websocket(String uri, final WebSocketCallback callback) {
         try {
-            execute(new AsyncHttpGet(uri), new HttpConnectCallback() {
+            final AsyncHttpGet get = new AsyncHttpGet(uri);
+            WebSocketImpl.addWebSocketUpgradeHeaders(get.getHeaders().getHeaders());
+            execute(get, new HttpConnectCallback() {
                 @Override
                 public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
-//                    response.get
+                    callback.onCompleted(null, WebSocketImpl.finishHandshake(get.getHeaders().getHeaders(), response));
                 }
             });
         }
         catch (URISyntaxException e) {
-            callback.onCompleted(e);
+            callback.onCompleted(e, null);
         }
     }
     

@@ -56,6 +56,11 @@ public class Util {
         if (-1 != contentLength) {
             if (contentLength < 0) {
                 reporter.onCompleted(new Exception("not using chunked encoding, and no content-length found."));
+                return callback;
+            }
+            if (contentLength == 0) {
+                reporter.onCompleted(null);
+                return callback;
             }
 //            System.out.println("Content len: " + contentLength);
             FilteredDataCallback contentLengthWatcher = new FilteredDataCallback() {
