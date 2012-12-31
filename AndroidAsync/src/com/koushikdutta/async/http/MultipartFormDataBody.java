@@ -33,15 +33,16 @@ public class MultipartFormDataBody extends AsyncHttpRequestBodyBase {
                                 headers.addLine(s);
                             }
                             else {
-                                DataCallback callback = onPart(headers);
+                                Part part = new Part(headers);
+                                DataCallback callback = onPart(part);
                                 if (callback == null)
                                     callback = new DataCallback() {
                                         int total;
                                         @Override
                                         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                                             total += bb.remaining();
-                                            System.out.println(total);
-                                            System.out.println(bb.peekString());
+//                                            System.out.println(total);
+//                                            System.out.println(bb.peekString());
                                             bb.clear();
                                         }
                                     };
@@ -52,7 +53,7 @@ public class MultipartFormDataBody extends AsyncHttpRequestBodyBase {
                 }
                 @Override
                 protected void onBoundaryEnd() {
-                    System.out.println("boundary end");
+//                    System.out.println("boundary end");
                 }
             };
             return;
@@ -65,7 +66,20 @@ public class MultipartFormDataBody extends AsyncHttpRequestBodyBase {
         boundaryEmitter.onDataAvailable(emitter, bb);
     }
     
-    public DataCallback onPart(RawHeaders headers) {
-        return null;
+    MultipartCallback mCallback;
+    public void setMultipartCallback(MultipartCallback callback) {
+        mCallback = callback;
+    }
+    
+    public MultipartCallback getMultipartCallback() {
+        return mCallback;
+    }
+    
+    private DataCallback onPart(Part part) {
+//        System.out.println("here");
+//        System.out.println(headers.toHeaderString());
+        if (mCallback == null)
+            return null;
+        return mCallback.onPart(part);
     }
 }

@@ -84,7 +84,8 @@ public class TestActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        AsyncHttpServer server = new AsyncHttpServer(3000);
+        AsyncHttpServer server = new AsyncHttpServer();
+        server.listen(3000);
         server.get("/", new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {

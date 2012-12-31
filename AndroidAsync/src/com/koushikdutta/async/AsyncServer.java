@@ -70,7 +70,7 @@ public class AsyncServer {
         final ChannelWrapper sc = handler.getChannel();
         SelectionKey ckey = sc.register(mSelector);
         ckey.attach(handler);
-        handler.mKey = ckey;
+        handler.setup(this, ckey);
     }
     
     public void post(Runnable runnable) {
@@ -366,7 +366,7 @@ public class AsyncServer {
                     ListenCallback serverHandler = (ListenCallback) key.attachment();
                     AsyncSocketImpl handler = new AsyncSocketImpl();
                     handler.attach(sc);
-                    handler.mKey = ckey;
+                    handler.setup(server, ckey);
                     ckey.attach(handler);
                     serverHandler.onAccepted(handler);
                 }
@@ -386,7 +386,7 @@ public class AsyncServer {
                     try {
                         sc.finishConnect();
                         AsyncSocketImpl newHandler = new AsyncSocketImpl();
-                        newHandler.mKey = key;
+                        newHandler.setup(server, key);
                         newHandler.attach(sc);
                         key.attach(newHandler);
                         handler.onConnectCompleted(null, newHandler);

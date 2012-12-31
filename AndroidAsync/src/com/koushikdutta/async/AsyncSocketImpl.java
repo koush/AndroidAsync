@@ -39,10 +39,19 @@ class AsyncSocketImpl implements AsyncSocket {
     }
     
     private ChannelWrapper mChannel;
-    SelectionKey mKey;
+    private SelectionKey mKey;
+//    private AsyncServer mServer;
+    private Thread mAffinity;
+    
+    void setup(AsyncServer server, SelectionKey key) {
+        mAffinity = Thread.currentThread();
+//        mServer = server;
+        mKey = key;
+    }
     
     @Override
     public void write(ByteBufferList list) {
+        Assert.assertEquals(mAffinity, Thread.currentThread());
         if (!mChannel.isConnected()) {
             Assert.assertFalse(mChannel.isChunked());
             return;
@@ -73,6 +82,7 @@ class AsyncSocketImpl implements AsyncSocket {
 
     @Override
     public void write(ByteBuffer b) {
+        Assert.assertEquals(mAffinity, Thread.currentThread());
         try {
             if (!mChannel.isConnected()) {
                 Assert.assertFalse(mChannel.isChunked());
@@ -241,6 +251,7 @@ class AsyncSocketImpl implements AsyncSocket {
     boolean mPaused = false;
     @Override
     public void pause() {
+        Assert.assertEquals(mAffinity, Thread.currentThread());
         if (mPaused)
             return;
         mPaused = true;
@@ -264,6 +275,7 @@ class AsyncSocketImpl implements AsyncSocket {
     
     @Override
     public void resume() {
+        Assert.assertEquals(mAffinity, Thread.currentThread());
         if (!mPaused)
             return;
         mPaused = false;

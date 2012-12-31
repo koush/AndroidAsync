@@ -28,120 +28,127 @@ import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 
 public class AsyncHttpServer implements CompletedEmitter {
-    AsyncServerSocket mListener;
+    ArrayList<AsyncServerSocket> mListeners = new ArrayList<AsyncServerSocket>();
     public void stop() {
-        if (mListener != null)
-            mListener.stop();
+        if (mListeners != null) {
+            for (AsyncServerSocket listener: mListeners) {
+                listener.stop();
+            }
+        }
     }
-    public AsyncHttpServer(AsyncServer server, int port) {
-        server.listen(null, port, new ListenCallback() {
-            @Override
-            public void onAccepted(final AsyncSocket socket) {
-                AsyncHttpServerRequestImpl req = new AsyncHttpServerRequestImpl() {
-                    Pair match;
-                    boolean responseComplete;
-                    boolean requestComplete;
-                    AsyncHttpServerResponseImpl res;
-                    boolean hasContinued;
-                    @Override
-                    protected void onHeadersReceived() {
-                        RawHeaders headers = getRawHeaders();
+    ListenCallback mListenCallback = new ListenCallback() {
+        @Override
+        public void onAccepted(final AsyncSocket socket) {
+            AsyncHttpServerRequestImpl req = new AsyncHttpServerRequestImpl() {
+                Pair match;
+                boolean responseComplete;
+                boolean requestComplete;
+                AsyncHttpServerResponseImpl res;
+                boolean hasContinued;
+                @Override
+                protected void onHeadersReceived() {
+                    RawHeaders headers = getRawHeaders();
 
-                        // should the negotiation of 100 continue be here, or in the request impl?
-                        // probably here, so AsyncResponse can negotiate a 100 continue.
-                        if (!hasContinued && "100-continue".equals(headers.get("Expect"))) {
-//                            System.out.println("continuing...");
-                            Util.writeAll(mSocket, "HTTP/1.1 100 Continue\r\n".getBytes(), new CompletedCallback() {
-                                @Override
-                                public void onCompleted(Exception ex) {
-                                    if (ex != null) {
-                                        report(ex);
-                                        return;
-                                    }
-                                    hasContinued = true;
-                                    onHeadersReceived();
-                                }
-                            });
-                            return;
-                        }
-//                        System.out.println(headers.toHeaderString());
-                        
-                        String statusLine = headers.getStatusLine();
-                        String[] parts = statusLine.split(" ");
-                        String path = parts[1];
-                        path = path.split("\\?")[0];
-                        String action = parts[0];
-                        synchronized (mActions) {
-                            ArrayList<Pair> pairs = mActions.get(action);
-                            if (pairs != null) {
-                                for (Pair p: pairs) {
-                                    Matcher m = p.regex.matcher(path);
-                                    if (m.matches()) {
-                                        mMatcher = m;
-                                        match = p;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        res = new AsyncHttpServerResponseImpl(socket) {
+                    // should the negotiation of 100 continue be here, or in the request impl?
+                    // probably here, so AsyncResponse can negotiate a 100 continue.
+                    if (!hasContinued && "100-continue".equals(headers.get("Expect"))) {
+                        pause();
+//                        System.out.println("continuing...");
+                        Util.writeAll(mSocket, "HTTP/1.1 100 Continue\r\n".getBytes(), new CompletedCallback() {
                             @Override
-                            protected void onCompleted() {
-                                responseComplete = true;
-                                // reuse the socket for a subsequent request.
-                                handleOnCompleted();
+                            public void onCompleted(Exception ex) {
+                                resume();
+                                if (ex != null) {
+                                    report(ex);
+                                    return;
+                                }
+                                hasContinued = true;
+                                onHeadersReceived();
                             }
-                        };
-                        if (match == null) {
-                            res.responseCode(404);
-                            res.end();
-                            return;
-                        }
-
-                        if (!getBody().readFullyOnRequest()) {
-//                            Assert.assertTrue(getBody() instanceof CompletedEmitter);
-//                            CompletedEmitter completed = (CompletedEmitter)getBody();
-//                            completed.setCompletedCallback(this);
-                            match.callback.onRequest(this, res);
-                        }
-                        else if (requestComplete) {
-                            match.callback.onRequest(this, res);
-                        }
+                        });
+                        return;
                     }
-
-                    @Override
-                    public void onCompleted(Exception e) {
-                        requestComplete = true;
-                        super.onCompleted(e);
-                        mSocket.setDataCallback(null);
-                        mSocket.pause();
-                        handleOnCompleted();
-
-                        if (getBody().readFullyOnRequest()) {
-                            match.callback.onRequest(this, res);
-                        }
-                    }
+//                    System.out.println(headers.toHeaderString());
                     
-                    private void handleOnCompleted() {
-                        if (requestComplete && responseComplete) {
-                            onAccepted(socket);
+                    String statusLine = headers.getStatusLine();
+                    String[] parts = statusLine.split(" ");
+                    String path = parts[1];
+                    path = path.split("\\?")[0];
+                    String action = parts[0];
+                    synchronized (mActions) {
+                        ArrayList<Pair> pairs = mActions.get(action);
+                        if (pairs != null) {
+                            for (Pair p: pairs) {
+                                Matcher m = p.regex.matcher(path);
+                                if (m.matches()) {
+                                    mMatcher = m;
+                                    match = p;
+                                    break;
+                                }
+                            }
                         }
                     }
-                };
-                req.setSocket(socket);
-                socket.resume();
-            }
+                    res = new AsyncHttpServerResponseImpl(socket) {
+                        @Override
+                        protected void onEnd() {
+                            responseComplete = true;
+                            // reuse the socket for a subsequent request.
+                            handleOnCompleted();
+                        }
+                    };
+                    if (match == null) {
+                        res.responseCode(404);
+                        res.end();
+                        return;
+                    }
 
-            @Override
-            public void onCompleted(Exception error) {
-                report(error);
-            }
+                    if (!getBody().readFullyOnRequest()) {
+//                        Assert.assertTrue(getBody() instanceof CompletedEmitter);
+//                        CompletedEmitter completed = (CompletedEmitter)getBody();
+//                        completed.setCompletedCallback(this);
+                        match.callback.onRequest(this, res);
+                    }
+                    else if (requestComplete) {
+                        match.callback.onRequest(this, res);
+                    }
+                }
 
-            @Override
-            public void onListening(AsyncServerSocket socket) {
-                mListener = socket;
-            }
-        });
+                @Override
+                public void onCompleted(Exception e) {
+                    requestComplete = true;
+                    super.onCompleted(e);
+                    mSocket.setDataCallback(null);
+                    mSocket.pause();
+                    handleOnCompleted();
+
+                    if (getBody().readFullyOnRequest()) {
+                        match.callback.onRequest(this, res);
+                    }
+                }
+                
+                private void handleOnCompleted() {
+                    if (requestComplete && responseComplete) {
+                        onAccepted(socket);
+                    }
+                }
+            };
+            req.setSocket(socket);
+            socket.resume();
+        }
+
+        @Override
+        public void onCompleted(Exception error) {
+            report(error);
+        }
+
+        @Override
+        public void onListening(AsyncServerSocket socket) {
+            mListeners.add(socket);
+        }
+    };
+    
+    public void listen(AsyncServer server, int port) {
+        server.listen(null, port, mListenCallback);
     }
 
     private void report(Exception ex) {
@@ -149,8 +156,12 @@ public class AsyncHttpServer implements CompletedEmitter {
             mCompletedCallback.onCompleted(ex);
     }
     
-    public AsyncHttpServer(int port) {
-        this(AsyncServer.getDefault(), port);
+    public void listen(int port) {
+        listen(AsyncServer.getDefault(), port);
+    }
+    
+    public ListenCallback getListenCallback() {
+        return mListenCallback;
     }
 
     CompletedCallback mCompletedCallback;
@@ -206,9 +217,7 @@ public class AsyncHttpServer implements CompletedEmitter {
                     response.end();
                     return;
                 }
-                AsyncHttpServerRequestImpl impl = (AsyncHttpServerRequestImpl)request;
-                
-                callback.onConnected(new WebSocketImpl(impl, response));
+                callback.onConnected(new WebSocketImpl(request, response));
             }
         });
     }
@@ -242,6 +251,7 @@ public class AsyncHttpServer implements CompletedEmitter {
     static Hashtable<String, String> mContentTypes = new Hashtable<String, String>();
     {
         mContentTypes.put("js", "application/javascript");
+        mContentTypes.put("json", "application/json");
         mContentTypes.put("png", "image/png");
         mContentTypes.put("jpg", "image/jpeg");
         mContentTypes.put("html", "text/html");

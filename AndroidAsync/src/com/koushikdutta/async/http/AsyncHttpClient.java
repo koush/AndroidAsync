@@ -302,6 +302,26 @@ public class AsyncHttpClient {
         }
     }
     
+    public static class WebSocketCallback implements CompletedCallback {
+        @Override
+        public void onCompleted(Exception ex) {
+        }
+    }
+    
+    public static void websocket(String uri, final WebSocketCallback callback) {
+        try {
+            execute(new AsyncHttpGet(uri), new HttpConnectCallback() {
+                @Override
+                public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
+//                    response.get
+                }
+            });
+        }
+        catch (URISyntaxException e) {
+            callback.onCompleted(e);
+        }
+    }
+    
     public static void execute(AsyncHttpRequest req, final String filename, final FileCallback callback) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
         final File file = new File(filename);

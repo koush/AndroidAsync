@@ -17,9 +17,25 @@ public class FilteredDataSink implements DataSink {
                     mPendingWritable = false;
                     mWritable.onWriteable();
                 }
+                testFlushed();
             }
         });
     }
+    
+    private void testFlushed() {
+        if (mPending == null)
+            onFlushed();
+    }
+
+    protected void onFlushed() {
+    }
+    
+    public int getPending() {
+        if (mPending == null)
+            return 0;
+        return mPending.remaining();
+    }
+    
     DataSink mSink;
     public DataSink getSink() {
         return mSink;
@@ -63,19 +79,20 @@ public class FilteredDataSink implements DataSink {
             return false;
         return true;
     }
-    
+
     @Override
     public final void write(ByteBufferList bb) {
         if (!handlePending(bb))
             return;
         ByteBufferList filtered = filter(bb);
-        Assert.assertTrue(filtered == bb || bb.remaining() == 0);
+        Assert.assertTrue(bb == null || filtered == bb || bb.remaining() == 0);
         mSink.write(filtered);
         if (filtered.remaining() > 0) {
             mPending = new ByteBufferList();
             mPending.add(filtered.read(filtered.remaining()));
         }
         bb.clear();
+        testFlushed();
     }
 
     WritableCallback mWritable;

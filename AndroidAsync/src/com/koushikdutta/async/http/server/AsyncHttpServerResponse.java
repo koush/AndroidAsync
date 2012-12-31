@@ -5,9 +5,10 @@ import java.io.File;
 import org.json.JSONObject;
 
 import com.koushikdutta.async.DataSink;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
-public interface AsyncHttpServerResponse extends DataSink {
+public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void end();
     public void send(String contentType, String string);
     public void send(String string);
@@ -18,4 +19,8 @@ public interface AsyncHttpServerResponse extends DataSink {
     public void writeHead();
     public void setContentType(String contentType);
     public void redirect(String location);
+    /**
+     * Alias for end. Used with CompletedEmitters
+     */
+    public void onCompleted(Exception ex);
 }

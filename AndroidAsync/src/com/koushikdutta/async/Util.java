@@ -1,5 +1,7 @@
 package com.koushikdutta.async;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -89,6 +91,27 @@ public class Util {
         cb.onWriteable();
     }
     
+    public static void pump(final File file, final DataSink ds, final CompletedCallback callback) {
+        try {
+            final InputStream is = new FileInputStream(file);
+            pump(is, ds, new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception ex) {
+                    try {
+                        is.close();
+                        callback.onCompleted(ex);
+                    }
+                    catch (IOException e) {
+                        callback.onCompleted(e);
+                    }
+                }
+            });
+        }
+        catch (Exception e) {
+            callback.onCompleted(e);
+        }
+    }
+
     public static void writeAll(final DataSink sink, final ByteBufferList bb, final CompletedCallback callback) {
         sink.setWriteableCallback(new WritableCallback() {
             @Override

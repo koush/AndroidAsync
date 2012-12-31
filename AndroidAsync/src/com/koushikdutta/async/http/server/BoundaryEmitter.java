@@ -1,7 +1,6 @@
 package com.koushikdutta.async.http.server;
 
 import java.nio.ByteBuffer;
-import java.util.DuplicateFormatFlagsException;
 
 import junit.framework.Assert;
 
@@ -49,9 +48,9 @@ public class BoundaryEmitter extends FilteredDataCallback {
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
 //        System.out.println(bb.getString());
-        System.out.println("chunk: " + bb.remaining());
+//        System.out.println("chunk: " + bb.remaining());
         
-        System.out.println("state: " + state);
+//        System.out.println("state: " + state);
         
         // if we were in the middle of a potential match, let's throw that
         // at the beginning of the buffer and process it too.
@@ -92,7 +91,7 @@ public class BoundaryEmitter extends FilteredDataCallback {
                         // len can be -1 on the first boundary
                         Assert.assertEquals(-2, len);
                     }
-                    System.out.println("bstart");
+//                    System.out.println("bstart");
                     onBoundaryStart();
                 }
                 else if (buf[i] == '-') {
@@ -119,7 +118,7 @@ public class BoundaryEmitter extends FilteredDataCallback {
                     ByteBufferList list = new ByteBufferList();
                     list.add(b);
                     super.onDataAvailable(emitter, list);
-                    System.out.println("bend");
+//                    System.out.println("bend");
                     onBoundaryEnd();
                 }
                 else {
@@ -153,8 +152,8 @@ public class BoundaryEmitter extends FilteredDataCallback {
         }
 
         if (last < buf.length) {
-            System.out.println("amount left at boundary: " + (buf.length - last));
-            System.out.println(state);
+//            System.out.println("amount left at boundary: " + (buf.length - last));
+//            System.out.println(state);
             int keep = Math.max(state, 0);
             ByteBuffer b = ByteBuffer.wrap(buf, last, buf.length - last - keep);
             ByteBufferList list = new ByteBufferList();

@@ -15,6 +15,16 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
 
     public ByteBufferList() {
     }
+
+    public ByteBufferList(ByteBuffer b) {
+        add(b);
+    }
+    
+    public ByteBufferList(byte[] buf) {
+        super();
+        ByteBuffer b = ByteBuffer.wrap(buf);
+        add(b);
+    }
     
     public ByteBuffer[] toArray() {
         ByteBuffer[] ret = new ByteBuffer[mBuffers.size()];

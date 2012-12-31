@@ -27,8 +27,8 @@ public class WebSocketImpl implements WebSocket {
     
     private AsyncSocket mSocket;
     BufferedDataSink mSink;
-    public WebSocketImpl(AsyncHttpServerRequestImpl request, AsyncHttpServerResponse response) {
-        mSocket = request.mSocket;
+    public WebSocketImpl(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+        mSocket = request.getSocket();
         mSink = new BufferedDataSink(mSocket);
         
         mSocket.setClosedCallback(new ClosedCallback() {

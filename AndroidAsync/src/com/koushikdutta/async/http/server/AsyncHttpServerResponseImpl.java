@@ -66,7 +66,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     private void writeInternal(ByteBufferList bb) {
-        Assert.assertTrue(!mCompleted);
+        Assert.assertTrue(!mEnded);
         initFirstWrite();
         mChunker.write(bb);
     }
@@ -94,11 +94,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     public void end() {
         if (null == mRawHeaders.get("Transfer-Encoding")) {
             send("text/html", "");
-            onCompleted();
+            onEnd();
             return;
         }
         writeInternal(ByteBuffer.wrap(new byte[0]));
-        onCompleted();
+        onEnd();
     }
 
     private boolean mHeadWritten = false;
@@ -127,16 +127,16 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             
             writeHead();
             mSink.write(ByteBuffer.wrap(string.getBytes()));
-            onCompleted();
+            onEnd();
         }
         catch (UnsupportedEncodingException e) {
             Assert.fail();
         }
     }
     
-    boolean mCompleted;
-    protected void onCompleted() {
-        mCompleted = true;
+    boolean mEnded;
+    protected void onEnd() {
+        mEnded = true;
     }
     
     protected void report(Exception e) {
@@ -182,6 +182,14 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     public void redirect(String location) {
         responseCode(302);
         mRawHeaders.set("Location", location);
+        end();
+    }
+
+    @Override
+    public void onCompleted(Exception ex) {
+        if (ex != null) {
+            ex.printStackTrace();
+        }
         end();
     }
 }

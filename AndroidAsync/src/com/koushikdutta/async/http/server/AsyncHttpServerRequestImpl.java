@@ -17,6 +17,17 @@ public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerReque
     AsyncSocket mSocket;
     Matcher mMatcher;
 
+    private CompletedCallback mCompleted;
+    @Override
+    public void setCompletedCallback(CompletedCallback callback) {
+        mCompleted = callback;
+    }
+
+    @Override
+    public CompletedCallback getCompletedCallback() {
+        return mCompleted;
+    }
+
     private CompletedCallback mReporter = new CompletedCallback() {
         @Override
         public void onCompleted(Exception error) {
@@ -29,6 +40,8 @@ public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerReque
     public void onCompleted(Exception e) {
         if (mBody != null)
             mBody.onCompleted(e);
+        if (mCompleted != null)
+            mCompleted.onCompleted(e);
     }
 
     abstract protected void onHeadersReceived();
@@ -75,6 +88,11 @@ public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerReque
 
         LineEmitter liner = new LineEmitter(mSocket);
         liner.setLineCallback(mHeaderCallback);
+    }
+    
+    @Override
+    public AsyncSocket getSocket() {
+        return mSocket;
     }
 
     private RequestHeaders mHeaders = new RequestHeaders(null, mRawHeaders);

@@ -21,6 +21,10 @@ import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.UrlEncodedFormBody;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
+import com.koushikdutta.async.http.server.WebSocket;
+import com.koushikdutta.async.http.server.WebSocket.StringCallback;
+import com.koushikdutta.async.http.server.WebSocketCallback;
 
 public class MainActivity extends Activity {
     ImageView rommanager;
@@ -45,7 +49,21 @@ public class MainActivity extends Activity {
         tether = (ImageView)findViewById(R.id.tether);
         desksms = (ImageView)findViewById(R.id.desksms);
         chart = (ImageView)findViewById(R.id.chart);
+
+        server.listen(4500);
+        server.websocket("/", new WebSocketCallback() {
+            @Override
+            public void onConnected(WebSocket webSocket) {
+                webSocket.setStringCallback(new StringCallback() {
+                    @Override
+                    public void onStringAvailable(String s) {
+                        System.out.println("String: " + s);
+                    }
+                });
+            }
+        });
     }
+    AsyncHttpServer server = new AsyncHttpServer(); 
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
