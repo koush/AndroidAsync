@@ -22,6 +22,7 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
@@ -88,7 +89,7 @@ public class AsyncHttpClient {
                                 AsyncHttpRequest newReq = new AsyncHttpRequest(new URI(headers.get("Location")), request.getMethod());
                                 execute(server, newReq, callback, redirectCount + 1);
                                 
-//                                setDataCallback(new NullDataCallback());
+                                setDataCallback(new NullDataCallback());
                                 return;
                             }
 
