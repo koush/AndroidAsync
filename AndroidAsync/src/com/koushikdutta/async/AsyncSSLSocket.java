@@ -19,17 +19,19 @@ import junit.framework.Assert;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 
+import com.koushikdutta.async.callback.ClosedCallback;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-public class SSLDataExchange extends FilteredDataCallback implements DataExchange {
-    DataExchange mExchange;
+public class AsyncSSLSocket implements AsyncSocket {
+    AsyncSocket mSocket;
     BufferedDataEmitter mEmitter = new BufferedDataEmitter();
     BufferedDataSink mSink;
     ByteBuffer mReadTmp = ByteBuffer.allocate(8192);
     boolean mUnwrapping = false;
-    public SSLDataExchange(DataExchange exchange, String host, int port) {
-        mExchange = exchange;
+    public AsyncSSLSocket(AsyncSocket socket, String host, int port) {
+        mSocket = socket;
 
         if (host != null) {
             engine = ctx.createSSLEngine(host, port);
@@ -38,12 +40,13 @@ public class SSLDataExchange extends FilteredDataCallback implements DataExchang
             engine = ctx.createSSLEngine();
         }
         engine.setUseClientMode(true);
-        mSink = new BufferedDataSink(exchange);
-        
+        mSink = new BufferedDataSink(socket);
+        mSink.setMaxBuffer(0);
+
         // SSL needs buffering of data written during handshake.
         // aka exhcange.setDatacallback
-        exchange.setDataCallback(mEmitter);
-        
+        socket.setDataCallback(mEmitter);
+
         mEmitter.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -80,7 +83,7 @@ public class SSLDataExchange extends FilteredDataCallback implements DataExchang
                     }
                     
                     addToPending(out);
-                    Util.emitAllData(SSLDataExchange.this, out);
+                    Util.emitAllData(AsyncSSLSocket.this, out);
                 }
                 catch (Exception ex) {
                     ex.printStackTrace();
@@ -216,6 +219,10 @@ public class SSLDataExchange extends FilteredDataCallback implements DataExchang
     ByteBuffer mWriteTmp = ByteBuffer.allocate(8192);
     @Override
     public void write(ByteBuffer bb) {
+        if (mWrapping)
+            return;
+        if (mSink.remaining() > 0)
+            return;
         mWrapping = true;
         int remaining;
         SSLEngineResult res = null;
@@ -234,13 +241,15 @@ public class SSLDataExchange extends FilteredDataCallback implements DataExchang
                 report(e);
             }
         }
-        while (remaining != bb.remaining() || (res != null && res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP));
+        while ((remaining != bb.remaining() || (res != null && res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP)) && mSink.remaining() == 0);
         mWrapping = false;
     }
 
     @Override
     public void write(ByteBufferList bb) {
         if (mWrapping)
+            return;
+        if (mSink.remaining() > 0)
             return;
         mWrapping = true;
         int remaining;
@@ -260,7 +269,7 @@ public class SSLDataExchange extends FilteredDataCallback implements DataExchang
                 report(e);
             }
         }
-        while (remaining != bb.remaining() || (res != null && res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP));
+        while ((remaining != bb.remaining() || (res != null && res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP)) && mSink.remaining() == 0);
         mWrapping = false;
     }
 
@@ -275,8 +284,75 @@ public class SSLDataExchange extends FilteredDataCallback implements DataExchang
         return mWriteableCallback;
     }
 
+    private void report(Exception e) {
+        CompletedCallback cb = getCompletedCallback();
+        if (cb != null)
+            cb.onCompleted(e);
+    }
+
+    DataCallback mDataCallback;
     @Override
-    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        mEmitter.onDataAvailable(emitter, bb);
+    public void setDataCallback(DataCallback callback) {
+        mDataCallback = callback;
+    }
+
+    @Override
+    public DataCallback getDataCallback() {
+        return mDataCallback;
+    }
+
+    @Override
+    public boolean isChunked() {
+        return mSocket.isChunked();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return mSocket.isOpen();
+    }
+
+    @Override
+    public void close() {
+        mSocket.close();
+    }
+
+    @Override
+    public void setClosedCallback(ClosedCallback handler) {
+        mSocket.setClosedCallback(handler);
+    }
+
+    @Override
+    public ClosedCallback getCloseHandler() {
+        return mSocket.getCloseHandler();
+    }
+
+    @Override
+    public void setCompletedCallback(CompletedCallback callback) {
+        mSocket.setCompletedCallback(callback);
+    }
+
+    @Override
+    public CompletedCallback getCompletedCallback() {
+        return mSocket.getCompletedCallback();
+    }
+
+    @Override
+    public boolean isConnected() {
+        return mSocket.isConnected();
+    }
+
+    @Override
+    public void pause() {
+        mSocket.pause();
+    }
+
+    @Override
+    public void resume() {
+        mSocket.resume();
+    }
+
+    @Override
+    public boolean isPaused() {
+        return mSocket.isPaused();
     }
 }

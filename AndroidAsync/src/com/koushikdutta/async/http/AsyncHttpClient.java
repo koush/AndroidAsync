@@ -17,13 +17,12 @@ import org.json.JSONObject;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataExchange;
 import com.koushikdutta.async.NullDataCallback;
-import com.koushikdutta.async.SSLDataExchange;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
@@ -34,12 +33,12 @@ import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
     private static abstract class InternalConnectCallback implements ConnectCallback {
-        DataExchange exchange;
+        AsyncSocket exchange;
     }
     
     private static class SocketExchange {
         AsyncSocket socket;
-        DataExchange exchange;
+        AsyncSocket exchange;
     }
     private static Hashtable<String, HashSet<SocketExchange>> mSockets = new Hashtable<String, HashSet<SocketExchange>>();
     
@@ -142,9 +141,7 @@ public class AsyncHttpClient {
                 if (exchange == null) {
                     exchange = socket;
                     if (request.getUri().getScheme().equals("https")) {
-                        SSLDataExchange ssl = new SSLDataExchange(socket, uri.getHost(), finalPort);
-                        exchange = ssl;
-                        socket.setDataCallback(ssl);
+                        exchange = new AsyncSSLSocket(socket, uri.getHost(), finalPort);
                     }
                 }
 

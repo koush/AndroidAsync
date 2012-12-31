@@ -46,7 +46,9 @@ public class BufferedDataSink implements DataSink {
     public void write(ByteBufferList bb) {
         if (mPendingWrites == null)
             mDataSink.write(bb);
-        
+        else
+            Assert.assertTrue(mPendingWrites.remaining() <= mMaxBuffer);
+
         if (bb.remaining() > 0) {
             int toRead = Math.min(bb.remaining(), mMaxBuffer);
             if (toRead > 0) {

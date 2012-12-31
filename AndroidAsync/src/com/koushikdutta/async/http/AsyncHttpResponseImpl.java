@@ -7,7 +7,6 @@ import junit.framework.Assert;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataExchange;
 import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
@@ -27,7 +26,7 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
     }
 
     private AsyncHttpRequestBody mWriter;
-    void setSocket(AsyncSocket socket, DataExchange exchange) {
+    void setSocket(AsyncSocket socket, AsyncSocket exchange) {
         mSocket = socket;
         mExchange = exchange;
 
@@ -107,7 +106,7 @@ public class AsyncHttpResponseImpl extends FilteredDataCallback implements Async
     
     private AsyncSocket mSocket;
     private AsyncHttpRequest mRequest;
-    private DataExchange mExchange;
+    private AsyncSocket mExchange;
     private ResponseHeaders mHeaders;
     public AsyncHttpResponseImpl(AsyncHttpRequest request) {
         mRequest = request;

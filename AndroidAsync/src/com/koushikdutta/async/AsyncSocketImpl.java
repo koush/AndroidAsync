@@ -101,16 +101,7 @@ class AsyncSocketImpl implements AsyncSocket {
         }
     }
 
-    private ByteBuffer pending;
-    private void spit(ByteBuffer b) {
-        ByteBufferList list = new ByteBufferList();
-        list.add(b);
-        Util.emitAllData(this, list);
-        if (list.remaining() == 0) {
-            b.position(0);
-            b.limit(0);
-        }
-    }
+    private ByteBufferList pending;
     
     int mToAlloc = 0;
     int onReadable() {
@@ -145,11 +136,12 @@ class AsyncSocketImpl implements AsyncSocket {
                 mToAlloc = read * 2;
                 b.limit(b.position());
                 b.position(0);
-                spit(b);
+                ByteBufferList list = new ByteBufferList(b);
+                Util.emitAllData(this, list);
                 if (b.remaining() != 0) {
                     Assert.assertTrue(pending == null);
 //                    System.out.println("There was data remaining after this op: " + b.remaining());
-                    pending = b;
+                    pending = list;
                 }
             }
 
@@ -265,7 +257,7 @@ class AsyncSocketImpl implements AsyncSocket {
     private void spitPending() {
         if (pending != null) {
 //            System.out.println("p[ending spit");
-            spit(pending);
+            Util.emitAllData(this, pending);
 //            System.out.println("pending now: " + pending.remaining());
             if (pending.remaining() == 0) {
                 pending = null;
