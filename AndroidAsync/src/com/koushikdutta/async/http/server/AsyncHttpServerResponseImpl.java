@@ -36,6 +36,8 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     AsyncHttpServerResponseImpl(AsyncSocket socket) {
         mSocket = socket;
         mSink = new BufferedDataSink(socket);
+
+        mRawHeaders.set("Connection", "keep-alive");
     }
     
     @Override
