@@ -25,7 +25,10 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.WebSocket;
+import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.libcore.RequestHeaders;
 
 public class AsyncHttpServer implements CompletedEmitter {
     ArrayList<AsyncServerSocket> mListeners = new ArrayList<AsyncServerSocket>();
@@ -197,6 +200,10 @@ public class AsyncHttpServer implements CompletedEmitter {
         }
     }
 
+    public static interface WebSocketCallback {
+        public void onConnected(WebSocket webSocket, RequestHeaders headers);
+    }
+
     public void websocket(String regex, final WebSocketCallback callback) {
         get(regex, new HttpServerRequestCallback() {
             @Override
@@ -217,7 +224,7 @@ public class AsyncHttpServer implements CompletedEmitter {
                     response.end();
                     return;
                 }
-                callback.onConnected(new WebSocketImpl(request, response));
+                callback.onConnected(new WebSocketImpl(request, response), request.getHeaders());
             }
         });
     }

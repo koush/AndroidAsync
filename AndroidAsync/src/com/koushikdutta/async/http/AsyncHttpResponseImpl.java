@@ -21,13 +21,21 @@ import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
 abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements AsyncHttpResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
-    RawHeaders getRawHeaders() {
+    public RawHeaders getRawHeaders() {
         return mRawHeaders;
     }
 
     private AsyncHttpRequestBody mWriter;
+    
+    public AsyncSocket getSocket() {
+        return mSocket;
+    }
+    
     void setSocket(AsyncSocket exchange) {
         mSocket = exchange;
+        
+        if (mSocket == null)
+            return;
 
         mWriter = mRequest.getBody();
         if (mWriter != null) {
@@ -117,7 +125,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
     }
     
     private AsyncHttpRequest mRequest;
-    AsyncSocket mSocket;
+    private AsyncSocket mSocket;
     private ResponseHeaders mHeaders;
     public AsyncHttpResponseImpl(AsyncHttpRequest request) {
         mRequest = request;

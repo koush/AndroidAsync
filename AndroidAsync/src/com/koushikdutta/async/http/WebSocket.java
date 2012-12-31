@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http.server;
+package com.koushikdutta.async.http;
 
 import com.koushikdutta.async.CloseableData;
 import com.koushikdutta.async.CompletedEmitter;
@@ -20,4 +20,6 @@ public interface WebSocket extends CloseableData, CompletedEmitter {
     public void setDataCallback(DataCallback callback);
     public StringCallback getStringCallback();
     public DataCallback getDataCallback();
+    
+    public boolean isBuffering();
 }

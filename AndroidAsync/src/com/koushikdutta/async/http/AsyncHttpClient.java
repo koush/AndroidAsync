@@ -29,8 +29,6 @@ import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.RequestCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.server.WebSocket;
-import com.koushikdutta.async.http.server.WebSocketImpl;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
@@ -102,11 +100,12 @@ public class AsyncHttpClient {
                     
                     @Override
                     protected void report(Exception ex) {
-                        if (mSocket == null)
+                        final AsyncSocket socket = getSocket();
+                        if (socket == null)
                             return;
                         super.report(ex);
                         if (!keepalive) {
-                            mSocket.close();
+                            socket.close();
                         }
                         else {
                             HashSet<AsyncSocket> sockets = mSockets.get(lookup);
@@ -116,14 +115,14 @@ public class AsyncHttpClient {
                             }
                             final HashSet<AsyncSocket> ss = sockets;
                             synchronized (sockets) {
-                                sockets.add(mSocket);
-                                mSocket.setClosedCallback(new ClosedCallback() {
+                                sockets.add(socket);
+                                socket.setClosedCallback(new ClosedCallback() {
                                     @Override
                                     public void onClosed() {
                                         synchronized (ss) {
-                                            ss.remove(mSocket);
+                                            ss.remove(socket);
                                         }
-                                        mSocket.setClosedCallback(null);
+                                        socket.setClosedCallback(null);
                                     }
                                 });
                             }
@@ -133,19 +132,20 @@ public class AsyncHttpClient {
 
                     @Override
                     public AsyncSocket detachSocket() {
-                        mSocket.setWriteableCallback(null);
-                        mSocket.setClosedCallback(null);
-                        mSocket.setCompletedCallback(null);
-                        mSocket.setDataCallback(null);
-                        AsyncSocket socket = mSocket;
-                        mSocket = null;
+                        AsyncSocket socket = getSocket();
+                        if (socket == null)
+                            return null;
+                        socket.setWriteableCallback(null);
+                        socket.setClosedCallback(null);
+                        socket.setCompletedCallback(null);
+                        socket.setDataCallback(null);
+                        setSocket(null);
                         return socket;
                     }
                 };
-                // socket and exchange are the same for regular http
-                // but different for https (ssl)
-                // the exchange will be a wrapper around socket that does
-                // ssl translation.
+
+                // if this socket is not being reused,
+                // check to see if an AsyncSSLSocket needs to be wrapped around it.
                 if (!reused) {
                     if (request.getUri().getScheme().equals("https")) {
                         socket = new AsyncSSLSocket(socket, uri.getHost(), finalPort);

@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http.server;
+package com.koushikdutta.async.http;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
@@ -10,8 +10,9 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 
 public class WebSocketImpl implements WebSocket {
     private static String SHA1(String text) {
@@ -176,5 +177,10 @@ public class WebSocketImpl implements WebSocket {
     @Override
     public boolean isOpen() {
         return mSocket.isOpen();
+    }
+    
+    @Override
+    public boolean isBuffering() {
+        return mSink.remaining() > 0;
     }
 }
