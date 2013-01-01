@@ -267,21 +267,18 @@ public class WebSocketImpl implements WebSocket {
         return false;
     }
 
-    boolean mPaused;
     @Override
     public void pause() {
-        mPaused = true;
+        mSocket.pause();
     }
 
     @Override
     public void resume() {
-        if (!mPaused)
-            return;
-        mPaused = false;
+        mSocket.resume();
     }
 
     @Override
     public boolean isPaused() {
-        return mPaused;
+        return mSocket.isPaused();
     }
 }
