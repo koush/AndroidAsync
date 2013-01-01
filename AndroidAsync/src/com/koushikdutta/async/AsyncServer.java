@@ -6,7 +6,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -408,5 +407,9 @@ public class AsyncServer {
             }
         }
         readyKeys.clear();
+    }
+    
+    public Thread getAffinity() {
+        return mAffinity;
     }
 }

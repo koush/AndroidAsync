@@ -160,7 +160,7 @@ public class AsyncHttpClient {
         if (sockets != null) {
             synchronized (sockets) {
                 for (final AsyncSocket socket: sockets) {
-                    if (socket.isConnected()) {
+                    if (socket.isOpen()) {
                         sockets.remove(socket);
                         socket.setClosedCallback(null);
                         server.post(new Runnable() {
@@ -305,18 +305,25 @@ public class AsyncHttpClient {
         }
     }
     
-    public static interface WebSocketCallback {
+    public static interface WebSocketConnectCallback {
         public void onCompleted(Exception ex, WebSocket webSocket);
     }
     
-    public static void websocket(String uri, final WebSocketCallback callback) {
+    public static void websocket(String uri, final WebSocketConnectCallback callback) {
         try {
             final AsyncHttpGet get = new AsyncHttpGet(uri);
             WebSocketImpl.addWebSocketUpgradeHeaders(get.getHeaders().getHeaders());
             execute(get, new HttpConnectCallback() {
                 @Override
                 public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
-                    callback.onCompleted(null, WebSocketImpl.finishHandshake(get.getHeaders().getHeaders(), response));
+                    if (ex != null) {
+                        callback.onCompleted(ex, null);
+                        return;
+                    }
+                    WebSocket ws = WebSocketImpl.finishHandshake(get.getHeaders().getHeaders(), response);
+                    if (ws == null)
+                        ex = new Exception("Unable to complete websocket handshake");
+                    callback.onCompleted(ex, ws);
                 }
             });
         }

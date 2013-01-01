@@ -337,11 +337,6 @@ public class AsyncSSLSocket implements AsyncSocket {
     }
 
     @Override
-    public boolean isConnected() {
-        return mSocket.isConnected();
-    }
-
-    @Override
     public void pause() {
         mSocket.pause();
     }
@@ -354,5 +349,10 @@ public class AsyncSSLSocket implements AsyncSocket {
     @Override
     public boolean isPaused() {
         return mSocket.isPaused();
+    }
+
+    @Override
+    public AsyncServer getServer() {
+        return mSocket.getServer();
     }
 }

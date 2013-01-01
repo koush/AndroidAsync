@@ -200,11 +200,11 @@ public class AsyncHttpServer implements CompletedEmitter {
         }
     }
 
-    public static interface WebSocketCallback {
+    public static interface WebSocketRequestCallback {
         public void onConnected(WebSocket webSocket, RequestHeaders headers);
     }
 
-    public void websocket(String regex, final WebSocketCallback callback) {
+    public void websocket(String regex, final WebSocketRequestCallback callback) {
         get(regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {

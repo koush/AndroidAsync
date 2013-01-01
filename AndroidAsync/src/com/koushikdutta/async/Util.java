@@ -15,18 +15,15 @@ import com.koushikdutta.async.callback.WritableCallback;
 public class Util {
     public static void emitAllData(DataEmitter emitter, ByteBufferList list) {
         int remaining;
-        AsyncSocket socket = null;
-        if (emitter instanceof AsyncSocket)
-            socket = (AsyncSocket)emitter;
         DataCallback handler = null;
-        while ((socket == null || !socket.isPaused()) && (handler = emitter.getDataCallback()) != null && (remaining = list.remaining()) > 0) {
+        while (!emitter.isPaused() && (handler = emitter.getDataCallback()) != null && (remaining = list.remaining()) > 0) {
             handler.onDataAvailable(emitter, list);
             if (remaining == list.remaining() && handler == emitter.getDataCallback()) {
                 Assert.fail("mDataHandler failed to consume data, yet remains the mDataHandler.");
                 break;
             }
         }
-        if (!(list.remaining() == 0 || (socket != null && socket.isPaused()))) {
+        if (list.remaining() != 0 && !emitter.isPaused()) {
             System.out.println("Data: " + list.peekString());
             System.out.println("handler: " + handler);
             Assert.fail();
@@ -89,6 +86,28 @@ public class Util {
         ds.setWriteableCallback(cb);
 
         cb.onWriteable();
+    }
+    
+    public static void pump(final DataEmitter emitter, final DataSink sink) {
+        emitter.setDataCallback(new DataCallback() {
+            @Override
+            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                sink.write(bb);
+                if (bb.remaining() > 0)
+                    emitter.pause();
+            }
+        });
+        sink.setWriteableCallback(new WritableCallback() {
+            @Override
+            public void onWriteable() {
+                emitter.resume();
+            }
+        });
+    }
+    
+    public static void stream(AsyncSocket s1, AsyncSocket s2) {
+        pump(s1, s2);
+        pump(s2, s1);
     }
     
     public static void pump(final File file, final DataSink ds, final CompletedCallback callback) {

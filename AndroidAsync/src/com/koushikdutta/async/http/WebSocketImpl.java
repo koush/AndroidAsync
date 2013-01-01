@@ -2,14 +2,20 @@ package com.koushikdutta.async.http;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
+import java.util.LinkedList;
 import java.util.UUID;
 
 import android.util.Base64;
 
+import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
@@ -26,9 +32,31 @@ public class WebSocketImpl implements WebSocket {
             return null;
         }
     }
-    
+
     final static String MAGIC = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     
+    private LinkedList<ByteBufferList> pending;
+    
+    private void addAndEmit(ByteBufferList bb) {
+        if (pending == null) {
+            Util.emitAllData(this, bb);
+            if (bb.remaining() > 0) {
+                pending = new LinkedList<ByteBufferList>();
+                pending.add(bb);
+            }
+            return;
+        }
+        
+        while (!isPaused()) {
+            bb = pending.remove();
+            Util.emitAllData(this, bb);
+            if (bb.remaining() > 0)
+                pending.add(0, bb);
+        }
+        if (pending.size() == 0)
+            pending = null;
+    }
+
     private void setupParser() {
         mParser = new HybiParser(mSocket) {
             @Override
@@ -38,8 +66,7 @@ public class WebSocketImpl implements WebSocket {
             }
             @Override
             protected void onMessage(byte[] payload) {
-                if (WebSocketImpl.this.mDataCallback != null)
-                    WebSocketImpl.this.mDataCallback.onDataAvailable(payload);
+                addAndEmit(new ByteBufferList(payload));
             }
 
             @Override
@@ -51,6 +78,10 @@ public class WebSocketImpl implements WebSocket {
             protected void onDisconnect(int code, String reason) {
                 if (WebSocketImpl.this.mClosedCallback != null)
                     WebSocketImpl.this.mClosedCallback.onClosed();
+            }
+            @Override
+            protected void sendFrame(byte[] frame) {
+                mSink.write(ByteBuffer.wrap(frame));
             }
         };
         mParser.setMasking(false);
@@ -81,6 +112,7 @@ public class WebSocketImpl implements WebSocket {
     
     public static void addWebSocketUpgradeHeaders(RawHeaders headers) {
         final String key = UUID.randomUUID().toString();
+        headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
         headers.set("Connection", "Upgrade");
         headers.set("Upgrade", "websocket");
@@ -107,8 +139,17 @@ public class WebSocketImpl implements WebSocket {
         if (!"websocket".equalsIgnoreCase(response.getHeaders().getHeaders().get("Upgrade")))
             return null;
         
-        // TODO: verify accept hash Sec-WebSocket-Accept
-        
+        String sha1 = response.getHeaders().getHeaders().get("Sec-WebSocket-Accept");
+        if (sha1 == null)
+            return null;
+        String key = requestHeaders.get("Sec-WebSocket-Key");
+        if (key == null)
+            return null;
+        String concat = key + MAGIC;
+        String expected = SHA1(concat).trim();
+        if (!sha1.equalsIgnoreCase(expected))
+            return null;
+
         WebSocketImpl ret = new WebSocketImpl(response.detachSocket());
         ret.setupParser();
         return ret;
@@ -152,13 +193,13 @@ public class WebSocketImpl implements WebSocket {
         mSink.write(ByteBuffer.wrap(mParser.frame(string)));
     }
 
-    StringCallback mStringCallback;
+    private StringCallback mStringCallback;
     @Override
     public void setStringCallback(StringCallback callback) {
         mStringCallback = callback;
     }
 
-    DataCallback mDataCallback;
+    private DataCallback mDataCallback;
     @Override
     public void setDataCallback(DataCallback callback) {
         mDataCallback = callback;
@@ -182,5 +223,65 @@ public class WebSocketImpl implements WebSocket {
     @Override
     public boolean isBuffering() {
         return mSink.remaining() > 0;
+    }
+
+    @Override
+    public void write(ByteBuffer bb) {
+        byte[] buf = new byte[bb.remaining()];
+        bb.get(buf);
+        bb.position(0);
+        bb.limit(0);
+        send(buf);
+    }
+
+    @Override
+    public void write(ByteBufferList bb) {
+        byte[] buf = new byte[bb.remaining()];
+        bb.get(buf);
+        bb.clear();
+        send(buf);
+    }
+
+    @Override
+    public void setWriteableCallback(WritableCallback handler) {
+        mSink.setWriteableCallback(handler);
+    }
+
+    @Override
+    public WritableCallback getWriteableCallback() {
+        return mSink.getWriteableCallback();
+    }
+    
+    @Override
+    public AsyncSocket getSocket() {
+        return mSocket;
+    }
+
+    @Override
+    public AsyncServer getServer() {
+        return mSocket.getServer();
+    }
+
+    @Override
+    public boolean isChunked() {
+        return false;
+    }
+
+    boolean mPaused;
+    @Override
+    public void pause() {
+        mPaused = true;
+    }
+
+    @Override
+    public void resume() {
+        if (!mPaused)
+            return;
+        mPaused = false;
+    }
+
+    @Override
+    public boolean isPaused() {
+        return mPaused;
     }
 }

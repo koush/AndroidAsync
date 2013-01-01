@@ -40,18 +40,16 @@ class AsyncSocketImpl implements AsyncSocket {
     
     private ChannelWrapper mChannel;
     private SelectionKey mKey;
-//    private AsyncServer mServer;
-    private Thread mAffinity;
+    private AsyncServer mServer;
     
     void setup(AsyncServer server, SelectionKey key) {
-        mAffinity = Thread.currentThread();
-//        mServer = server;
+        mServer = server;
         mKey = key;
     }
     
     @Override
     public void write(ByteBufferList list) {
-        Assert.assertEquals(mAffinity, Thread.currentThread());
+        Assert.assertEquals(mServer.getAffinity(), Thread.currentThread());
         if (!mChannel.isConnected()) {
             Assert.assertFalse(mChannel.isChunked());
             return;
@@ -82,7 +80,7 @@ class AsyncSocketImpl implements AsyncSocket {
 
     @Override
     public void write(ByteBuffer b) {
-        Assert.assertEquals(mAffinity, Thread.currentThread());
+        Assert.assertEquals(mServer.getAffinity(), Thread.currentThread());
         try {
             if (!mChannel.isConnected()) {
                 Assert.assertFalse(mChannel.isChunked());
@@ -126,7 +124,7 @@ class AsyncSocketImpl implements AsyncSocket {
             // time this socket reads.
             int read = mChannel.read(b);
             if (read < 0) {
-                close();
+                closeInternal();
                 closed = true;
             }
             else {
@@ -145,11 +143,14 @@ class AsyncSocketImpl implements AsyncSocket {
                 }
             }
 
+            // TODO: How what happens in the following scenario:
+            // socket paused, closed, resumed?
+            // close handler gets fired, but data is still available.
             if (closed)
-                reportClose();
+                reportPendingClose();
         }
         catch (Exception e) {
-            close();
+            closeInternal();
             report(e);
             reportClose();
         }
@@ -157,13 +158,30 @@ class AsyncSocketImpl implements AsyncSocket {
         return total;
     }
     
+    private void reportPendingClose() {
+        if (pending != null)
+            return;
+        reportClose();
+    }
+    
+    boolean closeReported;
     private void reportClose() {
-        if (mClosedHander != null)
+        if (closeReported)
+            return;
+        closeReported = true;
+        if (mClosedHander != null) {
             mClosedHander.onClosed();
+            mClosedHander = null;
+        }
     }
 
     @Override
     public void close() {
+        closeInternal();
+        reportClose();
+    }
+
+    public void closeInternal() {
         mKey.cancel();
         try {
             mChannel.close();
@@ -229,12 +247,7 @@ class AsyncSocketImpl implements AsyncSocket {
     public CompletedCallback getCompletedCallback() {
         return mExceptionCallback;
     }
-    
-    @Override
-    public boolean isConnected() {
-        return mChannel.isConnected();
-    }
-    
+
     @Override
     public boolean isOpen() {
         return mChannel.isConnected();
@@ -243,7 +256,7 @@ class AsyncSocketImpl implements AsyncSocket {
     boolean mPaused = false;
     @Override
     public void pause() {
-        Assert.assertEquals(mAffinity, Thread.currentThread());
+        Assert.assertEquals(mServer.getAffinity(), Thread.currentThread());
         if (mPaused)
             return;
         mPaused = true;
@@ -267,7 +280,7 @@ class AsyncSocketImpl implements AsyncSocket {
     
     @Override
     public void resume() {
-        Assert.assertEquals(mAffinity, Thread.currentThread());
+        Assert.assertEquals(mServer.getAffinity(), Thread.currentThread());
         if (!mPaused)
             return;
         mPaused = false;
@@ -277,10 +290,17 @@ class AsyncSocketImpl implements AsyncSocket {
         catch (Exception ex) {
         }
         spitPending();
+        if (!isOpen())
+            reportPendingClose();
     }
     
     @Override
     public boolean isPaused() {
         return mPaused;
+    }
+
+    @Override
+    public AsyncServer getServer() {
+        return mServer;
     }
 }

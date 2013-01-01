@@ -74,4 +74,10 @@ public class FilteredDataCallback implements DataEmitter, DataCallback, Complete
     public boolean isPaused() {
         return mPaused;
     }
+    
+    public int remaining() {
+        if (pending == null)
+            return 0;
+        return pending.remaining();
+    }
 }

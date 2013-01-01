@@ -139,6 +139,7 @@ abstract class HybiParser {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
             byte[] bytes = new byte[mLengthSize];
+            bb.get(bytes);
             try {
                 parseExtendedLength(bytes);
             }
@@ -381,9 +382,7 @@ abstract class HybiParser {
     protected abstract void onDisconnect(int code, String reason);
     protected abstract void report(Exception ex);
 
-    protected void sendFrame(byte[] frame) {
-        Assert.fail();
-    }
+    protected abstract void sendFrame(byte[] frame);
 
     private void reset() {
         mMode = 0;
