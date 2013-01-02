@@ -222,7 +222,7 @@ abstract class HybiParser {
             throw new ProtocolError("Bad opcode");
         }
 
-        if (FRAGMENTED_OPCODES.contains(mOpcode) && !mFinal) {
+        if (!FRAGMENTED_OPCODES.contains(mOpcode) && !mFinal) {
             throw new ProtocolError("Expected non-final packet");
         }
 
