@@ -309,23 +309,27 @@ public class AsyncHttpClient {
         public void onCompleted(Exception ex, WebSocket webSocket);
     }
     
-    public static void websocket(String uri, final WebSocketConnectCallback callback) {
+    public static void websocket(final AsyncHttpRequest req, String protocol, final WebSocketConnectCallback callback) {
+        WebSocketImpl.addWebSocketUpgradeHeaders(req.getHeaders().getHeaders(), protocol);
+        execute(req, new HttpConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
+                if (ex != null) {
+                    callback.onCompleted(ex, null);
+                    return;
+                }
+                WebSocket ws = WebSocketImpl.finishHandshake(req.getHeaders().getHeaders(), response);
+                if (ws == null)
+                    ex = new Exception("Unable to complete websocket handshake");
+                callback.onCompleted(ex, ws);
+            }
+        });
+    }
+    
+    public static void websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
         try {
             final AsyncHttpGet get = new AsyncHttpGet(uri);
-            WebSocketImpl.addWebSocketUpgradeHeaders(get.getHeaders().getHeaders());
-            execute(get, new HttpConnectCallback() {
-                @Override
-                public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
-                    if (ex != null) {
-                        callback.onCompleted(ex, null);
-                        return;
-                    }
-                    WebSocket ws = WebSocketImpl.finishHandshake(get.getHeaders().getHeaders(), response);
-                    if (ws == null)
-                        ex = new Exception("Unable to complete websocket handshake");
-                    callback.onCompleted(ex, ws);
-                }
-            });
+            websocket(get, protocol, callback);
         }
         catch (URISyntaxException e) {
             callback.onCompleted(e, null);

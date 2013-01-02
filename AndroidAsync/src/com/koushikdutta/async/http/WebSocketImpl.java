@@ -110,12 +110,14 @@ public class WebSocketImpl implements WebSocket {
         setupParser();
     }
     
-    public static void addWebSocketUpgradeHeaders(RawHeaders headers) {
+    public static void addWebSocketUpgradeHeaders(RawHeaders headers, String protocol) {
         final String key = UUID.randomUUID().toString();
         headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
         headers.set("Connection", "Upgrade");
         headers.set("Upgrade", "websocket");
+        if (protocol != null)
+            headers.set("Sec-WebSocket-Protocol", protocol);
     }
     
     public WebSocketImpl(AsyncSocket socket) {

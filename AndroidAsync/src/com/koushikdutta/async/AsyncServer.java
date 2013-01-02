@@ -200,13 +200,16 @@ public class AsyncServer {
             post(new Runnable() {
                 @Override
                 public void run() {
+                    SelectionKey ckey = null;
                     try {
-                        SelectionKey ckey = sc.register(mSelector);
+                        ckey = sc.register(mSelector);
                         ckey.attach(handler);
                         SocketAddress remote = new InetSocketAddress(host, port);
                         socket.connect(remote);
                     }
                     catch (Exception e) {
+                        if (ckey != null)
+                            ckey.cancel();
                         handler.onConnectCompleted(e, null);
                     }
                 }
