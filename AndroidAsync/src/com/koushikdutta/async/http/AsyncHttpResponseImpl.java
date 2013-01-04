@@ -40,7 +40,10 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         mWriter = mRequest.getBody();
         if (mWriter != null) {
             mRequest.getHeaders().setContentType(mWriter.getContentType());
-            mRequest.getHeaders().getHeaders().set("Transfer-Encoding", "Chunked");
+            if (mWriter.length() != -1)
+                mRequest.getHeaders().setContentLength(mWriter.length());
+            else
+                mRequest.getHeaders().getHeaders().set("Transfer-Encoding", "Chunked");
         }
         
         String rs = mRequest.getRequestString();

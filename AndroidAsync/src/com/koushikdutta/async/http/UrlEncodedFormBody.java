@@ -18,11 +18,14 @@ import com.koushikdutta.async.callback.CompletedCallback;
 
 public class UrlEncodedFormBody implements AsyncHttpRequestBody {
     private Iterable<NameValuePair> mParameters;
+    private byte[] mBodyBytes;
+    
     public UrlEncodedFormBody(Iterable<NameValuePair> parameters) {
         mParameters = parameters;
+        buildData();
     }
-    @Override
-    public void write(AsyncHttpRequest request, final AsyncHttpResponse response) {
+    
+    private void buildData() {
         boolean first = true;
         StringBuilder b = new StringBuilder();
         for (NameValuePair pair: mParameters) {
@@ -33,11 +36,15 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
             b.append('=');
             b.append(URLEncoder.encode(pair.getValue()));
         }
-        byte[] bytes = b.toString().getBytes();
-        Util.writeAll(response, bytes, new CompletedCallback() {
+        mBodyBytes = b.toString().getBytes();
+    }
+    
+    @Override
+    public void write(AsyncHttpRequest request, final AsyncHttpResponse response) {
+        Util.writeAll(response, mBodyBytes, new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                response.end();
+//                response.end();
             }
         });
     }
@@ -93,5 +100,10 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
     @Override
     public boolean readFullyOnRequest() {
         return true;
+    }
+
+    @Override
+    public int length() {
+        return mBodyBytes.length;
     }
 }

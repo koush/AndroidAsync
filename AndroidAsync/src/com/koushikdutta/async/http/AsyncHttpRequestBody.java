@@ -7,4 +7,5 @@ public interface AsyncHttpRequestBody extends DataCallback, CompletedCallback {
     public void write(AsyncHttpRequest request, AsyncHttpResponse sink);
     public String getContentType();
     public boolean readFullyOnRequest();
+    public int length();
 }

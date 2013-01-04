@@ -35,4 +35,9 @@ public class AsyncHttpRequestBodyBase extends FilteredDataCallback implements As
     public boolean readFullyOnRequest() {
         return false;
     }
+
+    @Override
+    public int length() {
+        return -1;
+    }
 }
