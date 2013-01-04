@@ -2,7 +2,6 @@ package com.koushikdutta.async.http;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,6 +68,22 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
             data = new ByteBufferList();
         data.add(bb);
         bb.clear();
+    }
+    
+    public static Map<String, String> parse(String data) {
+        HashMap<String, String> map = new HashMap<String, String>();
+        String[] pairs = data.split("&");
+        for (String p : pairs) {
+            String[] pair = p.split("=", 2);
+            if (pair.length == 0)
+                continue;
+            String name = Uri.decode(pair[0]);
+            String value = null;
+            if (pair.length == 2)
+                value = Uri.decode(pair[1]);
+            map.put(name, value);
+        }
+        return Collections.unmodifiableMap(map);
     }
 
     @Override

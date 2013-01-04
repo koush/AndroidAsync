@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -25,6 +26,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.UrlEncodedFormBody;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.libcore.RawHeaders;
@@ -44,6 +46,8 @@ public class AsyncHttpServer implements CompletedEmitter {
         public void onAccepted(final AsyncSocket socket) {
             AsyncHttpServerRequestImpl req = new AsyncHttpServerRequestImpl() {
                 Pair match;
+                String fullPath;
+                String path;
                 boolean responseComplete;
                 boolean requestComplete;
                 AsyncHttpServerResponseImpl res;
@@ -75,8 +79,8 @@ public class AsyncHttpServer implements CompletedEmitter {
                     
                     String statusLine = headers.getStatusLine();
                     String[] parts = statusLine.split(" ");
-                    String path = parts[1];
-                    path = path.split("\\?")[0];
+                    fullPath = parts[1];
+                    path = fullPath.split("\\?")[0];
                     String action = parts[0];
                     synchronized (mActions) {
                         ArrayList<Pair> pairs = mActions.get(action);
@@ -133,6 +137,19 @@ public class AsyncHttpServer implements CompletedEmitter {
                     if (requestComplete && responseComplete) {
                         onAccepted(socket);
                     }
+                }
+
+                @Override
+                public String getPath() {
+                    return path;
+                }
+
+                @Override
+                public Map<String, String> getQuery() {
+                    String[] parts = fullPath.split("\\?", 2);
+                    if (parts.length < 2)
+                        new Hashtable<String, String>();
+                    return UrlEncodedFormBody.parse(parts[1]);
                 }
             };
             req.setSocket(socket);

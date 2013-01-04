@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http.server;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 
 import com.koushikdutta.async.AsyncSocket;
@@ -13,4 +14,6 @@ public interface AsyncHttpServerRequest extends DataEmitter, CompletedEmitter {
     public Matcher getMatcher();
     public AsyncHttpRequestBody getBody();
     public AsyncSocket getSocket();
+    public String getPath();
+    public Map<String, String> getQuery();
 }
