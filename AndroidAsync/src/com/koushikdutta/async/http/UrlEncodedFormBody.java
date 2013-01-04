@@ -1,6 +1,8 @@
 package com.koushikdutta.async.http;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,11 +34,16 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
             if (!first)
                 b.append('&');
             first = false;
+            
             b.append(URLEncoder.encode(pair.getName()));
             b.append('=');
             b.append(URLEncoder.encode(pair.getValue()));
         }
-        mBodyBytes = b.toString().getBytes();
+        try {
+            mBodyBytes = b.toString().getBytes("ISO-8859-1");
+        }
+        catch (UnsupportedEncodingException e) {
+        }
     }
     
     @Override

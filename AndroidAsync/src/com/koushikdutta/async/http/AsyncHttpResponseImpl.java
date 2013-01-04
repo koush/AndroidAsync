@@ -7,6 +7,7 @@ import junit.framework.Assert;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
@@ -40,10 +41,13 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         mWriter = mRequest.getBody();
         if (mWriter != null) {
             mRequest.getHeaders().setContentType(mWriter.getContentType());
-            if (mWriter.length() != -1)
+            if (mWriter.length() != -1) {
                 mRequest.getHeaders().setContentLength(mWriter.length());
-            else
+                mChunker = mSocket;
+            }
+            else {
                 mRequest.getHeaders().getHeaders().set("Transfer-Encoding", "Chunked");
+            }
         }
         
         String rs = mRequest.getRequestString();
@@ -161,7 +165,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         Assert.assertTrue(mRequest.getHeaders().getHeaders().get("Transfer-Encoding") != null || mRequest.getHeaders().getContentLength() != -1); 
     }
 
-    ChunkedOutputFilter mChunker;
+    DataSink mChunker;
     void initChunker() {
         if (mChunker != null)
             return;
