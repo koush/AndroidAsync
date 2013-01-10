@@ -161,6 +161,7 @@ public class WebSocketImpl implements WebSocket {
 
     @Override
     public void close() {
+        mSocket.close();
     }
 
     ClosedCallback mClosedCallback;
