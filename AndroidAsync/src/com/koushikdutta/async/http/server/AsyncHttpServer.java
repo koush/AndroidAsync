@@ -148,7 +148,7 @@ public class AsyncHttpServer implements CompletedEmitter {
                 public Map<String, String> getQuery() {
                     String[] parts = fullPath.split("\\?", 2);
                     if (parts.length < 2)
-                        new Hashtable<String, String>();
+                        return new Hashtable<String, String>();
                     return UrlEncodedFormBody.parse(parts[1]);
                 }
             };
