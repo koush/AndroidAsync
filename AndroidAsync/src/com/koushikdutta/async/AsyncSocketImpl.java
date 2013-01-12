@@ -170,7 +170,7 @@ class AsyncSocketImpl implements AsyncSocket {
             return;
         closeReported = true;
         if (mClosedHander != null) {
-            mClosedHander.onClosed();
+            mClosedHander.onCompleted(null);
             mClosedHander = null;
         }
     }
@@ -214,14 +214,14 @@ class AsyncSocketImpl implements AsyncSocket {
         return mDataHandler;
     }
 
-    ClosedCallback mClosedHander;
+    CompletedCallback mClosedHander;
     @Override
-    public void setClosedCallback(ClosedCallback handler) {
+    public void setClosedCallback(CompletedCallback handler) {
         mClosedHander = handler;       
     }
 
     @Override
-    public ClosedCallback getCloseHandler() {
+    public CompletedCallback getCloseHandler() {
         return mClosedHander;
     }
 

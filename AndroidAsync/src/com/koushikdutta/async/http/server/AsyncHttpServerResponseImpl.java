@@ -15,6 +15,7 @@ import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.FilteredDataSink;
 import com.koushikdutta.async.Util;
+import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
@@ -193,5 +194,25 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             ex.printStackTrace();
         }
         end();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return mSink.isOpen();
+    }
+
+    @Override
+    public void close() {
+        mSink.close();
+    }
+
+    @Override
+    public void setClosedCallback(CompletedCallback handler) {
+        mSink.setClosedCallback(handler);
+    }
+
+    @Override
+    public CompletedCallback getCloseHandler() {
+        return mSink.getCloseHandler();
     }
 }

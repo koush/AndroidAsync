@@ -26,7 +26,7 @@ import com.koushikdutta.async.callback.WritableCallback;
 
 public class AsyncSSLSocket implements AsyncSocket {
     AsyncSocket mSocket;
-    BufferedDataEmitter mEmitter = new BufferedDataEmitter();
+    BufferedDataEmitter mEmitter;
     BufferedDataSink mSink;
     ByteBuffer mReadTmp = ByteBuffer.allocate(8192);
     boolean mUnwrapping = false;
@@ -45,7 +45,8 @@ public class AsyncSSLSocket implements AsyncSocket {
 
         // SSL needs buffering of data written during handshake.
         // aka exhcange.setDatacallback
-        socket.setDataCallback(mEmitter);
+        mEmitter = new BufferedDataEmitter(socket);
+//        socket.setDataCallback(mEmitter);
 
         mEmitter.setDataCallback(new DataCallback() {
             @Override
@@ -317,12 +318,12 @@ public class AsyncSSLSocket implements AsyncSocket {
     }
 
     @Override
-    public void setClosedCallback(ClosedCallback handler) {
+    public void setClosedCallback(CompletedCallback handler) {
         mSocket.setClosedCallback(handler);
     }
 
     @Override
-    public ClosedCallback getCloseHandler() {
+    public CompletedCallback getCloseHandler() {
         return mSocket.getCloseHandler();
     }
 

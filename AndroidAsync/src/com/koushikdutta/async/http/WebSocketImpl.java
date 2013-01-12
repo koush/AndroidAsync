@@ -77,7 +77,7 @@ public class WebSocketImpl implements WebSocket {
             @Override
             protected void onDisconnect(int code, String reason) {
                 if (WebSocketImpl.this.mClosedCallback != null)
-                    WebSocketImpl.this.mClosedCallback.onClosed();
+                    WebSocketImpl.this.mClosedCallback.onCompleted(null);
             }
             @Override
             protected void sendFrame(byte[] frame) {
@@ -124,11 +124,11 @@ public class WebSocketImpl implements WebSocket {
         mSocket = socket;
         mSink = new BufferedDataSink(mSocket);
         
-        mSocket.setClosedCallback(new ClosedCallback() {
+        mSocket.setClosedCallback(new CompletedCallback() {
             @Override
-            public void onClosed() {
+            public void onCompleted(Exception ex) {
                 if (WebSocketImpl.this.mClosedCallback != null)
-                    WebSocketImpl.this.mClosedCallback.onClosed();
+                    WebSocketImpl.this.mClosedCallback.onCompleted(ex);
             }
         });
     }
@@ -164,14 +164,14 @@ public class WebSocketImpl implements WebSocket {
         mSocket.close();
     }
 
-    ClosedCallback mClosedCallback;
+    CompletedCallback mClosedCallback;
     @Override
-    public void setClosedCallback(ClosedCallback handler) {
+    public void setClosedCallback(CompletedCallback handler) {
         mClosedCallback = handler;
     }
 
     @Override
-    public ClosedCallback getCloseHandler() {
+    public CompletedCallback getCloseHandler() {
         return mClosedCallback;
     }
 

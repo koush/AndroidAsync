@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import junit.framework.Assert;
 
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
 public class BufferedDataSink implements DataSink {
@@ -84,5 +85,25 @@ public class BufferedDataSink implements DataSink {
     public void setMaxBuffer(int maxBuffer) {
         Assert.assertTrue(maxBuffer >= 0);
         mMaxBuffer = maxBuffer;
+    }
+
+    @Override
+    public boolean isOpen() {
+        return mDataSink.isOpen();
+    }
+
+    @Override
+    public void close() {
+        mDataSink.close();
+    }
+
+    @Override
+    public void setClosedCallback(CompletedCallback handler) {
+        mDataSink.setClosedCallback(handler);
+    }
+
+    @Override
+    public CompletedCallback getCloseHandler() {
+        return mDataSink.getCloseHandler();
     }
 }

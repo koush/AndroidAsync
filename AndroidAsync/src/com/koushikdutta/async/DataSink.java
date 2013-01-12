@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 import com.koushikdutta.async.callback.WritableCallback;
 
-public interface DataSink {
+public interface DataSink extends CloseableData {
     public void write(ByteBuffer bb);
     public void write(ByteBufferList bb);
     public void setWriteableCallback(WritableCallback handler);

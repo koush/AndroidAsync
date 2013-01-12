@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import junit.framework.Assert;
 
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
 public class FilteredDataSink implements DataSink {
@@ -104,5 +105,25 @@ public class FilteredDataSink implements DataSink {
     @Override
     public WritableCallback getWriteableCallback() {
         return mWritable;
+    }
+
+    @Override
+    public boolean isOpen() {
+        return mSink.isOpen();
+    }
+
+    @Override
+    public void close() {
+        mSink.close();
+    }
+
+    @Override
+    public void setClosedCallback(CompletedCallback handler) {
+        mSink.setClosedCallback(handler);
+    }
+
+    @Override
+    public CompletedCallback getCloseHandler() {
+        return mSink.getCloseHandler();
     }
 }

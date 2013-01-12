@@ -43,10 +43,11 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
             mRequest.getHeaders().setContentType(mWriter.getContentType());
             if (mWriter.length() != -1) {
                 mRequest.getHeaders().setContentLength(mWriter.length());
-                mChunker = mSocket;
+                mSink = mSocket;
             }
             else {
                 mRequest.getHeaders().getHeaders().set("Transfer-Encoding", "Chunked");
+                mSink = new ChunkedOutputFilter(mSocket);
             }
         }
         
@@ -63,9 +64,9 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         liner.setLineCallback(mHeaderCallback);
         
         mSocket.setCompletedCallback(mReporter);
-        mSocket.setClosedCallback(new ClosedCallback() {
+        mSocket.setClosedCallback(new CompletedCallback() {
             @Override
-            public void onClosed() {
+            public void onCompleted(Exception ex) {
                 if (!mCompleted) {
                     report(new Exception("connection closed before response completed."));
                 }
@@ -165,25 +166,18 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         Assert.assertTrue(mRequest.getHeaders().getHeaders().get("Transfer-Encoding") != null || mRequest.getHeaders().getContentLength() != -1); 
     }
 
-    DataSink mChunker;
-    void initChunker() {
-        if (mChunker != null)
-            return;
-        mChunker = new ChunkedOutputFilter(mSocket);
-    }
+    DataSink mSink;
 
     @Override
     public void write(ByteBuffer bb) {
         assertContent();
-        initChunker();
-        mChunker.write(bb);
+        mSink.write(bb);
     }
 
     @Override
     public void write(ByteBufferList bb) {
         assertContent();
-        initChunker();
-        mChunker.write(bb);
+        mSink.write(bb);
     }
 
     @Override
@@ -194,13 +188,32 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
 
     @Override
     public void setWriteableCallback(WritableCallback handler) {
-        initChunker();
-        mChunker.setWriteableCallback(handler);
+        mSink.setWriteableCallback(handler);
     }
 
     @Override
     public WritableCallback getWriteableCallback() {
-        initChunker();
-        return mChunker.getWriteableCallback();
+        return mSink.getWriteableCallback();
+    }
+
+
+    @Override
+    public boolean isOpen() {
+        return mSink.isOpen();
+    }
+
+    @Override
+    public void close() {
+        mSink.close();
+    }
+
+    @Override
+    public void setClosedCallback(CompletedCallback handler) {
+        mSink.setClosedCallback(handler);
+    }
+
+    @Override
+    public CompletedCallback getCloseHandler() {
+        return mSink.getCloseHandler();
     }
 }

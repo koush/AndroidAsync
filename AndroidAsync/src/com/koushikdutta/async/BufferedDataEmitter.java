@@ -1,9 +1,13 @@
 package com.koushikdutta.async;
 
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 
 public class BufferedDataEmitter implements DataEmitter, DataCallback {
-    public BufferedDataEmitter() {
+    DataEmitter mEmitter;
+    public BufferedDataEmitter(DataEmitter emitter) {
+        mEmitter = emitter;
+        mEmitter.setDataCallback(this);
     }
     
     public void onDataAvailable() {
@@ -54,5 +58,15 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     @Override
     public boolean isPaused() {
         return mPaused;
+    }
+
+    @Override
+    public void setCompletedCallback(CompletedCallback callback) {
+        mEmitter.setCompletedCallback(callback);
+    }
+
+    @Override
+    public CompletedCallback getCompletedCallback() {
+        return mEmitter.getCompletedCallback();
     }
 }

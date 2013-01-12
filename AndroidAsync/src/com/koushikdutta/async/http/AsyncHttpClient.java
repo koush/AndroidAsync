@@ -116,9 +116,9 @@ public class AsyncHttpClient {
                             final HashSet<AsyncSocket> ss = sockets;
                             synchronized (sockets) {
                                 sockets.add(socket);
-                                socket.setClosedCallback(new ClosedCallback() {
+                                socket.setClosedCallback(new CompletedCallback() {
                                     @Override
-                                    public void onClosed() {
+                                    public void onCompleted(Exception ex) {
                                         synchronized (ss) {
                                             ss.remove(socket);
                                         }
