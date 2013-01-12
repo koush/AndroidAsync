@@ -103,7 +103,7 @@ public class BufferedDataSink implements DataSink {
     }
 
     @Override
-    public CompletedCallback getCloseHandler() {
-        return mDataSink.getCloseHandler();
+    public CompletedCallback getClosedCallback() {
+        return mDataSink.getClosedCallback();
     }
 }

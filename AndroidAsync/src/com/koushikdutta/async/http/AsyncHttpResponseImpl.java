@@ -212,7 +212,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
     }
 
     @Override
-    public CompletedCallback getCloseHandler() {
-        return mSink.getCloseHandler();
+    public CompletedCallback getClosedCallback() {
+        return mSink.getClosedCallback();
     }
 }

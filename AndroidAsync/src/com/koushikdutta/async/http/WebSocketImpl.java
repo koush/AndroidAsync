@@ -75,8 +75,9 @@ public class WebSocketImpl implements WebSocket {
             }
             @Override
             protected void onDisconnect(int code, String reason) {
-                if (WebSocketImpl.this.mClosedCallback != null)
-                    WebSocketImpl.this.mClosedCallback.onCompleted(null);
+                mSocket.close();
+//                if (WebSocketImpl.this.mClosedCallback != null)
+//                    WebSocketImpl.this.mClosedCallback.onCompleted(null);
             }
             @Override
             protected void sendFrame(byte[] frame) {
@@ -122,14 +123,6 @@ public class WebSocketImpl implements WebSocket {
     public WebSocketImpl(AsyncSocket socket) {
         mSocket = socket;
         mSink = new BufferedDataSink(mSocket);
-        
-        mSocket.setClosedCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                if (WebSocketImpl.this.mClosedCallback != null)
-                    WebSocketImpl.this.mClosedCallback.onCompleted(ex);
-            }
-        });
     }
     
     public static WebSocket finishHandshake(RawHeaders requestHeaders, AsyncHttpResponse response) {
@@ -163,15 +156,14 @@ public class WebSocketImpl implements WebSocket {
         mSocket.close();
     }
 
-    CompletedCallback mClosedCallback;
     @Override
     public void setClosedCallback(CompletedCallback handler) {
-        mClosedCallback = handler;
+        mSocket.setClosedCallback(handler);
     }
 
     @Override
-    public CompletedCallback getCloseHandler() {
-        return mClosedCallback;
+    public CompletedCallback getClosedCallback() {
+        return mSocket.getClosedCallback();
     }
 
     CompletedCallback mExceptionCallback;

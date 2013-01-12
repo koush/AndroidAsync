@@ -36,7 +36,9 @@ public class AsyncHttpRequest {
         mRawHeaders.setStatusLine(getRequestLine());
         mHeaders.setHost(uri.getHost());
         mHeaders.setUserAgent(getDefaultUserAgent());
-        mHeaders.setAcceptEncoding("gzip");
+        mHeaders.setAcceptEncoding("gzip, deflate");
+        mHeaders.getHeaders().set("Connection", "close");
+        mHeaders.getHeaders().set("Accept", "*/*");
     }
 
     public URI getUri() {

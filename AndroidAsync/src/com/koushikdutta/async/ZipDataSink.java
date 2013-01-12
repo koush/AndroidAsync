@@ -26,7 +26,7 @@ public class ZipDataSink extends FilteredDataSink {
     }
     
     protected void report(Exception e) {
-        CompletedCallback closed = getCloseHandler();
+        CompletedCallback closed = getClosedCallback();
         if (closed != null)
             closed.onCompleted(e);
     }

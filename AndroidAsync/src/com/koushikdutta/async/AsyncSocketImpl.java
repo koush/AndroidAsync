@@ -213,7 +213,7 @@ class AsyncSocketImpl implements AsyncSocket {
     }
 
     @Override
-    public CompletedCallback getCloseHandler() {
+    public CompletedCallback getClosedCallback() {
         return mClosedHander;
     }
 

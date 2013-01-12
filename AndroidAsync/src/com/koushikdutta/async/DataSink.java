@@ -14,5 +14,5 @@ public interface DataSink {
     public boolean isOpen();
     public void close();
     public void setClosedCallback(CompletedCallback handler);
-    public CompletedCallback getCloseHandler();
+    public CompletedCallback getClosedCallback();
 }

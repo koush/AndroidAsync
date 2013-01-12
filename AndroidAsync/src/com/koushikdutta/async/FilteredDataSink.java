@@ -123,7 +123,7 @@ public class FilteredDataSink implements DataSink {
     }
 
     @Override
-    public CompletedCallback getCloseHandler() {
-        return mSink.getCloseHandler();
+    public CompletedCallback getClosedCallback() {
+        return mSink.getClosedCallback();
     }
 }

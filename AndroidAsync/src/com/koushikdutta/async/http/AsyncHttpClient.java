@@ -103,6 +103,10 @@ public class AsyncHttpClient {
                         if (socket == null)
                             return;
                         super.report(ex);
+                        if (!socket.isOpen())
+                            return;
+                        if (ex != null)
+                            return;
                         if (!keepalive) {
                             socket.close();
                         }
@@ -170,7 +174,6 @@ public class AsyncHttpClient {
                         server.post(new Runnable() {
                             @Override
                             public void run() {
-                                System.out.println("resued");
                                 socketConnected.reused = true;
                                 socketConnected.onConnectCompleted(null, socket);
                             }

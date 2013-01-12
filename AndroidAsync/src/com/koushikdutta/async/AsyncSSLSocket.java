@@ -227,6 +227,13 @@ public class AsyncSSLSocket implements AsyncSocket {
         int remaining;
         SSLEngineResult res = null;
         do {
+            // if the handshake is finished, don't send
+            // 0 bytes of data, since that makes the ssl connection die.
+            // it wraps a 0 byte package, and craps out.
+            if (finishedHandshake && bb.remaining() == 0) {
+                mWrapping = false;
+                return;
+            }
             remaining = bb.remaining();
             mWriteTmp.position(0);
             mWriteTmp.limit(mWriteTmp.capacity());
@@ -255,6 +262,13 @@ public class AsyncSSLSocket implements AsyncSocket {
         int remaining;
         SSLEngineResult res = null;
         do {
+            // if the handshake is finished, don't send
+            // 0 bytes of data, since that makes the ssl connection die.
+            // it wraps a 0 byte package, and craps out.
+            if (finishedHandshake && bb.remaining() == 0) {
+                mWrapping = false;
+                return;
+            }
             remaining = bb.remaining();
             mWriteTmp.position(0);
             mWriteTmp.limit(mWriteTmp.capacity());
@@ -322,8 +336,8 @@ public class AsyncSSLSocket implements AsyncSocket {
     }
 
     @Override
-    public CompletedCallback getCloseHandler() {
-        return mSocket.getCloseHandler();
+    public CompletedCallback getClosedCallback() {
+        return mSocket.getClosedCallback();
     }
 
     @Override

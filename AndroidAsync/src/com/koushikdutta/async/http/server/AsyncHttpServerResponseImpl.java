@@ -37,7 +37,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         mSocket = socket;
         mSink = new BufferedDataSink(socket);
 
-        mRawHeaders.set("Connection", "keep-alive");
+        mRawHeaders.set("Connection", "Keep-Alive");
     }
     
     @Override
@@ -211,7 +211,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     @Override
-    public CompletedCallback getCloseHandler() {
-        return mSink.getCloseHandler();
+    public CompletedCallback getClosedCallback() {
+        return mSink.getClosedCallback();
     }
 }
