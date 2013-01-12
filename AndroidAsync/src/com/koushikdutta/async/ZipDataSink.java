@@ -8,7 +8,7 @@ import java.util.zip.ZipOutputStream;
 
 import com.koushikdutta.async.callback.CompletedCallback;
 
-public class ZipDataSink extends FilteredDataSink implements CompletedEmitter {
+public class ZipDataSink extends FilteredDataSink {
     public ZipDataSink(DataSink sink) {
         super(sink);
     }
@@ -26,8 +26,9 @@ public class ZipDataSink extends FilteredDataSink implements CompletedEmitter {
     }
     
     protected void report(Exception e) {
-        if (mCompleted != null)
-            mCompleted.onCompleted(null);
+        CompletedCallback closed = getCloseHandler();
+        if (closed != null)
+            closed.onCompleted(e);
     }
 
     private boolean closed = false;
@@ -72,16 +73,5 @@ public class ZipDataSink extends FilteredDataSink implements CompletedEmitter {
             report(e);
             return null;
         }
-    }
-
-    private CompletedCallback mCompleted;
-    @Override
-    public void setCompletedCallback(CompletedCallback callback) {
-        mCompleted = callback;
-    }
-
-    @Override
-    public CompletedCallback getCompletedCallback() {
-        return mCompleted;
     }
 }

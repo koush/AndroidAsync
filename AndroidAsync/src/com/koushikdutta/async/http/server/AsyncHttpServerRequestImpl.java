@@ -19,12 +19,12 @@ public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerReque
 
     private CompletedCallback mCompleted;
     @Override
-    public void setCompletedCallback(CompletedCallback callback) {
+    public void setEndCallback(CompletedCallback callback) {
         mCompleted = callback;
     }
 
     @Override
-    public CompletedCallback getCompletedCallback() {
+    public CompletedCallback getEndCallback() {
         return mCompleted;
     }
 

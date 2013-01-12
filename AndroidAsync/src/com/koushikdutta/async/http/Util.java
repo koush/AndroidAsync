@@ -35,12 +35,12 @@ public class Util {
         if ("gzip".equals(headers.get("Content-Encoding"))) {
             GZIPInputFilter gunzipper = new GZIPInputFilter();
             gunzipper.setDataCallback(callback);
-            gunzipper.setCompletedCallback(reporter);
+            gunzipper.setEndCallback(reporter);
             callback = gunzipper;
         }        
         else if ("deflate".equals(headers.get("Content-Encoding"))) {
             InflaterInputFilter inflater = new InflaterInputFilter();
-            inflater.setCompletedCallback(reporter);
+            inflater.setEndCallback(reporter);
             inflater.setDataCallback(callback);
             callback = inflater;
         }
@@ -76,13 +76,13 @@ public class Util {
                 }
             };
             contentLengthWatcher.setDataCallback(callback);
-            contentLengthWatcher.setCompletedCallback(reporter);
+            contentLengthWatcher.setEndCallback(reporter);
             callback = contentLengthWatcher;
         }
         else if ("chunked".equalsIgnoreCase(headers.get("Transfer-Encoding"))) {
             ChunkedInputFilter chunker = new ChunkedInputFilter();
             
-            chunker.setCompletedCallback(reporter);
+            chunker.setEndCallback(reporter);
             chunker.setDataCallback(callback);
             callback = chunker;
         }

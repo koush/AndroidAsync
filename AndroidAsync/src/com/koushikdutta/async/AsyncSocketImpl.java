@@ -8,7 +8,6 @@ import java.nio.channels.SocketChannel;
 
 import junit.framework.Assert;
 
-import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -61,8 +60,8 @@ class AsyncSocketImpl implements AsyncSocket {
         }
         catch (IOException e) {
             close();
-            report(e);
-            reportClose();
+            reportEndPending(e);
+            reportClose(e);
         }
     }
     
@@ -94,8 +93,8 @@ class AsyncSocketImpl implements AsyncSocket {
         }
         catch (IOException ex) {
             close();
-            report(ex);
-            reportClose();
+            reportEndPending(ex);
+            reportClose(ex);
         }
     }
 
@@ -143,34 +142,27 @@ class AsyncSocketImpl implements AsyncSocket {
                 }
             }
 
-            // TODO: How what happens in the following scenario:
-            // socket paused, closed, resumed?
-            // close handler gets fired, but data is still available.
-            if (closed)
-                reportPendingClose();
+            if (closed) {
+                reportEndPending(null);
+                reportClose(null);
+            }
         }
         catch (Exception e) {
             closeInternal();
-            report(e);
-            reportClose();
+            reportEndPending(e);
+            reportClose(e);
         }
         
         return total;
     }
     
-    private void reportPendingClose() {
-        if (pending != null)
-            return;
-        reportClose();
-    }
-    
     boolean closeReported;
-    private void reportClose() {
+    private void reportClose(Exception e) {
         if (closeReported)
             return;
         closeReported = true;
         if (mClosedHander != null) {
-            mClosedHander.onCompleted(null);
+            mClosedHander.onCompleted(e);
             mClosedHander = null;
         }
     }
@@ -178,7 +170,7 @@ class AsyncSocketImpl implements AsyncSocket {
     @Override
     public void close() {
         closeInternal();
-        reportClose();
+        reportClose(null);
     }
 
     public void closeInternal() {
@@ -230,22 +222,34 @@ class AsyncSocketImpl implements AsyncSocket {
         return mWriteableHandler;
     }
 
-    void report(Exception e) {
-        if (mExceptionCallback != null)
-            mExceptionCallback.onCompleted(e);
-        else
+    void reportEnd(Exception e) {
+        if (mEndReported)
+            return;
+        mEndReported = true;
+        if (mCompletedCallback != null)
+            mCompletedCallback.onCompleted(e);
+        else if (e != null)
             e.printStackTrace();
     }
+    boolean mEndReported;
+    Exception mPendingEndException;
+    void reportEndPending(Exception e) {
+        if (pending != null) {
+            mPendingEndException = e;
+            return;
+        }
+        reportEnd(e);
+    }
     
-    private CompletedCallback mExceptionCallback;
+    private CompletedCallback mCompletedCallback;
     @Override
-    public void setCompletedCallback(CompletedCallback callback) {
-        mExceptionCallback = callback;
+    public void setEndCallback(CompletedCallback callback) {
+        mCompletedCallback = callback;
     }
 
     @Override
-    public CompletedCallback getCompletedCallback() {
-        return mExceptionCallback;
+    public CompletedCallback getEndCallback() {
+        return mCompletedCallback;
     }
 
     @Override
@@ -291,7 +295,7 @@ class AsyncSocketImpl implements AsyncSocket {
         }
         spitPending();
         if (!isOpen())
-            reportPendingClose();
+            reportEndPending(mPendingEndException);
     }
     
     @Override

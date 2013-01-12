@@ -19,7 +19,6 @@ import junit.framework.Assert;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 
-import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -286,7 +285,7 @@ public class AsyncSSLSocket implements AsyncSocket {
     }
 
     private void report(Exception e) {
-        CompletedCallback cb = getCompletedCallback();
+        CompletedCallback cb = getEndCallback();
         if (cb != null)
             cb.onCompleted(e);
     }
@@ -328,13 +327,13 @@ public class AsyncSSLSocket implements AsyncSocket {
     }
 
     @Override
-    public void setCompletedCallback(CompletedCallback callback) {
-        mSocket.setCompletedCallback(callback);
+    public void setEndCallback(CompletedCallback callback) {
+        mSocket.setEndCallback(callback);
     }
 
     @Override
-    public CompletedCallback getCompletedCallback() {
-        return mSocket.getCompletedCallback();
+    public CompletedCallback getEndCallback() {
+        return mSocket.getEndCallback();
     }
 
     @Override

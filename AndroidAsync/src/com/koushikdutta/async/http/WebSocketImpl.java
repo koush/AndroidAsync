@@ -12,7 +12,6 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.Util;
-import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -177,12 +176,12 @@ public class WebSocketImpl implements WebSocket {
 
     CompletedCallback mExceptionCallback;
     @Override
-    public void setCompletedCallback(CompletedCallback callback) {
+    public void setEndCallback(CompletedCallback callback) {
         mExceptionCallback = callback;
     }
 
     @Override
-    public CompletedCallback getCompletedCallback() {
+    public CompletedCallback getEndCallback() {
         return mExceptionCallback;
     }
 

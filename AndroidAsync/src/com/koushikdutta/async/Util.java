@@ -61,8 +61,8 @@ public class Util {
                     int remaining;
                     do {
                         if (pending.remaining() == 0) {
-                            int available = is.available();
-                            System.out.println(available);
+//                            int available = is.available();
+//                            System.out.println(available);
                             int read = is.read(buffer);
                             if (read == -1) {
                                 close();

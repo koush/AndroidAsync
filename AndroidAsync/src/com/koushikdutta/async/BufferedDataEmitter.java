@@ -61,12 +61,12 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     }
 
     @Override
-    public void setCompletedCallback(CompletedCallback callback) {
-        mEmitter.setCompletedCallback(callback);
+    public void setEndCallback(CompletedCallback callback) {
+        mEmitter.setEndCallback(callback);
     }
 
     @Override
-    public CompletedCallback getCompletedCallback() {
-        return mEmitter.getCompletedCallback();
+    public CompletedCallback getEndCallback() {
+        return mEmitter.getEndCallback();
     }
 }

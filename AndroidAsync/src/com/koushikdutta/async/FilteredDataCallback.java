@@ -5,7 +5,7 @@ import junit.framework.Assert;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 
-public class FilteredDataCallback implements DataEmitter, DataCallback, CompletedEmitter {
+public class FilteredDataCallback implements DataEmitter, DataCallback {
     public FilteredDataCallback() {
     }
 
@@ -31,12 +31,12 @@ public class FilteredDataCallback implements DataEmitter, DataCallback, Complete
     }
     
     @Override
-    public CompletedCallback getCompletedCallback() {
+    public CompletedCallback getEndCallback() {
         return mCompletedCallback;
     }
     
     @Override
-    public void setCompletedCallback(CompletedCallback callback) {
+    public void setEndCallback(CompletedCallback callback) {
         mCompletedCallback = callback;
     }
     CompletedCallback mCompletedCallback;

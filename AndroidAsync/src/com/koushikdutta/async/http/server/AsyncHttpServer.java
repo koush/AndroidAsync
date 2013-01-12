@@ -20,7 +20,6 @@ import android.content.Context;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.CompletedEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
@@ -32,7 +31,7 @@ import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
-public class AsyncHttpServer implements CompletedEmitter {
+public class AsyncHttpServer {
     ArrayList<AsyncServerSocket> mListeners = new ArrayList<AsyncServerSocket>();
     public void stop() {
         if (mListeners != null) {
@@ -185,13 +184,11 @@ public class AsyncHttpServer implements CompletedEmitter {
     }
 
     CompletedCallback mCompletedCallback;
-    @Override
-    public void setCompletedCallback(CompletedCallback callback) {
+    public void setErrorCallback(CompletedCallback callback) {
         mCompletedCallback = callback;        
     }
 
-    @Override
-    public CompletedCallback getCompletedCallback() {
+    public CompletedCallback getErrorCallback() {
         return mCompletedCallback;
     }
     

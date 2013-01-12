@@ -12,7 +12,6 @@ import com.koushikdutta.async.FilteredDataCallback;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.NullDataCallback;
-import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -63,7 +62,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         LineEmitter liner = new LineEmitter(exchange);
         liner.setLineCallback(mHeaderCallback);
         
-        mSocket.setCompletedCallback(mReporter);
+        mSocket.setEndCallback(mReporter);
         mSocket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
@@ -125,7 +124,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         });
         mSocket.setWriteableCallback(null);
         mSocket.setClosedCallback(null);
-        mSocket.setCompletedCallback(null);
+        mSocket.setEndCallback(null);
         mCompleted = true;
 //        System.out.println("closing up shop");
 //        if (mCompletedCallback != null)

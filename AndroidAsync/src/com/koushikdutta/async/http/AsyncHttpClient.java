@@ -23,7 +23,6 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.NullDataCallback;
-import com.koushikdutta.async.callback.ClosedCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -137,10 +136,15 @@ public class AsyncHttpClient {
                             return null;
                         socket.setWriteableCallback(null);
                         socket.setClosedCallback(null);
-                        socket.setCompletedCallback(null);
+                        socket.setEndCallback(null);
                         socket.setDataCallback(null);
                         setSocket(null);
                         return socket;
+                    }
+
+                    @Override
+                    public boolean isReusedSocket() {
+                        return reused;
                     }
                 };
 
@@ -166,6 +170,7 @@ public class AsyncHttpClient {
                         server.post(new Runnable() {
                             @Override
                             public void run() {
+                                System.out.println("resued");
                                 socketConnected.reused = true;
                                 socketConnected.onConnectCompleted(null, socket);
                             }
@@ -372,7 +377,7 @@ public class AsyncHttpClient {
                         invokeProgress(handler, callback, response, mDownloaded, contentLength);
                     }
                 });
-                response.setCompletedCallback(new CompletedCallback() {
+                response.setEndCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
                         try {
@@ -416,7 +421,7 @@ public class AsyncHttpClient {
                         invokeProgress(handler, callback, response, mDownloaded, contentLength);
                     }
                 });
-                response.setCompletedCallback(new CompletedCallback() {
+                response.setEndCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
                         try {

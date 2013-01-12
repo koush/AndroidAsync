@@ -26,7 +26,7 @@ public class AsyncHttpRequestBodyBase extends FilteredDataCallback implements As
 
     @Override
     public void onCompleted(Exception ex) {
-        CompletedCallback callback = getCompletedCallback();
+        CompletedCallback callback = getEndCallback();
         if (callback != null)
             callback.onCompleted(ex);
     }

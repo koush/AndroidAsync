@@ -1,6 +1,6 @@
 package com.koushikdutta.async;
 
 
-public interface AsyncSocket extends DataEmitter, DataSink, CloseableData, CompletedEmitter {
+public interface AsyncSocket extends DataEmitter, DataSink {
     public AsyncServer getServer();
 }
