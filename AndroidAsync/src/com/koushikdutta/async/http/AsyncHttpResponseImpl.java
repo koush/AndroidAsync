@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 import junit.framework.Assert;
 
+import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
@@ -214,5 +215,10 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
     @Override
     public CompletedCallback getClosedCallback() {
         return mSink.getClosedCallback();
+    }
+    
+    @Override
+    public AsyncServer getServer() {
+        return mSocket.getServer();
     }
 }

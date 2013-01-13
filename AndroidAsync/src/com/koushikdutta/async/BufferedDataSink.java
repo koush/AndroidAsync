@@ -106,4 +106,9 @@ public class BufferedDataSink implements DataSink {
     public CompletedCallback getClosedCallback() {
         return mDataSink.getClosedCallback();
     }
+
+    @Override
+    public AsyncServer getServer() {
+        return mDataSink.getServer();
+    }
 }

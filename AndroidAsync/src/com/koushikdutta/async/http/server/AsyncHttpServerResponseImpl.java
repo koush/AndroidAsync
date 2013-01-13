@@ -10,6 +10,7 @@ import junit.framework.Assert;
 
 import org.json.JSONObject;
 
+import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
@@ -213,5 +214,10 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public CompletedCallback getClosedCallback() {
         return mSink.getClosedCallback();
+    }
+
+    @Override
+    public AsyncServer getServer() {
+        return mSocket.getServer();
     }
 }

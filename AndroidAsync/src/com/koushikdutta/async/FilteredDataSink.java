@@ -126,4 +126,9 @@ public class FilteredDataSink implements DataSink {
     public CompletedCallback getClosedCallback() {
         return mSink.getClosedCallback();
     }
+
+    @Override
+    public AsyncServer getServer() {
+        return mSink.getServer();
+    }
 }

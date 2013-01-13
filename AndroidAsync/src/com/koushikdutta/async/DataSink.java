@@ -15,4 +15,5 @@ public interface DataSink {
     public void close();
     public void setClosedCallback(CompletedCallback handler);
     public CompletedCallback getClosedCallback();
+    public AsyncServer getServer();
 }

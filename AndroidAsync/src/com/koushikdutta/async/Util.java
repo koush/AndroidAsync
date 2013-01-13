@@ -59,8 +59,18 @@ public class Util {
             public void onWriteable() {
                 try {
                     int remaining;
+//                    long start = System.currentTimeMillis();
                     do {
                         if (pending.remaining() == 0) {
+//                            if (System.currentTimeMillis() - start > 1000) {
+//                                ds.getServer().postDelayed(new Runnable() {
+//                                    @Override
+//                                    public void run() {
+//                                        onWriteable();
+//                                    } 
+//                                }, 100);
+//                                return;
+//                            }
 //                            int available = is.available();
 //                            System.out.println(available);
                             int read = is.read(buffer);
@@ -87,6 +97,13 @@ public class Util {
         };
         ds.setWriteableCallback(cb);
 
+        ds.setClosedCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+//                Assert.fail();
+            }
+        });
+        
         cb.onWriteable();
     }
     
@@ -114,6 +131,10 @@ public class Util {
     
     public static void pump(final File file, final DataSink ds, final CompletedCallback callback) {
         try {
+            if (file == null || ds == null) {
+                callback.onCompleted(null);
+                return;
+            }
             final InputStream is = new FileInputStream(file);
             pump(is, ds, new CompletedCallback() {
                 @Override

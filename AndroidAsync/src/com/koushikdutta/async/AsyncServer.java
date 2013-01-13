@@ -72,18 +72,24 @@ public class AsyncServer {
         handler.setup(this, ckey);
     }
     
-    public void post(Runnable runnable) {
+    public void postDelayed(Runnable runnable, long delay) {
         synchronized (this) {
-            mQueue.add(runnable);
+            if (delay != 0)
+                delay += System.currentTimeMillis();
+            mQueue.add(new Scheduled(runnable, delay));
             autostart();
             if (Thread.currentThread() != mAffinity) {
                 if (mSelector != null)
                     mSelector.wakeup();
             }
             else {
-                runQueue(mQueue);
+//                runQueue(mQueue);
             }
         }
+    }
+    
+    public void post(Runnable runnable) {
+        postDelayed(runnable, 0);
     }
     
     public void run(final Runnable runnable) {
@@ -103,14 +109,32 @@ public class AsyncServer {
         }
     }
     
-    private static void runQueue(LinkedList<Runnable> queue) {
+    private static void runQueue(LinkedList<Scheduled> queue) {
+        long now = System.currentTimeMillis();
+        LinkedList<Scheduled> later = null;
         while (queue.size() > 0) {
-            Runnable run = queue.remove();
-            run.run();
+            Scheduled s = queue.remove();
+            if (s.time < now)
+                s.runnable.run();
+            else {
+                if (later == null)
+                    later = new LinkedList<AsyncServer.Scheduled>();
+                later.add(s);
+            }
         }
+        if (later != null)
+            queue.addAll(later);
     }
 
-    LinkedList<Runnable> mQueue = new LinkedList<Runnable>();
+    private static class Scheduled {
+        public Scheduled(Runnable runnable, long time) {
+            this.runnable = runnable;
+            this.time = time;
+        }
+        public Runnable runnable;
+        public long time;
+    }
+    LinkedList<Scheduled> mQueue = new LinkedList<Scheduled>();
 
     public void stop() {
         synchronized (this) {
@@ -126,7 +150,7 @@ public class AsyncServer {
                     shutdownEverything(currentSelector);
                 }
             });
-            mQueue = new LinkedList<Runnable>();
+            mQueue = new LinkedList<Scheduled>();
             mSelector = null;
             mAffinity = null;
         }
@@ -247,7 +271,7 @@ public class AsyncServer {
     }
     public void run(final boolean keepRunning, boolean newThread) {
         final Selector selector;
-        final LinkedList<Runnable> queue;
+        final LinkedList<Scheduled> queue;
         synchronized (this) {
             if (mSelector != null) {
 //                Log.i(LOGTAG, "Already running.");
@@ -278,7 +302,7 @@ public class AsyncServer {
         run(this, selector, queue, keepRunning);
     }
     
-    private static void run(AsyncServer server, Selector selector, LinkedList<Runnable> queue, boolean keepRunning) {
+    private static void run(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) {
         // at this point, this local queue and selector are owned
         // by this thread.
         // if a stop is called, the instance queue and selector
@@ -300,7 +324,7 @@ public class AsyncServer {
         shutdownEverything(selector);
         synchronized (server) {
             if (server.mSelector == selector) {
-                server.mQueue = new LinkedList<Runnable>();
+                server.mQueue = new LinkedList<Scheduled>();
                 server.mSelector = null;
                 server.mAffinity = null;
             }
@@ -329,7 +353,7 @@ public class AsyncServer {
         }
     }
 
-    private static void runLoop(AsyncServer server, Selector selector, LinkedList<Runnable> queue, boolean keepRunning) throws IOException {
+    private static void runLoop(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) throws IOException {
 //        Log.i(LOGTAG, "Keys: " + selector.keys().size());
         boolean needsSelect = true;
         synchronized (server) {
