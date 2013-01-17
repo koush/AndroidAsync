@@ -16,6 +16,7 @@ public class Continuation {
             @Override
             public void onCompleted(Exception ex) {
                 if (ex == null) {
+                    waiting = false;
                     next();
                     return;
                 }
@@ -30,17 +31,31 @@ public class Continuation {
         mCallbacks.add(callback);
     }
     
+    public void insert(ContinuationCallback callback) {
+        mCallbacks.add(0, callback);
+    }
+    
+    private boolean inNext;
+    private boolean waiting;
     private void next() {
-        if (mCallbacks.size() > 0) {
+        if (inNext)
+            return;
+        while (mCallbacks.size() > 0 && !waiting) {
             ContinuationCallback cb = mCallbacks.remove();
             try {
+                inNext = true;
+                waiting = true;
                 cb.onContinue(wrapper);
             }
             catch (Exception e) {
                 callback.onCompleted(e);
             }
-            return;
+            finally {
+                inNext = false;
+            }
         }
+        if (waiting)
+            return;
         
         callback.onCompleted(null);
     }

@@ -52,7 +52,7 @@ public class ZipDataSink extends FilteredDataSink {
                 write(new ByteBufferList());
                 return;
             }
-            report(null);
+            super.close();
         }
     }
 

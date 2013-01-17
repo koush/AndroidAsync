@@ -2,8 +2,11 @@ package com.koushikdutta.async.http;
 
 import java.net.URI;
 
+import javax.net.ssl.SSLPeerUnverifiedException;
+
 import junit.framework.Assert;
 
+import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
@@ -71,5 +74,8 @@ public class AsyncHttpRequest {
     
     public AsyncHttpRequestBody getBody() {
         return mBody;
+    }
+    
+    public void onHandshakeException(AsyncSSLException e) {
     }
 }

@@ -17,11 +17,13 @@ import org.json.JSONObject;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
@@ -99,6 +101,12 @@ public class AsyncHttpClient {
                     
                     @Override
                     protected void report(Exception ex) {
+                        if (ex instanceof AsyncSSLException) {
+                            AsyncSSLException ase = (AsyncSSLException)ex;
+                            request.onHandshakeException(ase);
+                            if (ase.getIgnore())
+                                return;
+                        }
                         final AsyncSocket socket = getSocket();
                         if (socket == null)
                             return;
@@ -311,6 +319,20 @@ public class AsyncHttpClient {
         catch (URISyntaxException e) {
             callback.onCompleted(e, null, null);
         }
+    }
+    
+    public static void get(String uri, final DataSink sink, final CompletedCallback callback) {
+        sink.setClosedCallback(callback);
+        execute(new AsyncHttpGet(URI.create(uri)), new HttpConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
+                if (ex != null) {
+                    callback.onCompleted(ex);
+                    return;
+                }
+                com.koushikdutta.async.Util.pump(response,  sink, callback);
+            }
+        });
     }
     
     public static interface WebSocketConnectCallback {

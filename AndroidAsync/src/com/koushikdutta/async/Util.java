@@ -101,13 +101,14 @@ public class Util {
             @Override
             public void onCompleted(Exception ex) {
 //                Assert.fail();
+                callback.onCompleted(ex);
             }
         });
         
         cb.onWriteable();
     }
     
-    public static void pump(final DataEmitter emitter, final DataSink sink) {
+    public static void pump(final DataEmitter emitter, final DataSink sink, final CompletedCallback callback) {
         emitter.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -122,11 +123,14 @@ public class Util {
                 emitter.resume();
             }
         });
+        
+        emitter.setEndCallback(callback);
+        sink.setClosedCallback(callback);
     }
     
-    public static void stream(AsyncSocket s1, AsyncSocket s2) {
-        pump(s1, s2);
-        pump(s2, s1);
+    public static void stream(AsyncSocket s1, AsyncSocket s2, CompletedCallback callback) {
+        pump(s1, s2, callback);
+        pump(s2, s1, callback);
     }
     
     public static void pump(final File file, final DataSink ds, final CompletedCallback callback) {

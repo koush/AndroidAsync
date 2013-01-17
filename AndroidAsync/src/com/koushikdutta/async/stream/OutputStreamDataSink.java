@@ -20,7 +20,6 @@ public class OutputStreamDataSink implements DataSink {
         return mStream;
     }
     
-    
     @Override
     public void write(ByteBuffer bb) {
         try {

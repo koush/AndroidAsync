@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import java.nio.ByteBuffer;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
@@ -38,6 +39,8 @@ public class AsyncSSLSocket implements AsyncSocket {
         else {
             engine = ctx.createSSLEngine();
         }
+        mHost = host;
+        mPort = port;
         engine.setUseClientMode(true);
         mSink = new BufferedDataSink(socket);
         mSink.setMaxBuffer(0);
@@ -107,6 +110,7 @@ public class AsyncSSLSocket implements AsyncSocket {
 
     static SSLContext ctx;
     static {
+        // following is the "trust the system" certs setup
         try {
             ctx = SSLContext.getInstance("Default");
         }
@@ -115,7 +119,7 @@ public class AsyncSSLSocket implements AsyncSocket {
                 ctx = SSLContext.getInstance("TLS");
                 TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
                     public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return null;
+                        return new X509Certificate[] {};
                     }
 
                     public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
@@ -124,7 +128,7 @@ public class AsyncSSLSocket implements AsyncSocket {
                     public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
                     }
                 } };
-                ctx.init(null, trustAllCerts, new java.security.SecureRandom());
+                ctx.init(null, trustAllCerts, null);
             }
             catch (Exception ex2) {
                 ex.printStackTrace();
@@ -140,16 +144,10 @@ public class AsyncSSLSocket implements AsyncSocket {
     public String getHost() {
         return mHost;
     }
-    public void setHost(String host) {
-        mHost = host;
-    }
     
     private int mPort;
     public int getPort() {
         return mPort;
-    }
-    public void setPort(int port) {
-        mPort = port;
     }
     
     private void handleResult(SSLEngineResult res) {
@@ -188,8 +186,12 @@ public class AsyncSSLSocket implements AsyncSocket {
                     }
                 }
                 finishedHandshake = true;
-                if (!trusted)
-                    throw new SSLPeerUnverifiedException("Not trusted by any of the system trust managers.");
+                if (!trusted) {
+                    AsyncSSLException e = new AsyncSSLException();
+                    report(e);
+                    if (!e.getIgnore())
+                        throw e;
+                }
                 Assert.assertNotNull(mWriteableCallback);
                 mWriteableCallback.onWriteable();
                 mEmitter.onDataAvailable();
