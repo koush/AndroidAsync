@@ -85,7 +85,11 @@ public class AsyncHttpClient {
                                 keepalive = true;
 
                             if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
-                                AsyncHttpRequest newReq = new AsyncHttpRequest(new URI(headers.get("Location")), request.getMethod());
+                                URI redirect = URI.create(headers.get("Location"));
+                                if (redirect == null || redirect.getScheme() == null) {
+                                    redirect = URI.create(uri.toString().substring(0, uri.toString().length() - uri.getPath().length()) + headers.get("Location"));
+                                }
+                                AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
                                 execute(server, newReq, callback, redirectCount + 1);
                                 
                                 setDataCallback(new NullDataCallback());

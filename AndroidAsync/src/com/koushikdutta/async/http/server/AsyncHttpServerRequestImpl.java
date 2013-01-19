@@ -67,7 +67,7 @@ public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerReque
                 }
                 else {
                     mBody = Util.getBody(mRawHeaders);
-                    DataCallback callback = Util.getBodyDecoder(mBody, mRawHeaders, mReporter);
+                    DataCallback callback = Util.getBodyDecoder(mBody, mRawHeaders, true, mReporter);
                     mSocket.setDataCallback(callback);
                     onHeadersReceived();
                 }

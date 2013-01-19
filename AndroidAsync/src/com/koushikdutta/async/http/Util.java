@@ -31,7 +31,7 @@ public class Util {
         return new UnknownRequestBody(contentType);
     }
     
-    public static DataCallback getBodyDecoder(DataCallback callback, RawHeaders headers, final CompletedCallback reporter) {
+    public static DataCallback getBodyDecoder(DataCallback callback, RawHeaders headers, boolean server, final CompletedCallback reporter) {
         if ("gzip".equals(headers.get("Content-Encoding"))) {
             GZIPInputFilter gunzipper = new GZIPInputFilter();
             gunzipper.setDataCallback(callback);
@@ -86,10 +86,12 @@ public class Util {
             chunker.setDataCallback(callback);
             callback = chunker;
         }
-        else {
-            // we're done I guess.
+        else if (server) {
+            // if this is the server, and the client has not indicated a request body, the client is done
             reporter.onCompleted(null);
         }
+        // conversely, if this is the client, and the server has not indicated a request body, we do not report
+        // the close/end event until the server actually closes the connection.
         return callback;
     }
 }

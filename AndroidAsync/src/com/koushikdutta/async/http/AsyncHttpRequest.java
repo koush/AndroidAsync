@@ -2,8 +2,6 @@ package com.koushikdutta.async.http;
 
 import java.net.URI;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
-
 import junit.framework.Assert;
 
 import com.koushikdutta.async.AsyncSSLException;
@@ -40,7 +38,7 @@ public class AsyncHttpRequest {
         mHeaders.setHost(uri.getHost());
         mHeaders.setUserAgent(getDefaultUserAgent());
         mHeaders.setAcceptEncoding("gzip, deflate");
-        mHeaders.getHeaders().set("Connection", "close");
+        mHeaders.getHeaders().set("Connection", "keep-alive");
         mHeaders.getHeaders().set("Accept", "*/*");
     }
 

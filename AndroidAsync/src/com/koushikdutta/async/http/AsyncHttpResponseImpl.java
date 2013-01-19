@@ -99,7 +99,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
                     // socket may get detached after headers (websocket)
                     if (mSocket == null)
                         return;
-                    DataCallback callback = Util.getBodyDecoder(AsyncHttpResponseImpl.this, mRawHeaders, mReporter);
+                    DataCallback callback = Util.getBodyDecoder(AsyncHttpResponseImpl.this, mRawHeaders, false, mReporter);
                     mSocket.setDataCallback(callback);
                 }
             }
