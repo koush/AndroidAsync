@@ -62,17 +62,6 @@ public class Util {
 //                    long start = System.currentTimeMillis();
                     do {
                         if (pending.remaining() == 0) {
-//                            if (System.currentTimeMillis() - start > 1000) {
-//                                ds.getServer().postDelayed(new Runnable() {
-//                                    @Override
-//                                    public void run() {
-//                                        onWriteable();
-//                                    } 
-//                                }, 100);
-//                                return;
-//                            }
-//                            int available = is.available();
-//                            System.out.println(available);
                             int read = is.read(buffer);
                             if (read == -1) {
                                 close();
@@ -97,13 +86,7 @@ public class Util {
         };
         ds.setWriteableCallback(cb);
 
-        ds.setClosedCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-//                Assert.fail();
-                callback.onCompleted(ex);
-            }
-        });
+        ds.setClosedCallback(callback);
         
         cb.onWriteable();
     }

@@ -1,5 +1,7 @@
 package com.koushikdutta.async.callback;
 
+import com.koushikdutta.async.Continuation;
+
 public interface ContinuationCallback {
-    public void onContinue(CompletedCallback next) throws Exception;
+    public void onContinue(Continuation continuation, CompletedCallback next) throws Exception;
 }
