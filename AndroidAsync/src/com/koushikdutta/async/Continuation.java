@@ -7,10 +7,28 @@ import junit.framework.Assert;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
 
-public class Continuation {
+public class Continuation implements ContinuationCallback {
     CompletedCallback callback;
     CompletedCallback wrapper;
     Runnable cancelCallback;
+    
+    public CompletedCallback getCallback() {
+        return callback;
+    }
+    public void setCallback(CompletedCallback callback) {
+        this.callback = callback;
+    }
+    
+    public Runnable getCancelCallback() {
+        return cancelCallback;
+    }
+    public void setCancelCallback(Runnable cancelCallback) {
+        this.cancelCallback = cancelCallback;
+    }
+    
+    public Continuation() {
+        this(null);
+    }
     public Continuation(CompletedCallback callback) {
         this(callback, null);
     }
@@ -34,7 +52,8 @@ public class Continuation {
     boolean completed;
     void reportCompleted(Exception ex) {
         completed = true;
-        callback.onCompleted(ex);        
+        if (callback != null)
+            callback.onCompleted(ex);        
     }
     
     LinkedList<ContinuationCallback> mCallbacks = new LinkedList<ContinuationCallback>();
@@ -52,7 +71,7 @@ public class Continuation {
     private void next() {
         if (inNext)
             return;
-        if (cancel) {
+        if (isCanceled()) {
             reportCompleted(null);
             return;
         }
@@ -81,19 +100,21 @@ public class Continuation {
     }
     
     public boolean isCanceled() {
-        return cancel;
+        return cancel || (parent != null && parent.isCanceled());
     }
     
     public void cancel() {
-        if (cancel)
+        cancelThis();
+        if (parent != null)
+            parent.cancel();
+    }
+    
+    public void cancelThis() {
+        if (isCanceled())
             return;
         cancel = true;
         if (cancelCallback != null)
             cancelCallback.run();
-    }
-    
-    public Runnable getCancelCallback() {
-        return cancelCallback;
     }
     
     boolean cancel;
@@ -103,5 +124,14 @@ public class Continuation {
         started = true;
         next();
         return this;
+    }
+
+    Continuation parent;
+    @Override
+    public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+        parent = continuation;
+        setCallback(next);
+        setCancelCallback(continuation.getCancelCallback());
+        start();
     }
 }

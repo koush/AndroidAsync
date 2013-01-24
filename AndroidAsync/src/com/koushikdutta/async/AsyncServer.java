@@ -439,4 +439,8 @@ public class AsyncServer {
     public Thread getAffinity() {
         return mAffinity;
     }
+    
+    public boolean isAffinityThread() {
+        return mAffinity == Thread.currentThread();
+    }
 }
