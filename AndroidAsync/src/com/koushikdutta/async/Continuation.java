@@ -38,7 +38,9 @@ public class Continuation implements ContinuationCallback {
         wrapper = new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                Assert.assertTrue(waiting);
+                // called twice?
+                if (!waiting)
+                    return;
                 waiting = false;
                 if (ex == null) {
                     next();

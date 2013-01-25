@@ -76,8 +76,10 @@ public class AsyncHttpClient {
                 }
                 final AsyncHttpResponseImpl ret = new AsyncHttpResponseImpl(request) {
                     boolean keepalive = false;
+                    boolean headersReceived;
                     protected void onHeadersReceived() {
                         try {
+                            headersReceived = true;
                             RawHeaders headers = getRawHeaders();
 
                             String kas = headers.get("Connection");
@@ -115,10 +117,11 @@ public class AsyncHttpClient {
                         if (socket == null)
                             return;
                         super.report(ex);
-                        if (!socket.isOpen())
+                        if (!socket.isOpen() || ex != null) {
+                            if (!headersReceived && ex != null)
+                                callback.onConnectCompleted(ex, null);
                             return;
-                        if (ex != null)
-                            return;
+                        }
                         if (!keepalive) {
                             socket.close();
                         }
