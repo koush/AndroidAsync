@@ -1,7 +1,6 @@
 package com.koushikdutta.async;
 
 import java.nio.ByteBuffer;
-import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
@@ -11,7 +10,6 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -19,6 +17,9 @@ import javax.net.ssl.X509TrustManager;
 import junit.framework.Assert;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
+
+import android.annotation.SuppressLint;
+import android.os.Build;
 
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -30,6 +31,7 @@ public class AsyncSSLSocket implements AsyncSocket {
     BufferedDataSink mSink;
     ByteBuffer mReadTmp = ByteBuffer.allocate(8192);
     boolean mUnwrapping = false;
+    @SuppressLint("NewApi")
     public AsyncSSLSocket(AsyncSocket socket, String host, int port) {
         mSocket = socket;
 
@@ -112,6 +114,13 @@ public class AsyncSSLSocket implements AsyncSocket {
     static {
         // following is the "trust the system" certs setup
         try {
+            // critical extension 2.5.29.15 is implemented improperly prior to 4.0.3.
+            // https://code.google.com/p/android/issues/detail?id=9307
+            // https://groups.google.com/forum/?fromgroups=#!topic/netty/UCfqPPk5O4s
+            // certs that use this extension will throw in Cipher.java.
+            // fallback is to use a custom SSLContext, and hack around the x509 extension.
+            if (Build.VERSION.SDK_INT <= 15)
+                throw new Exception();
             ctx = SSLContext.getInstance("Default");
         }
         catch (Exception ex) {
@@ -126,6 +135,9 @@ public class AsyncSSLSocket implements AsyncSocket {
                     }
 
                     public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                        for (X509Certificate cert : certs) {
+                            cert.getCriticalExtensionOIDs().remove("2.5.29.15");
+                        }
                     }
                 } };
                 ctx.init(null, trustAllCerts, null);
