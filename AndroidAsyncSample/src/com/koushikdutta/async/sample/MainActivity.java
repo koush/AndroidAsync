@@ -71,7 +71,7 @@ public class MainActivity extends Activity {
             }
         });
     }
-    
+
     private void getChartFile() {
         final ImageView iv = chart;
         final String filename = getFileStreamPath(randomFile()).getAbsolutePath();

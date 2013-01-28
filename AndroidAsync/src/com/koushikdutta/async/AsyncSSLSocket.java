@@ -18,7 +18,6 @@ import junit.framework.Assert;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 
-import android.annotation.SuppressLint;
 import android.os.Build;
 
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -31,7 +30,7 @@ public class AsyncSSLSocket implements AsyncSocket {
     BufferedDataSink mSink;
     ByteBuffer mReadTmp = ByteBuffer.allocate(8192);
     boolean mUnwrapping = false;
-    @SuppressLint("NewApi")
+
     public AsyncSSLSocket(AsyncSocket socket, String host, int port) {
         mSocket = socket;
 

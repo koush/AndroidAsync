@@ -40,6 +40,10 @@ public class AsyncHttpServer {
             }
         }
     }
+    
+    protected void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+    }
+    
     ListenCallback mListenCallback = new ListenCallback() {
         @Override
         public void onAccepted(final AsyncSocket socket) {
@@ -102,6 +106,9 @@ public class AsyncHttpServer {
                             handleOnCompleted();
                         }
                     };
+                    
+                    onRequest(this, res);
+                    
                     if (match == null) {
                         res.responseCode(404);
                         res.end();
