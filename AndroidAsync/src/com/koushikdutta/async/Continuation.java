@@ -77,7 +77,7 @@ public class Continuation implements ContinuationCallback {
             reportCompleted(null);
             return;
         }
-        while (mCallbacks.size() > 0 && !waiting) {
+        while (mCallbacks.size() > 0 && !waiting && !completed) {
             ContinuationCallback cb = mCallbacks.remove();
             try {
                 inNext = true;
@@ -93,7 +93,9 @@ public class Continuation implements ContinuationCallback {
         }
         if (waiting)
             return;
-        
+        if (completed)
+            return;
+
         reportCompleted(null);
     }
     

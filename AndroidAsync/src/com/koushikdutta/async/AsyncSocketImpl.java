@@ -47,8 +47,16 @@ class AsyncSocketImpl implements AsyncSocket {
     }
     
     @Override
-    public void write(ByteBufferList list) {
-        Assert.assertEquals(mServer.getAffinity(), Thread.currentThread());
+    public void write(final ByteBufferList list) {
+        if (mServer.getAffinity() != Thread.currentThread()) {
+            mServer.run(new Runnable() {
+                @Override
+                public void run() {
+                    write(list);
+                }
+            });
+            return;
+        }
         if (!mChannel.isConnected()) {
             Assert.assertFalse(mChannel.isChunked());
             return;
@@ -78,8 +86,16 @@ class AsyncSocketImpl implements AsyncSocket {
     }
 
     @Override
-    public void write(ByteBuffer b) {
-        Assert.assertEquals(mServer.getAffinity(), Thread.currentThread());
+    public void write(final ByteBuffer b) {
+        if (mServer.getAffinity() != Thread.currentThread()) {
+            mServer.run(new Runnable() {
+                @Override
+                public void run() {
+                    write(b);
+                }
+            });
+            return;
+        }
         try {
             if (!mChannel.isConnected()) {
                 Assert.assertFalse(mChannel.isChunked());
@@ -191,13 +207,6 @@ class AsyncSocketImpl implements AsyncSocket {
     DataCallback mDataHandler;
     @Override
     public void setDataCallback(DataCallback callback) {
-//        try {
-//            throw new Exception();
-//        }
-//        catch (Exception ex) {
-//            System.out.println("data callback set " + this);
-//            ex.printStackTrace();
-//        }
         mDataHandler = callback;
     }
 

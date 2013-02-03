@@ -172,7 +172,7 @@ public class AsyncServer {
                     else
                         isa = new InetSocketAddress(host, port);
                     server.socket().bind(isa);
-                    SelectionKey key = wrapper.register(mSelector);
+                    final SelectionKey key = wrapper.register(mSelector);
                     key.attach(handler);
                     handler.onListening(new AsyncServerSocket() {
                         @Override
@@ -182,6 +182,11 @@ public class AsyncServer {
                             }
                             catch (IOException e) {
                                 e.printStackTrace();
+                            }
+                            try {
+                                key.cancel();
+                            }
+                            catch (Exception e) {
                             }
                         }
                     });
