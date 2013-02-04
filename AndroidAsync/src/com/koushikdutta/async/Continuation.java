@@ -7,7 +7,7 @@ import junit.framework.Assert;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
 
-public class Continuation implements ContinuationCallback {
+public class Continuation implements ContinuationCallback, Runnable {
     CompletedCallback callback;
     CompletedCallback wrapper;
     Runnable cancelCallback;
@@ -136,6 +136,11 @@ public class Continuation implements ContinuationCallback {
         parent = continuation;
         setCallback(next);
         setCancelCallback(continuation.getCancelCallback());
+        start();
+    }
+
+    @Override
+    public void run() {
         start();
     }
 }
