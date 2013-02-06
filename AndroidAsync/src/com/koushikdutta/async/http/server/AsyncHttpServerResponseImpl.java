@@ -32,6 +32,10 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         return mHeaders;
     }
     
+    public AsyncSocket getSocket() {
+        return mSocket;
+    }
+
     AsyncSocket mSocket;
     BufferedDataSink mSink;
     AsyncHttpServerResponseImpl(AsyncSocket socket) {

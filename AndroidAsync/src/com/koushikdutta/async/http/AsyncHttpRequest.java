@@ -225,4 +225,13 @@ public class AsyncHttpRequest implements HttpRequest {
     public void setParams(HttpParams params) {
         this.params = params;
     }
+    
+    int mTimeout;
+    public int getTimeout() {
+        return mTimeout;
+    }
+    
+    public void setTimeout(int timeout) {
+        mTimeout = timeout;
+    }
 }

@@ -4,6 +4,7 @@ import java.io.File;
 
 import org.json.JSONObject;
 
+import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
@@ -23,4 +24,5 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
      * Alias for end. Used with CompletedEmitters
      */
     public void onCompleted(Exception ex);
+    public AsyncSocket getSocket();
 }

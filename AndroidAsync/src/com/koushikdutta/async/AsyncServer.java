@@ -72,11 +72,18 @@ public class AsyncServer {
         handler.setup(this, ckey);
     }
     
-    public void postDelayed(Runnable runnable, long delay) {
+    public void removeAllCallbacks(Object scheduled) {
+        synchronized (this) {
+            mQueue.remove(scheduled);
+        }
+    }
+    
+    public Object postDelayed(Runnable runnable, long delay) {
+        Scheduled s;
         synchronized (this) {
             if (delay != 0)
                 delay += System.currentTimeMillis();
-            mQueue.add(new Scheduled(runnable, delay));
+            mQueue.add(s = new Scheduled(runnable, delay));
             autostart();
             if (Thread.currentThread() != mAffinity) {
                 if (mSelector != null)
@@ -86,10 +93,11 @@ public class AsyncServer {
 //                runQueue(mQueue);
             }
         }
+        return s;
     }
     
-    public void post(Runnable runnable) {
-        postDelayed(runnable, 0);
+    public Object post(Runnable runnable) {
+        return postDelayed(runnable, 0);
     }
     
     public void run(final Runnable runnable) {
@@ -380,7 +388,7 @@ public class AsyncServer {
         }
         if (needsSelect) {
             // nothing to select immediately but there so let's block and wait.
-            selector.select();
+            selector.select(100);
         }
 
         // process whatever keys are ready

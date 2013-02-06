@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.concurrent.TimeoutException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -68,8 +69,32 @@ public class AsyncHttpClient {
         final int finalPort = port;
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
+            AsyncSocket timeoutSocket;
+            boolean timedOut;
+            Object scheduled;
+            {
+                if (request.getTimeout() > 0) {
+                    scheduled = server.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            timedOut = true;
+                            timeoutSocket.close();
+                            callback.onConnectCompleted(new TimeoutException(), null);
+                        }
+                    }, request.getTimeout());
+                }
+                else {
+                    scheduled = null;
+                }
+            }
+            
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
+                if (timedOut) {
+                    socket.close();
+                    return;
+                }
+                timeoutSocket = socket;
                 if (ex != null) {
                     callback.onConnectCompleted(ex, null);
                     return;
@@ -79,6 +104,11 @@ public class AsyncHttpClient {
                     boolean headersReceived;
                     protected void onHeadersReceived() {
                         try {
+                            if (timedOut)
+                                return;
+
+                            if (scheduled != null)
+                                server.removeAllCallbacks(scheduled);
                             headersReceived = true;
                             RawHeaders headers = getRawHeaders();
 
@@ -107,6 +137,8 @@ public class AsyncHttpClient {
                     
                     @Override
                     protected void report(Exception ex) {
+                        if (timedOut)
+                            return;
                         if (ex instanceof AsyncSSLException) {
                             AsyncSSLException ase = (AsyncSSLException)ex;
                             request.onHandshakeException(ase);
@@ -246,12 +278,7 @@ public class AsyncHttpClient {
     }
     
     public static void get(String uri, final StringCallback callback) {
-        try {
-            execute(new AsyncHttpGet(uri), callback);
-        }
-        catch (URISyntaxException e) {
-            callback.onCompleted(e, null, null);
-        }
+        execute(new AsyncHttpGet(uri), callback);
     }
     
     public static void execute(AsyncHttpRequest req, final StringCallback callback) {
@@ -268,12 +295,7 @@ public class AsyncHttpClient {
     }
 
     public static void get(String uri, final JSONObjectCallback callback) {
-        try {
-            execute(new AsyncHttpGet(uri), callback);
-        }
-        catch (URISyntaxException e) {
-            callback.onCompleted(e, null, null);
-        }
+        execute(new AsyncHttpGet(uri), callback);
     }
 
     public static void execute(AsyncHttpRequest req, final JSONObjectCallback callback) {
@@ -289,11 +311,16 @@ public class AsyncHttpClient {
         });
     }
     
-    private static void invoke(Handler handler, final RequestCallback callback, final AsyncHttpResponse response, final Exception e, final Object result) {
+    private static void invoke(Handler handler, final RequestCallback callback, final AsyncServer server, final AsyncHttpResponse response, final Exception e, final Object result) {
         if (callback == null)
             return;
         if (handler == null) {
-            callback.onCompleted(e, response, result);
+            server.post(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onCompleted(e, response, result);
+                }
+            });
             return;
         }
         handler.post(new Runnable() {
@@ -320,12 +347,7 @@ public class AsyncHttpClient {
     }
 
     public static void get(String uri, final String filename, final FileCallback callback) {
-        try {
-            execute(new AsyncHttpGet(uri), filename, callback);
-        }
-        catch (URISyntaxException e) {
-            callback.onCompleted(e, null, null);
-        }
+        execute(new AsyncHttpGet(uri), filename, callback);
     }
     
     public static void get(String uri, final DataSink sink, final CompletedCallback callback) {
@@ -364,13 +386,8 @@ public class AsyncHttpClient {
     }
     
     public static void websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
-        try {
-            final AsyncHttpGet get = new AsyncHttpGet(uri);
-            websocket(get, protocol, callback);
-        }
-        catch (URISyntaxException e) {
-            callback.onCompleted(e, null);
-        }
+        final AsyncHttpGet get = new AsyncHttpGet(uri);
+        websocket(get, protocol, callback);
     }
     
     public static void execute(AsyncHttpRequest req, final String filename, final FileCallback callback) {
@@ -382,7 +399,7 @@ public class AsyncHttpClient {
             fout = new FileOutputStream(file);
         }
         catch (FileNotFoundException e) {
-            invoke(handler, callback, null, e, null);
+            invoke(handler, callback, AsyncServer.getDefault(), null, e, null);
             return;
         }
         execute(req, new HttpConnectCallback() {
@@ -395,7 +412,7 @@ public class AsyncHttpClient {
                     }
                     catch (IOException e) {
                     }
-                    invoke(handler, callback, response, ex, null);
+                    invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
                     return;
                 }
                 
@@ -416,14 +433,14 @@ public class AsyncHttpClient {
                             fout.close();
                         }
                         catch (IOException e) {
-                            invoke(handler, callback, response, e, null);
+                            invoke(handler, callback, AsyncServer.getDefault(), response, e, null);
                             return;
                         }
                         if (ex != null) {
-                            invoke(handler, callback, response, ex, null);
+                            invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
                             return;
                         }
-                        invoke(handler, callback, response, null, file);
+                        invoke(handler, callback, AsyncServer.getDefault(), response, null, file);
                     }
                 });
             }
@@ -438,7 +455,7 @@ public class AsyncHttpClient {
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
-                    invoke(handler, callback, response, ex, null);
+                    invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
                     return;
                 }
                 
@@ -458,10 +475,10 @@ public class AsyncHttpClient {
                     public void onCompleted(Exception ex) {
                         try {
                             Object value = convert.convert(buffer);
-                            invoke(handler, callback, response, ex, buffer != null ? value : null);
+                            invoke(handler, callback, AsyncServer.getDefault(), response, ex, buffer != null ? value : null);
                         }
                         catch (Exception e) {
-                            invoke(handler, callback, response, e, null);
+                            invoke(handler, callback, AsyncServer.getDefault(), response, e, null);
                         }
                     }
                 });

@@ -269,7 +269,16 @@ class AsyncSocketImpl implements AsyncSocket {
     boolean mPaused = false;
     @Override
     public void pause() {
-        Assert.assertEquals(mServer.getAffinity(), Thread.currentThread());
+        if (mServer.getAffinity() != Thread.currentThread()) {
+            mServer.run(new Runnable() {
+                @Override
+                public void run() {
+                    pause();
+                }
+            });
+            return;
+        }
+        
         if (mPaused)
             return;
         mPaused = true;
@@ -293,7 +302,16 @@ class AsyncSocketImpl implements AsyncSocket {
     
     @Override
     public void resume() {
-        Assert.assertEquals(mServer.getAffinity(), Thread.currentThread());
+        if (mServer.getAffinity() != Thread.currentThread()) {
+            mServer.run(new Runnable() {
+                @Override
+                public void run() {
+                    resume();
+                }
+            });
+            return;
+        }
+        
         if (!mPaused)
             return;
         mPaused = false;
