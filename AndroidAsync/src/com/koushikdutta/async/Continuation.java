@@ -9,7 +9,6 @@ import com.koushikdutta.async.callback.ContinuationCallback;
 
 public class Continuation implements ContinuationCallback, Runnable {
     CompletedCallback callback;
-    CompletedCallback wrapper;
     Runnable cancelCallback;
     
     public CompletedCallback getCallback() {
@@ -35,12 +34,19 @@ public class Continuation implements ContinuationCallback, Runnable {
     public Continuation(CompletedCallback callback, Runnable cancelCallback) {
         this.cancelCallback = cancelCallback;
         this.callback = callback;
-        wrapper = new CompletedCallback() {
+    }
+    
+    private CompletedCallback wrap() {
+        return new CompletedCallback() {
+            boolean mThisCompleted;
             @Override
             public void onCompleted(Exception ex) {
-                // called twice?
-                if (!waiting)
+                // onCompleted may be called more than once... buggy code.
+                // only accept the first (timeouts, etc)
+                if (mThisCompleted)
                     return;
+                mThisCompleted = true;
+                Assert.assertTrue(waiting);
                 waiting = false;
                 if (ex == null) {
                     next();
@@ -82,7 +88,7 @@ public class Continuation implements ContinuationCallback, Runnable {
             try {
                 inNext = true;
                 waiting = true;
-                cb.onContinue(this, wrapper);
+                cb.onContinue(this, wrap());
             }
             catch (Exception e) {
                 reportCompleted(e);

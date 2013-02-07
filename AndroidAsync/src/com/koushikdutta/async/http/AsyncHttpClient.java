@@ -78,7 +78,8 @@ public class AsyncHttpClient {
                         @Override
                         public void run() {
                             timedOut = true;
-                            timeoutSocket.close();
+                            if (timeoutSocket != null)
+                                timeoutSocket.close();
                             callback.onConnectCompleted(new TimeoutException(), null);
                         }
                     }, request.getTimeout());
@@ -91,7 +92,8 @@ public class AsyncHttpClient {
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                 if (timedOut) {
-                    socket.close();
+                    if (socket != null)
+                        socket.close();
                     return;
                 }
                 timeoutSocket = socket;
