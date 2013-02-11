@@ -363,9 +363,16 @@ public class AsyncHttpClient {
     }
 
     public static Cancelable execute(AsyncHttpRequest req, final String filename, final FileCallback callback) {
-        final CancelableRequest cancel = new CancelableRequest();
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
         final File file = new File(filename);
+        final CancelableRequest cancel = new CancelableRequest() {
+            @Override
+            public Cancelable cancel() {
+                Cancelable ret = super.cancel();
+                file.delete();
+                return ret;
+            }
+        };
         file.getParentFile().mkdirs();
         final FileOutputStream fout;
         try {
