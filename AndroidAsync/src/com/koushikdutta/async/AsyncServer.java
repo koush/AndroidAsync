@@ -207,53 +207,88 @@ public class AsyncServer {
         });
     }
     
-    public void connectSocket(final SocketAddress remote, final ConnectCallback handler) {
-        try {
-            final SocketChannel socket = SocketChannel.open();
-            final ChannelWrapper sc = new SocketChannelWrapper(socket);
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        SelectionKey ckey = sc.register(mSelector);
-                        ckey.attach(handler);
-                        socket.connect(remote);
-                    }
-                    catch (Exception e) {
-                        handler.onConnectCompleted(e, null);
-                    }
-                }
-            });
-        }
-        catch (Exception e) {
-            handler.onConnectCompleted(e, null);
+    private void connectSocketInternal(final SocketChannel socket, ChannelWrapper sc, final SocketAddress remote, final ConnectCallback handler, final SimpleCancelable cancel) {
+        synchronized (cancel) {
+            if (cancel.isCanceled())
+                return;
+            SelectionKey ckey = null;
+            try {
+                ckey = sc.register(mSelector);
+                ckey.attach(handler);
+                socket.connect(remote);
+            }
+            catch (Exception e) {
+                if (ckey != null)
+                    ckey.cancel();
+                handler.onConnectCompleted(e, null);
+            }
         }
     }
     
-    public void connectSocket(final String host, final int port, final ConnectCallback handler) {
+    private SimpleCancelable prepareConnectSocketCancelable(final SocketChannel socket, final ChannelWrapper sc) {
+        return new SimpleCancelable() {
+            @Override
+            public Cancelable cancel() {
+                synchronized (this) {
+                    super.cancel();
+                    try {
+                        sc.close();
+                    }
+                    catch (IOException e) {
+                    }
+                    return this;
+                }
+            }
+        };
+    }
+    
+    public Cancelable connectSocket(final SocketAddress remote, final ConnectCallback handler) {
         try {
             final SocketChannel socket = SocketChannel.open();
             final ChannelWrapper sc = new SocketChannelWrapper(socket);
+            final SimpleCancelable cancel = prepareConnectSocketCancelable(socket, sc);
             post(new Runnable() {
                 @Override
                 public void run() {
-                    SelectionKey ckey = null;
-                    try {
-                        ckey = sc.register(mSelector);
-                        ckey.attach(handler);
-                        SocketAddress remote = new InetSocketAddress(host, port);
-                        socket.connect(remote);
-                    }
-                    catch (Exception e) {
-                        if (ckey != null)
-                            ckey.cancel();
-                        handler.onConnectCompleted(e, null);
-                    }
+                    connectSocketInternal(socket, sc, remote, handler, cancel);
                 }
             });
+            return cancel;
         }
         catch (Exception e) {
             handler.onConnectCompleted(e, null);
+            return SimpleCancelable.COMPLETED;
+        }
+    }
+    
+    public Cancelable connectSocket(final String host, final int port, final ConnectCallback handler) {
+        try {
+            final SocketChannel socket = SocketChannel.open();
+            final ChannelWrapper sc = new SocketChannelWrapper(socket);
+            final SimpleCancelable cancel = prepareConnectSocketCancelable(socket, sc);
+
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    SocketAddress remote;
+                    try {
+                        remote = new InetSocketAddress(host, port);
+                    }
+                    catch (Exception e) {
+                        cancel.setComplete(true);
+                        handler.onConnectCompleted(e, null);
+                        return;
+                    }
+
+                    connectSocketInternal(socket, sc, remote, handler, cancel);
+                }
+            });
+            
+            return cancel;
+        }
+        catch (Exception e) {
+            handler.onConnectCompleted(e, null);
+            return SimpleCancelable.COMPLETED;
         }
     }
 

@@ -50,6 +50,9 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
                 mSink = new ChunkedOutputFilter(mSocket);
             }
         }
+        else {
+            mSink = mSocket;
+        }
         
         String rs = mRequest.getRequestString();
         com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {

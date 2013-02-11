@@ -7,7 +7,7 @@ import junit.framework.Assert;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
 
-public class Continuation implements ContinuationCallback, Runnable {
+public class Continuation implements ContinuationCallback, Runnable, Cancelable {
     CompletedCallback callback;
     Runnable cancelCallback;
     
@@ -23,6 +23,18 @@ public class Continuation implements ContinuationCallback, Runnable {
     }
     public void setCancelCallback(Runnable cancelCallback) {
         this.cancelCallback = cancelCallback;
+    }
+    public void setCancelCallback(final Cancelable cancel) {
+        if (cancel == null) {
+            this.cancelCallback = null;
+            return;
+        }
+        this.cancelCallback = new Runnable() {
+            @Override
+            public void run() {
+                cancel.cancel();
+            }
+        };
     }
     
     public Continuation() {
@@ -59,6 +71,8 @@ public class Continuation implements ContinuationCallback, Runnable {
     
     boolean completed;
     void reportCompleted(Exception ex) {
+        if (cancel)
+            return;
         completed = true;
         if (callback != null)
             callback.onCompleted(ex);        
@@ -83,7 +97,7 @@ public class Continuation implements ContinuationCallback, Runnable {
             reportCompleted(null);
             return;
         }
-        while (mCallbacks.size() > 0 && !waiting && !completed) {
+        while (mCallbacks.size() > 0 && !waiting && !completed && !cancel) {
             ContinuationCallback cb = mCallbacks.remove();
             try {
                 inNext = true;
@@ -101,6 +115,8 @@ public class Continuation implements ContinuationCallback, Runnable {
             return;
         if (completed)
             return;
+        if (cancel)
+            return;
 
         reportCompleted(null);
     }
@@ -113,10 +129,11 @@ public class Continuation implements ContinuationCallback, Runnable {
         return cancel || (parent != null && parent.isCanceled());
     }
     
-    public void cancel() {
+    public Cancelable cancel() {
         cancelThis();
         if (parent != null)
             parent.cancel();
+        return this;
     }
     
     public void cancelThis() {

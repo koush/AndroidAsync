@@ -23,9 +23,11 @@ import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.Cancelable;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.SimpleCancelable;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -40,17 +42,27 @@ public class AsyncHttpClient {
 
     private static Hashtable<String, HashSet<AsyncSocket>> mSockets = new Hashtable<String, HashSet<AsyncSocket>>();
     
-    public static void execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
-        execute(AsyncServer.getDefault(), request, callback);
+    public static Cancelable execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
+        return execute(AsyncServer.getDefault(), request, callback);
     }
 
-    public static void execute(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback) {
-        execute(server, request, callback, 0);
+    public static Cancelable execute(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback) {
+        CancelableImpl ret = new CancelableImpl();
+        execute(server, request, callback, 0, ret = new CancelableImpl());
+        return ret;
+    }
+    
+    private static class CancelableImpl extends SimpleCancelable {
+    }
+    
+    private static void reportConnectedCompleted(CancelableImpl cancel, Exception ex, AsyncHttpResponseImpl response, final HttpConnectCallback callback) {
+        cancel.setComplete(true);
+        callback.onConnectCompleted(ex, response);
     }
 
-    private static void execute(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback, final int redirectCount) {
+    private static void execute(final AsyncServer server, final AsyncHttpRequest request, final HttpConnectCallback callback, final int redirectCount, final CancelableImpl cancel) {
         if (redirectCount > 5) {
-            callback.onConnectCompleted(new Exception("too many redirects"), null);
+            reportConnectedCompleted(cancel, new Exception("too many redirects"), null, callback);
             return;
         }
         final URI uri = request.getUri();
@@ -61,7 +73,7 @@ public class AsyncHttpClient {
             else if (uri.getScheme().equals("https"))
                 port = 443;
             else {
-                callback.onConnectCompleted(new Exception("invalid uri scheme"), null);
+                reportConnectedCompleted(cancel, new Exception("invalid uri scheme"), null, callback);
                 return;
             }
         }
@@ -69,18 +81,17 @@ public class AsyncHttpClient {
         final int finalPort = port;
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
-            AsyncSocket timeoutSocket;
-            boolean timedOut;
+            AsyncSocket cancelSocket;
             Object scheduled;
             {
                 if (request.getTimeout() > 0) {
                     scheduled = server.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            timedOut = true;
-                            if (timeoutSocket != null)
-                                timeoutSocket.close();
-                            callback.onConnectCompleted(new TimeoutException(), null);
+                            cancel.cancel();
+                            if (cancelSocket != null)
+                                cancelSocket.close();
+                            reportConnectedCompleted(cancel, new TimeoutException(), null, callback);
                         }
                     }, request.getTimeout());
                 }
@@ -91,14 +102,14 @@ public class AsyncHttpClient {
             
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
-                if (timedOut) {
+                if (cancel.isCanceled()) {
                     if (socket != null)
                         socket.close();
                     return;
                 }
-                timeoutSocket = socket;
+                cancelSocket = socket;
                 if (ex != null) {
-                    callback.onConnectCompleted(ex, null);
+                    reportConnectedCompleted(cancel, ex, null, callback);
                     return;
                 }
                 final AsyncHttpResponseImpl ret = new AsyncHttpResponseImpl(request) {
@@ -106,7 +117,7 @@ public class AsyncHttpClient {
                     boolean headersReceived;
                     protected void onHeadersReceived() {
                         try {
-                            if (timedOut)
+                            if (cancel.isCanceled())
                                 return;
 
                             if (scheduled != null)
@@ -124,22 +135,22 @@ public class AsyncHttpClient {
                                     redirect = URI.create(uri.toString().substring(0, uri.toString().length() - uri.getPath().length()) + headers.get("Location"));
                                 }
                                 AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
-                                execute(server, newReq, callback, redirectCount + 1);
+                                execute(server, newReq, callback, redirectCount + 1, cancel);
                                 
                                 setDataCallback(new NullDataCallback());
                                 return;
                             }
 
-                            callback.onConnectCompleted(null, this);
+                            reportConnectedCompleted(cancel, null, this, callback);
                         }
                         catch (Exception ex) {
-                            callback.onConnectCompleted(ex, null);
+                            reportConnectedCompleted(cancel, ex, null, callback);
                         }
                     };
                     
                     @Override
                     protected void report(Exception ex) {
-                        if (timedOut)
+                        if (cancel.isCanceled())
                             return;
                         if (ex instanceof AsyncSSLException) {
                             AsyncSSLException ase = (AsyncSSLException)ex;
@@ -153,7 +164,7 @@ public class AsyncHttpClient {
                         super.report(ex);
                         if (!socket.isOpen() || ex != null) {
                             if (!headersReceived && ex != null)
-                                callback.onConnectCompleted(ex, null);
+                                reportConnectedCompleted(cancel, ex, null, callback);
                             return;
                         }
                         if (!keepalive) {
@@ -235,17 +246,12 @@ public class AsyncHttpClient {
         server.connectSocket(uri.getHost(), port, socketConnected);
     }
     
-    public static void execute(URI uri, final HttpConnectCallback callback) {
-        execute(AsyncServer.getDefault(), new AsyncHttpGet(uri), callback);
+    public static Cancelable execute(URI uri, final HttpConnectCallback callback) {
+        return execute(AsyncServer.getDefault(), new AsyncHttpGet(uri), callback);
     }
 
-    public static void execute(String uri, final HttpConnectCallback callback) {
-        try {
-            execute(AsyncServer.getDefault(), new AsyncHttpGet(new URI(uri)), callback);
-        }
-        catch (URISyntaxException e) {
-            callback.onConnectCompleted(e, null);
-        }
+    public static Cancelable execute(String uri, final HttpConnectCallback callback) {
+        return execute(AsyncServer.getDefault(), new AsyncHttpGet(URI.create(uri)), callback);
     }
     
     public static abstract class RequestCallbackBase<T> implements RequestCallback<T> {
@@ -270,8 +276,8 @@ public class AsyncHttpClient {
         public Object convert(ByteBufferList bb) throws Exception;
     }
     
-    public static void get(String uri, final DownloadCallback callback) {
-        get(uri, callback, new ResultConvert() {
+    public static Cancelable get(String uri, final DownloadCallback callback) {
+        return get(uri, callback, new ResultConvert() {
             @Override
             public Object convert(ByteBufferList b) {
                 return b;
@@ -279,12 +285,12 @@ public class AsyncHttpClient {
         });
     }
     
-    public static void get(String uri, final StringCallback callback) {
-        execute(new AsyncHttpGet(uri), callback);
+    public static Cancelable get(String uri, final StringCallback callback) {
+        return execute(new AsyncHttpGet(uri), callback);
     }
     
-    public static void execute(AsyncHttpRequest req, final StringCallback callback) {
-        execute(req, callback, new ResultConvert() {
+    public static Cancelable execute(AsyncHttpRequest req, final StringCallback callback) {
+        return execute(req, callback, new ResultConvert() {
             @Override
             public Object convert(ByteBufferList bb) {
                 StringBuilder builder = new StringBuilder();
@@ -296,12 +302,12 @@ public class AsyncHttpClient {
         });
     }
 
-    public static void get(String uri, final JSONObjectCallback callback) {
-        execute(new AsyncHttpGet(uri), callback);
+    public static Cancelable get(String uri, final JSONObjectCallback callback) {
+        return execute(new AsyncHttpGet(uri), callback);
     }
 
-    public static void execute(AsyncHttpRequest req, final JSONObjectCallback callback) {
-        execute(req, callback, new ResultConvert() {
+    public static Cancelable execute(AsyncHttpRequest req, final JSONObjectCallback callback) {
+        return execute(req, callback, new ResultConvert() {
             @Override
             public Object convert(ByteBufferList bb) throws JSONException {
                 StringBuilder builder = new StringBuilder();
@@ -333,28 +339,18 @@ public class AsyncHttpClient {
         });
     }
     
-    private static void invokeProgress(Handler handler, final RequestCallback callback, final AsyncHttpResponse response, final int downloaded, final int total) {
-        if (callback == null)
-            return;
-        if (handler == null) {
+    private static void invokeProgress(final RequestCallback callback, final AsyncHttpResponse response, final int downloaded, final int total) {
+        if (callback != null)
             callback.onProgress(response, downloaded, total);
-            return;
-        }
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                callback.onProgress(response, downloaded, total);
-            }
-        });
     }
 
-    public static void get(String uri, final String filename, final FileCallback callback) {
-        execute(new AsyncHttpGet(uri), filename, callback);
+    public static Cancelable get(String uri, final String filename, final FileCallback callback) {
+        return execute(new AsyncHttpGet(uri), filename, callback);
     }
     
-    public static void get(String uri, final DataSink sink, final CompletedCallback callback) {
+    public static Cancelable get(String uri, final DataSink sink, final CompletedCallback callback) {
         sink.setClosedCallback(callback);
-        execute(new AsyncHttpGet(URI.create(uri)), new HttpConnectCallback() {
+        return execute(new AsyncHttpGet(URI.create(uri)), new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
                 if (ex != null) {
@@ -365,6 +361,126 @@ public class AsyncHttpClient {
             }
         });
     }
+
+    public static Cancelable execute(AsyncHttpRequest req, final String filename, final FileCallback callback) {
+        final CancelableRequest cancel = new CancelableRequest();
+        final Handler handler = Looper.myLooper() == null ? null : new Handler();
+        final File file = new File(filename);
+        file.getParentFile().mkdirs();
+        final FileOutputStream fout;
+        try {
+            fout = new FileOutputStream(file);
+        }
+        catch (FileNotFoundException e) {
+            invoke(handler, callback, AsyncServer.getDefault(), null, e, null);
+            return SimpleCancelable.COMPLETED;
+        }
+        execute(AsyncServer.getDefault(), req, new HttpConnectCallback() {
+            int mDownloaded = 0;
+            @Override
+            public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
+                if (ex != null) {
+                    try {
+                        fout.close();
+                    }
+                    catch (IOException e) {
+                    }
+                    file.delete();
+                    invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
+                    return;
+                }
+                cancel.response = response;
+
+                final int contentLength = response.getHeaders().getContentLength();
+                
+                response.setDataCallback(new OutputStreamDataCallback(fout) {
+                    @Override
+                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                        mDownloaded += bb.remaining();
+                        super.onDataAvailable(emitter, bb);
+                        invokeProgress(callback, response, mDownloaded, contentLength);
+                    }
+                });
+                response.setEndCallback(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        try {
+                            fout.close();
+                        }
+                        catch (IOException e) {
+                            invoke(handler, callback, AsyncServer.getDefault(), response, e, null);
+                            return;
+                        }
+                        if (ex != null) {
+                            file.delete();
+                            invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
+                            return;
+                        }
+                        invoke(handler, callback, AsyncServer.getDefault(), response, null, file);
+                    }
+                });
+            }
+        }, 0, cancel);
+        return cancel;
+    }
+    
+    private static class CancelableRequest extends CancelableImpl {
+        AsyncHttpResponse response;
+        @Override
+        public Cancelable cancel() {
+            Cancelable ret = super.cancel();
+            if (response != null)
+                response.close();
+            return ret;
+        }
+    }
+    
+    private static Cancelable execute(AsyncHttpRequest req, final RequestCallback callback, final ResultConvert convert) {
+        final Handler handler = Looper.myLooper() == null ? null : new Handler();
+        final CancelableRequest cancel = new CancelableRequest();
+        execute(AsyncServer.getDefault(), req, new HttpConnectCallback() {
+            int mDownloaded = 0;
+            ByteBufferList buffer = new ByteBufferList();
+            @Override
+            public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
+                if (ex != null) {
+                    invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
+                    return;
+                }
+                cancel.response = response;
+                
+                final int contentLength = response.getHeaders().getContentLength();
+
+                response.setDataCallback(new DataCallback() {
+                    @Override
+                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                        mDownloaded += bb.remaining();
+                        buffer.add(bb);
+                        bb.clear();
+                        invokeProgress(callback, response, mDownloaded, contentLength);
+                    }
+                });
+                response.setEndCallback(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        try {
+                            Object value = convert.convert(buffer);
+                            invoke(handler, callback, AsyncServer.getDefault(), response, ex, buffer != null ? value : null);
+                        }
+                        catch (Exception e) {
+                            invoke(handler, callback, AsyncServer.getDefault(), response, e, null);
+                        }
+                    }
+                });
+            }
+        }, 0, cancel);
+        return cancel;
+    }
+
+    private static Cancelable get(String uri, final RequestCallback callback, final ResultConvert convert) {
+        return execute(new AsyncHttpGet(URI.create(uri)), callback, convert);
+    }
+
     
     public static interface WebSocketConnectCallback {
         public void onCompleted(Exception ex, WebSocket webSocket);
@@ -390,110 +506,5 @@ public class AsyncHttpClient {
     public static void websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
         final AsyncHttpGet get = new AsyncHttpGet(uri);
         websocket(get, protocol, callback);
-    }
-    
-    public static void execute(AsyncHttpRequest req, final String filename, final FileCallback callback) {
-        final Handler handler = Looper.myLooper() == null ? null : new Handler();
-        final File file = new File(filename);
-        file.getParentFile().mkdirs();
-        final FileOutputStream fout;
-        try {
-            fout = new FileOutputStream(file);
-        }
-        catch (FileNotFoundException e) {
-            invoke(handler, callback, AsyncServer.getDefault(), null, e, null);
-            return;
-        }
-        execute(req, new HttpConnectCallback() {
-            int mDownloaded = 0;
-            @Override
-            public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
-                if (ex != null) {
-                    try {
-                        fout.close();
-                    }
-                    catch (IOException e) {
-                    }
-                    invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
-                    return;
-                }
-                
-                final int contentLength = response.getHeaders().getContentLength();
-                
-                response.setDataCallback(new OutputStreamDataCallback(fout) {
-                    @Override
-                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                        mDownloaded += bb.remaining();
-                        super.onDataAvailable(emitter, bb);
-                        invokeProgress(handler, callback, response, mDownloaded, contentLength);
-                    }
-                });
-                response.setEndCallback(new CompletedCallback() {
-                    @Override
-                    public void onCompleted(Exception ex) {
-                        try {
-                            fout.close();
-                        }
-                        catch (IOException e) {
-                            invoke(handler, callback, AsyncServer.getDefault(), response, e, null);
-                            return;
-                        }
-                        if (ex != null) {
-                            invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
-                            return;
-                        }
-                        invoke(handler, callback, AsyncServer.getDefault(), response, null, file);
-                    }
-                });
-            }
-        });
-    }
-    
-    private static void execute(AsyncHttpRequest req, final RequestCallback callback, final ResultConvert convert) {
-        final Handler handler = Looper.myLooper() == null ? null : new Handler();
-        execute(req, new HttpConnectCallback() {
-            int mDownloaded = 0;
-            ByteBufferList buffer = new ByteBufferList();
-            @Override
-            public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
-                if (ex != null) {
-                    invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
-                    return;
-                }
-                
-                final int contentLength = response.getHeaders().getContentLength();
-
-                response.setDataCallback(new DataCallback() {
-                    @Override
-                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                        mDownloaded += bb.remaining();
-                        buffer.add(bb);
-                        bb.clear();
-                        invokeProgress(handler, callback, response, mDownloaded, contentLength);
-                    }
-                });
-                response.setEndCallback(new CompletedCallback() {
-                    @Override
-                    public void onCompleted(Exception ex) {
-                        try {
-                            Object value = convert.convert(buffer);
-                            invoke(handler, callback, AsyncServer.getDefault(), response, ex, buffer != null ? value : null);
-                        }
-                        catch (Exception e) {
-                            invoke(handler, callback, AsyncServer.getDefault(), response, e, null);
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    private static void get(String uri, final RequestCallback callback, final ResultConvert convert) {
-        try {
-            execute(new AsyncHttpGet(new URI(uri)), callback, convert);
-        }
-        catch (URISyntaxException e) {
-            callback.onCompleted(e, null, null);
-        }
     }
 }
