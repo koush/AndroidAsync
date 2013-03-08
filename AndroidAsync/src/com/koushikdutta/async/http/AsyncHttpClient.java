@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -17,6 +16,7 @@ import org.json.JSONObject;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.AsyncSSLSocket;
@@ -234,6 +234,7 @@ public class AsyncHttpClient {
                         server.post(new Runnable() {
                             @Override
                             public void run() {
+                                Log.i("Async", "Reusing socket.");
                                 socketConnected.reused = true;
                                 socketConnected.onConnectCompleted(null, socket);
                             }

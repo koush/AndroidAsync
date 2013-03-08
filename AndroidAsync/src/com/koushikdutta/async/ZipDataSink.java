@@ -31,9 +31,7 @@ public class ZipDataSink extends FilteredDataSink {
             closed.onCompleted(e);
     }
 
-    private boolean closed = false;
     public void close() {
-        closed = true;
         try {
             zop.close();
         }
@@ -41,19 +39,7 @@ public class ZipDataSink extends FilteredDataSink {
             report(e);
             return;
         }
-        write(new ByteBufferList());
-    }
-
-    
-    @Override
-    protected void onFlushed() {
-        if (closed) {
-            if (bout.size() > 0) {
-                write(new ByteBufferList());
-                return;
-            }
-            super.close();
-        }
+        write(new ByteBufferList(), true);
     }
 
     @Override

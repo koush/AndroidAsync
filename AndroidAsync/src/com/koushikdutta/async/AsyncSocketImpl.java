@@ -153,7 +153,6 @@ class AsyncSocketImpl implements AsyncSocket {
                 Util.emitAllData(this, list);
                 if (b.remaining() != 0) {
                     Assert.assertTrue(pending == null);
-//                    System.out.println("There was data remaining after this op: " + b.remaining());
                     pending = list;
                 }
             }
@@ -263,7 +262,7 @@ class AsyncSocketImpl implements AsyncSocket {
 
     @Override
     public boolean isOpen() {
-        return mChannel.isConnected();
+        return mChannel.isConnected() && mKey.isValid();
     }
     
     boolean mPaused = false;
@@ -291,9 +290,7 @@ class AsyncSocketImpl implements AsyncSocket {
     
     private void spitPending() {
         if (pending != null) {
-//            System.out.println("p[ending spit");
             Util.emitAllData(this, pending);
-//            System.out.println("pending now: " + pending.remaining());
             if (pending.remaining() == 0) {
                 pending = null;
             }

@@ -98,7 +98,7 @@ public class AsyncHttpServer {
                             }
                         }
                     }
-                    res = new AsyncHttpServerResponseImpl(socket) {
+                    res = new AsyncHttpServerResponseImpl(socket, this) {
                         @Override
                         protected void onEnd() {
                             responseComplete = true;

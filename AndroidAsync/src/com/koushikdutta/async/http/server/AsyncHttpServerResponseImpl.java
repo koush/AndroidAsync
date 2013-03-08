@@ -38,10 +38,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     AsyncSocket mSocket;
     BufferedDataSink mSink;
-    AsyncHttpServerResponseImpl(AsyncSocket socket) {
+    AsyncHttpServerRequestImpl mRequest;
+    AsyncHttpServerResponseImpl(AsyncSocket socket, AsyncHttpServerRequestImpl req) {
         mSocket = socket;
         mSink = new BufferedDataSink(socket);
-
+        mRequest = req;
         mRawHeaders.set("Connection", "Keep-Alive");
     }
     
@@ -104,7 +105,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             onEnd();
             return;
         }
-        writeInternal(ByteBuffer.wrap(new byte[0]));
+        initFirstWrite();
+        
+        mChunker.setMaxBuffer(Integer.MAX_VALUE);
+        mChunker.write(new ByteBufferList());
+
         onEnd();
     }
 
@@ -207,7 +212,14 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void close() {
-        mSink.close();
+        end();
+        // if we're using the chunker, close that.
+        // there may be data pending. That will eventually call
+        // the close callback in the underlying mSink
+        if (mChunker != null)
+            mChunker.close();
+        else
+            mSink.close();
     }
 
     @Override

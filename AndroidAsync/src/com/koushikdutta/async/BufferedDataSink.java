@@ -15,8 +15,15 @@ public class BufferedDataSink implements DataSink {
             @Override
             public void onWriteable() {
                 writePending();
+                if (closePending) {
+                    mDataSink.close();
+                }
             }
         });
+    }
+    
+    public boolean isBuffering() {
+        return mPendingWrites != null;
     }
     
     public DataSink getDataSink() {
@@ -38,20 +45,34 @@ public class BufferedDataSink implements DataSink {
 
     @Override
     public void write(ByteBuffer bb) {
-        ByteBufferList bbl = new ByteBufferList();
-        bbl.add(bb);
-        write(bbl);
+        if (mPendingWrites == null)
+            mDataSink.write(bb);
+
+        if (bb.remaining() > 0) {
+            int toRead = Math.min(bb.remaining(), mMaxBuffer);
+            if (toRead > 0) {
+                if (mPendingWrites == null)
+                    mPendingWrites = new ByteBufferList();
+                byte[] bytes = new byte[toRead];
+                bb.get(bytes);
+                mPendingWrites.add(ByteBuffer.wrap(bytes));
+            }
+        }
     }
 
     @Override
     public void write(ByteBufferList bb) {
+        write(bb, false);
+    }
+    
+    protected void write(ByteBufferList bb, boolean ignoreBuffer) {
         if (mPendingWrites == null)
             mDataSink.write(bb);
-//        else
-//            Assert.assertTrue(mPendingWrites.remaining() <= mMaxBuffer);
 
         if (bb.remaining() > 0) {
             int toRead = Math.min(bb.remaining(), mMaxBuffer);
+            if (ignoreBuffer)
+                toRead = bb.remaining();
             if (toRead > 0) {
                 if (mPendingWrites == null)
                     mPendingWrites = new ByteBufferList();
@@ -89,11 +110,16 @@ public class BufferedDataSink implements DataSink {
 
     @Override
     public boolean isOpen() {
-        return mDataSink.isOpen();
+        return !closePending && mDataSink.isOpen();
     }
 
+    boolean closePending;
     @Override
     public void close() {
+        if (mPendingWrites != null) {
+            closePending = true;
+            return;
+        }
         mDataSink.close();
     }
 
