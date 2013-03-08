@@ -39,7 +39,9 @@ public class ZipDataSink extends FilteredDataSink {
             report(e);
             return;
         }
-        write(new ByteBufferList(), true);
+        setMaxBuffer(Integer.MAX_VALUE);
+        write(new ByteBufferList());
+        super.close();
     }
 
     @Override
