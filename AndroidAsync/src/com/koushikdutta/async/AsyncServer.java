@@ -101,6 +101,12 @@ public class AsyncServer {
     }
     
     public void run(final Runnable runnable) {
+        if (Thread.currentThread() == mAffinity) {
+            post(runnable);
+            runQueue(mQueue);
+            return;
+        }
+
         final Semaphore semaphore = new Semaphore(0);
         post(new Runnable() {
             @Override
