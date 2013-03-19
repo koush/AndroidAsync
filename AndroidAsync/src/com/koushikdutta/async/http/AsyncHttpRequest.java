@@ -109,15 +109,6 @@ public class AsyncHttpRequest implements HttpRequest {
     public void onHandshakeException(AsyncSSLException e) {
     }
     
-    public static AsyncHttpRequest create(HttpRequestBase request) {
-        AsyncHttpRequest ret = new AsyncHttpRequest(request.getURI(), request.getMethod());
-        Header[] headers = request.getAllHeaders();
-        for (Header header: headers) {
-            ret.getHeaders().getHeaders().set(header.getName(), header.getValue());
-        }
-        return ret;
-    }
-
     @Override
     public void addHeader(Header header) {
         getHeaders().getHeaders().add(header.getName(), header.getValue());
@@ -233,5 +224,13 @@ public class AsyncHttpRequest implements HttpRequest {
     
     public void setTimeout(int timeout) {
         mTimeout = timeout;
+    }
+    
+    public static AsyncHttpRequest create(HttpRequest request) {
+        AsyncHttpRequest ret = new AsyncHttpRequest(URI.create(request.getRequestLine().getUri()), request.getRequestLine().getMethod());
+        for (Header header: request.getAllHeaders()) {
+            ret.addHeader(header);
+        }
+        return ret;
     }
 }

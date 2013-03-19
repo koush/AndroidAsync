@@ -103,7 +103,7 @@ public class AsyncServer {
     public void run(final Runnable runnable) {
         if (Thread.currentThread() == mAffinity) {
             post(runnable);
-            runQueue(mQueue);
+            lockAndRunQueue(this, mQueue);
             return;
         }
 
@@ -364,7 +364,7 @@ public class AsyncServer {
         // this will allow the old queue and selector to shut down
         // gracefully, while also allowing a new selector thread
         // to start up while the old one is still shutting down.
-        do {
+        while(true) {
             try {
                 runLoop(server, selector, queue, keepRunning);
             }
@@ -372,15 +372,18 @@ public class AsyncServer {
                 Log.i(LOGTAG, "exception?");
                 e.printStackTrace();
             }
-        }
-        while (selector.isOpen() && (selector.keys().size() > 0 || keepRunning));
+            // see if we keep looping, this must be in a synchronized block since the queue is accessed.
+            synchronized (server) {
+                if (selector.isOpen() && (selector.keys().size() > 0 || keepRunning || queue.size() > 0))
+                    continue;
 
-        shutdownEverything(selector);
-        synchronized (server) {
-            if (server.mSelector == selector) {
-                server.mQueue = new LinkedList<Scheduled>();
-                server.mSelector = null;
-                server.mAffinity = null;
+                shutdownEverything(selector);
+                if (server.mSelector == selector) {
+                    server.mQueue = new LinkedList<Scheduled>();
+                    server.mSelector = null;
+                    server.mAffinity = null;
+                }
+                break;
             }
         }
         Log.i(LOGTAG, "****AsyncServer has shut down.****");
@@ -406,13 +409,23 @@ public class AsyncServer {
         catch (Exception e) {
         }
     }
+    
+    private static void lockAndRunQueue(AsyncServer server, LinkedList<Scheduled> queue) {
+        LinkedList<Scheduled> copy;
+        synchronized (server) {
+            copy = new LinkedList<Scheduled>(queue);
+            queue.clear();
+        }
+        runQueue(copy);
+    }
 
     private static void runLoop(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) throws IOException {
 //        Log.i(LOGTAG, "Keys: " + selector.keys().size());
         boolean needsSelect = true;
+
+        // run the queue to populate the selector with keys
+        lockAndRunQueue(server, queue);
         synchronized (server) {
-            // run the queue to populate the selector with keys
-            runQueue(queue);
             // select now to see if anything is ready immediately. this
             // also clears the canceled key queue.
             int readyNow = selector.selectNow();
@@ -420,13 +433,15 @@ public class AsyncServer {
                 // if there is nothing to select now, make sure we don't have an empty key set
                 // which means it would be time to turn this thread off.
                 if (selector.keys().size() == 0 && !keepRunning) {
+                    Log.i(LOGTAG, "Shutting down. keys: " + selector.keys().size() + " keepRunning: " + keepRunning);
                     return;
                 }
             }
             else {
                 needsSelect = false;
             }
-        }
+        }        
+
         if (needsSelect) {
             // nothing to select immediately but there so let's block and wait.
             selector.select(100);

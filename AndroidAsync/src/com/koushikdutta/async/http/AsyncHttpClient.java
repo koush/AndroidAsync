@@ -226,7 +226,7 @@ public class AsyncHttpClient {
 
         HashSet<AsyncSocket> sockets = mSockets.get(lookup);
         if (sockets != null) {
-            synchronized (sockets) {
+//            synchronized (sockets) {
                 for (final AsyncSocket socket: sockets) {
                     if (socket.isOpen()) {
                         sockets.remove(socket);
@@ -242,7 +242,7 @@ public class AsyncHttpClient {
                         return;
                     }
                 }
-            }
+//            }
         }
         server.connectSocket(uri.getHost(), port, socketConnected);
     }
