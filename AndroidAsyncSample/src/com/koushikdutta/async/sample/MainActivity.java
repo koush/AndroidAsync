@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
     }
     
     private void getFile(final ImageView iv, String url, final String filename) {
-        AsyncHttpClient.get(url, filename, new AsyncHttpClient.FileCallback() {
+        AsyncHttpClient.getDefault().get(url, filename, new AsyncHttpClient.FileCallback() {
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse response, File result) {
                 if (e != null) {
@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
         try {
             AsyncHttpPost post = new AsyncHttpPost("http://chart.googleapis.com/chart");
             post.setBody(writer);
-            AsyncHttpClient.execute(post, filename, new AsyncHttpClient.FileCallback() {
+            AsyncHttpClient.getDefault().execute(post, filename, new AsyncHttpClient.FileCallback() {
                 @Override
                 public void onCompleted(Exception e, AsyncHttpResponse response, File result) {
                     if (e != null) {
