@@ -10,7 +10,7 @@ NIO is extremely efficient.
 ```java
 // url is the URL to download. The callback will be invoked on the UI thread
 // once the download is complete.
-AsyncHttpClient.get(url, new AsyncHttpClient.StringCallback() {
+AsyncHttpClient.getDefault().get(url, new AsyncHttpClient.StringCallback() {
     @Override
     // Callback is invoked with any exceptions/errors, and the result, if available.
     public void onCompleted(Exception e, String result) {
@@ -30,7 +30,7 @@ AsyncHttpClient.get(url, new AsyncHttpClient.StringCallback() {
 ### Download a url to a file
 
 ```java
-AsyncHttpClient.get(url, filename, new AsyncHttpClient.FileCallback() {
+AsyncHttpClient.getDefault().get(url, filename, new AsyncHttpClient.FileCallback() {
     @Override
     public void onCompleted(Exception e, File result) {
         if (e != null) {

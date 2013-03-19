@@ -36,11 +36,11 @@ import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
-    private static AsyncHttpClient mDefault;
-    public static AsyncHttpClient getDefault() {
-        if (mDefault == null)
-            mDefault = new AsyncHttpClient(AsyncServer.getDefault());
-        return mDefault;
+    private static AsyncHttpClient mDefaultInstance;
+    public static AsyncHttpClient getDefaultInstance() {
+        if (mDefaultInstance == null)
+            mDefaultInstance = new AsyncHttpClient(AsyncServer.getDefault());
+        return mDefaultInstance;
     }
     
     private Hashtable<String, HashSet<AsyncSocket>> mSockets = new Hashtable<String, HashSet<AsyncSocket>>();
