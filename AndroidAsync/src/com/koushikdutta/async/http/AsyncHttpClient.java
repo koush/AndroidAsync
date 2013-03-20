@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.concurrent.CancellationException;
@@ -17,7 +18,6 @@ import org.json.JSONObject;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.AsyncSSLSocket;
@@ -42,6 +42,13 @@ public class AsyncHttpClient {
         if (mDefaultInstance == null)
             mDefaultInstance = new AsyncHttpClient(AsyncServer.getDefault());
         return mDefaultInstance;
+    }
+    
+    ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
+    public void addMiddleware(AsyncHttpClientMiddleware middleware) {
+        synchronized (mMiddleware) {
+            mMiddleware.add(middleware);
+        }
     }
     
     private Hashtable<String, HashSet<AsyncSocket>> mSockets = new Hashtable<String, HashSet<AsyncSocket>>();
@@ -249,6 +256,13 @@ public class AsyncHttpClient {
                 ret.setSocket(socket);
             }
         };
+        
+        synchronized (mMiddleware) {
+            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                if (middleware.getSocket(request, socketConnected))
+                    return;
+            }
+        }
 
         HashSet<AsyncSocket> sockets = mSockets.get(lookup);
         if (sockets != null) {

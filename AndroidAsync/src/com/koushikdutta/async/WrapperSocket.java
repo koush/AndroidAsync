@@ -3,57 +3,17 @@ package com.koushikdutta.async;
 import java.nio.ByteBuffer;
 
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-public class WrapperSocket implements AsyncSocket {
+public class WrapperSocket extends FilteredDataEmitter implements AsyncSocket {
     private AsyncSocket mSocket;
     public void setSocket(AsyncSocket socket) {
         mSocket = socket;
+        setDataEmitter(mSocket);
     }
     
     public AsyncSocket getSocket() {
         return mSocket;
-    }
-    
-    @Override
-    public void setDataCallback(DataCallback callback) {
-        mSocket.setDataCallback(callback);
-    }
-
-    @Override
-    public DataCallback getDataCallback() {
-        return mSocket.getDataCallback();
-    }
-
-    @Override
-    public boolean isChunked() {
-        return mSocket.isChunked();
-    }
-
-    @Override
-    public void pause() {
-        mSocket.pause();
-    }
-
-    @Override
-    public void resume() {
-        mSocket.resume();
-    }
-
-    @Override
-    public boolean isPaused() {
-        return mSocket.isPaused();
-    }
-
-    @Override
-    public void setEndCallback(CompletedCallback callback) {
-        mSocket.setEndCallback(callback);
-    }
-
-    @Override
-    public CompletedCallback getEndCallback() {
-        return mSocket.getEndCallback();
     }
 
     @Override
@@ -95,10 +55,4 @@ public class WrapperSocket implements AsyncSocket {
     public CompletedCallback getClosedCallback() {
         return mSocket.getClosedCallback();
     }
-
-    @Override
-    public AsyncServer getServer() {
-        return mSocket.getServer();
-    }
-
 }
