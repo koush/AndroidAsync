@@ -1,20 +1,16 @@
 package com.koushikdutta.async.http;
 
-import junit.framework.Assert;
-import android.util.Log;
-
-import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
+import com.koushikdutta.async.http.filter.ContentLengthFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.UnknownRequestBody;
 
 public class Util {
-    public static AsyncHttpRequestBody getBody(DataEmitter emitter, final CompletedCallback reporter, RawHeaders headers) {
+    public static AsyncHttpRequestBody getBody(DataEmitter emitter, CompletedCallback reporter, RawHeaders headers) {
         String contentType = headers.get("Content-Type");
         if (contentType != null) {
             String[] values = contentType.split(";");
@@ -22,18 +18,23 @@ public class Util {
                 values[i] = values[i].trim();
             }
             for (String ct: values) {
-                if (UrlEncodedFormBody.CONTENT_TYPE.equals(ct))
-                    return new UrlEncodedFormBody();
+                if (UrlEncodedFormBody.CONTENT_TYPE.equals(ct)) {
+                    UrlEncodedFormBody ret = new UrlEncodedFormBody(); 
+                    emitter.setDataCallback(ret);
+                    return ret;
+                }
                 if (MultipartFormDataBody.CONTENT_TYPE.equals(ct)) {
                     MultipartFormDataBody ret = new MultipartFormDataBody(contentType, values);
                     ret.setDataEmitter(emitter);
-                    ret.setEndCallback(null);
-                    emitter.setEndCallback(reporter);
+                    ret.setEndCallback(reporter);
                     return ret;
                 }
             }
         }
-        return new UnknownRequestBody(contentType);
+
+        UnknownRequestBody ret = new UnknownRequestBody(contentType);
+        emitter.setDataCallback(ret);
+        return ret;
     }
     
     public static DataEmitter getBodyDecoder(DataEmitter emitter, RawHeaders headers, boolean server, final CompletedCallback reporter) {
@@ -64,26 +65,13 @@ public class Util {
                 });
                 return emitter;
             }
-            FilteredDataEmitter contentLengthWatcher = new FilteredDataEmitter() {
-                int totalRead = 0;
-                @Override
-                public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                    Assert.assertTrue(totalRead < contentLength);
-                    ByteBufferList list = bb.get(Math.min(contentLength - totalRead, bb.remaining()));
-                    totalRead += list.remaining();
-                    super.onDataAvailable(emitter, list);
-                    if (totalRead == contentLength)
-                        report(null);
-                }
-            };
+            ContentLengthFilter contentLengthWatcher = new ContentLengthFilter(contentLength);
             contentLengthWatcher.setDataEmitter(emitter);
-            contentLengthWatcher.setEndCallback(reporter);
             emitter = contentLengthWatcher;
         }
         else if ("chunked".equalsIgnoreCase(headers.get("Transfer-Encoding"))) {
             ChunkedInputFilter chunker = new ChunkedInputFilter();
             chunker.setDataEmitter(emitter);
-            chunker.setEndCallback(reporter);
             emitter = chunker;
         }
         else if (server) {
@@ -94,6 +82,7 @@ public class Util {
                     reporter.onCompleted(null);
                 }
             });
+            return emitter;
         }
 
         if ("gzip".equals(headers.get("Content-Encoding"))) {

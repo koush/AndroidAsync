@@ -23,10 +23,10 @@ public class AsyncHttpRequestBodyBase extends FilteredDataEmitter implements Asy
         return mContentType;
     }
 
-    @Override
-    public void onCompleted(Exception ex) {
-        report(ex);
-    }
+//    @Override
+//    public void onCompleted(Exception ex) {
+//        report(ex);
+//    }
 
     @Override
     public boolean readFullyOnRequest() {

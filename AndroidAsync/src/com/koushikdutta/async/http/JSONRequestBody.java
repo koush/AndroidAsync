@@ -28,10 +28,6 @@ public class JSONRequestBody implements AsyncHttpRequestBody {
     }
 
     @Override
-    public void onCompleted(Exception ex) {
-    }
-
-    @Override
     public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
         Util.writeAll(sink, mBodyBytes, new CompletedCallback() {
             @Override

@@ -4,5 +4,5 @@ import com.koushikdutta.async.callback.DataCallback;
 
 
 public interface MultipartCallback {
-    public DataCallback onPart(Part part);
+    public void onPart(Part part);
 }

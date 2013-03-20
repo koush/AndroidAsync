@@ -103,9 +103,9 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
                     mChunkLength = 0;
                     break;
                 case COMPLETE:
-                    Exception fail = new Exception("Continued receiving data after chunk complete");
-                    report(fail);
-                    report(fail);
+                    Assert.fail();
+//                    Exception fail = new Exception("Continued receiving data after chunk complete");
+//                    report(fail);
                     return;
                 }
             }

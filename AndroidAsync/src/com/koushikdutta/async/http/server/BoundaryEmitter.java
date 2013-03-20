@@ -10,7 +10,7 @@ import com.koushikdutta.async.FilteredDataEmitter;
 
 public class BoundaryEmitter extends FilteredDataEmitter {
     private byte[] boundary;
-    public BoundaryEmitter(String boundary) {
+    public void setBoundary(String boundary) {
         this.boundary = ("--" + boundary).getBytes();
     }
     

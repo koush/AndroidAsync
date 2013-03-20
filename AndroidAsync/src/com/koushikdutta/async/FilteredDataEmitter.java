@@ -10,8 +10,8 @@ public class FilteredDataEmitter implements DataEmitter, DataCallback {
     }
     
     protected void report(Exception e) {
-        if (mEndCallback != null)
-            mEndCallback.onCompleted(e);
+        if (getEndCallback() != null)
+            getEndCallback().onCompleted(e);
     }
 
     public void setDataEmitter(DataEmitter emitter) {

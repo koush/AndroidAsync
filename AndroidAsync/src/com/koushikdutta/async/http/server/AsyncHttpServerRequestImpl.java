@@ -28,8 +28,8 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
 
     @Override
     public void onCompleted(Exception e) {
-        if (mBody != null)
-            mBody.onCompleted(e);
+//        if (mBody != null)
+//            mBody.onCompleted(e);
         report(e);
     }
 
@@ -56,8 +56,8 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                 }
                 else {
                     DataEmitter emitter = Util.getBodyDecoder(mSocket, mRawHeaders, true, mReporter);
+                    emitter.setEndCallback(mReporter);
                     mBody = Util.getBody(emitter, mReporter, mRawHeaders);
-                    emitter.setDataCallback(mBody);
                     onHeadersReceived();
                 }
             }
@@ -74,7 +74,8 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
     void setSocket(AsyncSocket socket) {
         mSocket = socket;
 
-        LineEmitter liner = new LineEmitter(mSocket);
+        LineEmitter liner = new LineEmitter();
+        mSocket.setDataCallback(liner);
         liner.setLineCallback(mHeaderCallback);
     }
     

@@ -61,7 +61,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
         return CONTENT_TYPE;
     }
 
-    private ByteBufferList data = null;
+    private ByteBufferList data;
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         if (data == null)
@@ -86,30 +86,28 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
         return Collections.unmodifiableMap(map);
     }
 
-    @Override
-    public void onCompleted(Exception ex) {
-        ArrayList<NameValuePair> params;
-        mParameters = params = new ArrayList<NameValuePair>();
-        String[] pairs = data.peekString().split("&");
-        for (String p : pairs) {
-            String[] pair = p.split("=", 2);
-            if (pair.length == 0)
-                continue;
-            String name = Uri.decode(pair[0]);
-            String value = null;
-            if (pair.length == 2)
-                value = Uri.decode(pair[1]);
-            params.add(new BasicNameValuePair(name, value));
-        }
-    }
-    
     public Iterable<NameValuePair> getParameters() {
+        if (mParameters == null && data != null) {
+            ArrayList<NameValuePair> params;
+            mParameters = params = new ArrayList<NameValuePair>();
+            String[] pairs = data.peekString().split("&");
+            for (String p : pairs) {
+                String[] pair = p.split("=", 2);
+                if (pair.length == 0)
+                    continue;
+                String name = Uri.decode(pair[0]);
+                String value = null;
+                if (pair.length == 2)
+                    value = Uri.decode(pair[1]);
+                params.add(new BasicNameValuePair(name, value));
+            }
+        }
         return mParameters;
     }
     
     public Map<String, String> getParameterMap() {
         HashMap<String, String> map = new HashMap<String, String>();
-        for (NameValuePair pair: mParameters) {
+        for (NameValuePair pair: getParameters()) {
             if (!map.containsKey(pair.getName()))
                 map.put(pair.getName(), pair.getValue());
         }

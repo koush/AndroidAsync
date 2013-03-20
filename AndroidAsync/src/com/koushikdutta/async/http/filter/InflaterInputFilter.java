@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http.filter;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.zip.Inflater;
 
@@ -12,13 +13,20 @@ import com.koushikdutta.async.Util;
 
 public class InflaterInputFilter extends FilteredDataEmitter {
     private Inflater mInflater;
+    
+    @Override
+    protected void report(Exception e) {
+        if (e != null && mInflater.getRemaining() > 0) {
+            e = new IOException("data still remaining in inflater");
+        }
+        super.report(e);
+    }
 
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         try {
             ByteBufferList transformed = new ByteBufferList();
             ByteBuffer output = ByteBuffer.allocate(bb.remaining() * 2);
-            int totalInflated = 0;
             int totalRead = 0;
             while (bb.size() > 0) {
                 ByteBuffer b = bb.remove();
@@ -27,7 +35,6 @@ public class InflaterInputFilter extends FilteredDataEmitter {
                     mInflater.setInput(b.array(), b.arrayOffset() + b.position(), b.remaining());
                     do {
                         int inflated = mInflater.inflate(output.array(), output.arrayOffset() + output.position(), output.remaining());
-                        totalInflated += inflated;
                         output.position(output.position() + inflated);
                         if (!output.hasRemaining()) {
                             output.limit(output.position());
