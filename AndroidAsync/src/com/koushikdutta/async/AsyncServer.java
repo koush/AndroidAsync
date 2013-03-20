@@ -123,7 +123,9 @@ public class AsyncServer {
         }
     }
     
-    private static void runQueue(LinkedList<Scheduled> queue) {
+    private static final long DEFAULT_WAIT = 100;
+    private static long runQueue(LinkedList<Scheduled> queue) {
+        long wait = DEFAULT_WAIT;
         long now = System.currentTimeMillis();
         LinkedList<Scheduled> later = null;
         while (queue.size() > 0) {
@@ -131,6 +133,7 @@ public class AsyncServer {
             if (s.time < now)
                 s.runnable.run();
             else {
+                wait = Math.min(wait, s.time - now);
                 if (later == null)
                     later = new LinkedList<AsyncServer.Scheduled>();
                 later.add(s);
@@ -138,6 +141,8 @@ public class AsyncServer {
         }
         if (later != null)
             queue.addAll(later);
+        
+        return wait;
     }
 
     private static class Scheduled {
@@ -235,15 +240,17 @@ public class AsyncServer {
         return new SimpleCancelable() {
             @Override
             public Cancelable cancel() {
-                synchronized (this) {
-                    super.cancel();
-                    try {
-                        sc.close();
+                run(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            sc.close();
+                        }
+                        catch (IOException e) {
+                        }
                     }
-                    catch (IOException e) {
-                    }
-                    return this;
-                }
+                });
+                return this;
             }
         };
     }
@@ -410,13 +417,13 @@ public class AsyncServer {
         }
     }
     
-    private static void lockAndRunQueue(AsyncServer server, LinkedList<Scheduled> queue) {
+    private static long lockAndRunQueue(AsyncServer server, LinkedList<Scheduled> queue) {
         LinkedList<Scheduled> copy;
         synchronized (server) {
             copy = new LinkedList<Scheduled>(queue);
             queue.clear();
         }
-        runQueue(copy);
+        return runQueue(copy);
     }
 
     private static void runLoop(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) throws IOException {
@@ -424,7 +431,7 @@ public class AsyncServer {
         boolean needsSelect = true;
 
         // run the queue to populate the selector with keys
-        lockAndRunQueue(server, queue);
+        long wait = lockAndRunQueue(server, queue);
         synchronized (server) {
             // select now to see if anything is ready immediately. this
             // also clears the canceled key queue.
@@ -444,7 +451,7 @@ public class AsyncServer {
 
         if (needsSelect) {
             // nothing to select immediately but there so let's block and wait.
-            selector.select(100);
+            selector.select(wait);
         }
 
         // process whatever keys are ready

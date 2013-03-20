@@ -59,7 +59,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     boolean mHasWritten = false;
-    FilteredDataSink mChunker;
+    ChunkedOutputFilter mChunker;
     void initFirstWrite() {
         if (mHasWritten)
             return;

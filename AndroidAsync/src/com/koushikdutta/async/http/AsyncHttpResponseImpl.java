@@ -130,9 +130,6 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         mSocket.setClosedCallback(null);
         mSocket.setEndCallback(null);
         mCompleted = true;
-//        System.out.println("closing up shop");
-//        if (mCompletedCallback != null)
-//            mCompletedCallback.onCompleted(e);
     }
     
     private AsyncHttpRequest mRequest;
@@ -143,17 +140,6 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
     }
 
     boolean mCompleted = false;
-//    
-//    CompletedCallback mCompletedCallback;
-//    @Override
-//    public void setCompletedCallback(CompletedCallback handler) {
-//        mCompletedCallback = handler;        
-//    }
-//
-//    @Override
-//    public CompletedCallback getCompletedCallback() {
-//        return mCompletedCallback;
-//    }
 
     @Override
     public ResponseHeaders getHeaders() {

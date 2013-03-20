@@ -56,6 +56,12 @@ public class MainActivity extends Activity {
     private void getFile(final ImageView iv, String url, final String filename) {
         AsyncHttpClient.getDefaultInstance().get(url, filename, new AsyncHttpClient.FileCallback() {
             @Override
+            public void onProgress(AsyncHttpResponse response, int downloaded, int total) {
+                response.pause();
+                super.onProgress(response, downloaded, total);
+            }
+            
+            @Override
             public void onCompleted(Exception e, AsyncHttpResponse response, File result) {
                 if (e != null) {
                     e.printStackTrace();

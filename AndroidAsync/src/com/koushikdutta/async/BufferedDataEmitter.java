@@ -8,11 +8,27 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     public BufferedDataEmitter(DataEmitter emitter) {
         mEmitter = emitter;
         mEmitter.setDataCallback(this);
+        
+        mEmitter.setEndCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                mEnded = true;
+                mEndException = ex;
+                if (mBuffers.remaining() == 0 && mEndCallback != null)
+                    mEndCallback.onCompleted(ex);
+            }
+        });
     }
+    
+    boolean mEnded = false;
+    Exception mEndException;
     
     public void onDataAvailable() {
         if (mDataCallback != null && !mPaused && mBuffers.remaining() > 0)
             mDataCallback.onDataAvailable(this, mBuffers);
+        
+        if (mEnded && mBuffers.remaining() == 0)
+            mEndCallback.onCompleted(mEndException);
     }
     
     ByteBufferList mBuffers = new ByteBufferList();
@@ -60,13 +76,15 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
         return mPaused;
     }
 
+
+    CompletedCallback mEndCallback;
     @Override
     public void setEndCallback(CompletedCallback callback) {
-        mEmitter.setEndCallback(callback);
+        mEndCallback = callback;
     }
 
     @Override
     public CompletedCallback getEndCallback() {
-        return mEmitter.getEndCallback();
+        return mEndCallback;
     }
 }

@@ -9,6 +9,7 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeoutException;
 
 import org.json.JSONException;
@@ -54,12 +55,33 @@ public class AsyncHttpClient {
     }
 
     public Cancelable execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
-        CancelableImpl ret = new CancelableImpl();
+        CancelableImpl ret;
         execute(request, callback, 0, ret = new CancelableImpl());
         return ret;
     }
     
+    private static final String LOGTAG = "AsyncHttp";
     private static class CancelableImpl extends SimpleCancelable {
+        public HttpConnectCallback callback;
+        public Cancelable socketCancelable;
+        public AsyncSocket socket;
+        
+        @Override
+        public Cancelable cancel() {
+            super.cancel();
+            
+            if (socketCancelable != null) {
+                socketCancelable.cancel();
+            }
+
+            if (socket != null)
+                socket.close();
+            
+            // call this?
+            callback.onConnectCompleted(new CancellationException(), null);
+            
+            return this;
+        }
     }
     
     private void reportConnectedCompleted(CancelableImpl cancel, Exception ex, AsyncHttpResponseImpl response, final HttpConnectCallback callback) {
@@ -88,7 +110,6 @@ public class AsyncHttpClient {
         final int finalPort = port;
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
-            AsyncSocket cancelSocket;
             Object scheduled;
             {
                 if (request.getTimeout() > 0) {
@@ -96,8 +117,6 @@ public class AsyncHttpClient {
                         @Override
                         public void run() {
                             cancel.cancel();
-                            if (cancelSocket != null)
-                                cancelSocket.close();
                             reportConnectedCompleted(cancel, new TimeoutException(), null, callback);
                         }
                     }, request.getTimeout());
@@ -114,7 +133,7 @@ public class AsyncHttpClient {
                         socket.close();
                     return;
                 }
-                cancelSocket = socket;
+                cancel.socket = socket;
                 if (ex != null) {
                     reportConnectedCompleted(cancel, ex, null, callback);
                     return;
@@ -233,7 +252,7 @@ public class AsyncHttpClient {
 
         HashSet<AsyncSocket> sockets = mSockets.get(lookup);
         if (sockets != null) {
-//            synchronized (sockets) {
+            synchronized (sockets) {
                 for (final AsyncSocket socket: sockets) {
                     if (socket.isOpen()) {
                         sockets.remove(socket);
@@ -241,7 +260,7 @@ public class AsyncHttpClient {
                         mServer.post(new Runnable() {
                             @Override
                             public void run() {
-                                Log.i("Async", "Reusing socket.");
+//                                Log.i(LOGTAG, "Reusing socket.");
                                 socketConnected.reused = true;
                                 socketConnected.onConnectCompleted(null, socket);
                             }
@@ -249,9 +268,9 @@ public class AsyncHttpClient {
                         return;
                     }
                 }
-//            }
+            }
         }
-        mServer.connectSocket(uri.getHost(), port, socketConnected);
+        cancel.socketCancelable = mServer.connectSocket(uri.getHost(), port, socketConnected);
     }
     
     public Cancelable execute(URI uri, final HttpConnectCallback callback) {
@@ -373,7 +392,7 @@ public class AsyncHttpClient {
     public Cancelable execute(AsyncHttpRequest req, final String filename, final FileCallback callback) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
         final File file = new File(filename);
-        final CancelableRequest cancel = new CancelableRequest() {
+        final CancelableImpl cancel = new CancelableImpl() {
             @Override
             public Cancelable cancel() {
                 Cancelable ret = super.cancel();
@@ -404,7 +423,6 @@ public class AsyncHttpClient {
                     invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
                     return;
                 }
-                cancel.response = response;
 
                 final int contentLength = response.getHeaders().getContentLength();
                 
@@ -439,20 +457,9 @@ public class AsyncHttpClient {
         return cancel;
     }
     
-    private static class CancelableRequest extends CancelableImpl {
-        AsyncHttpResponse response;
-        @Override
-        public Cancelable cancel() {
-            Cancelable ret = super.cancel();
-            if (response != null)
-                response.close();
-            return ret;
-        }
-    }
-    
     private Cancelable execute(AsyncHttpRequest req, final RequestCallback callback, final ResultConvert convert) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
-        final CancelableRequest cancel = new CancelableRequest();
+        final CancelableImpl cancel = new CancelableImpl();
         execute(req, new HttpConnectCallback() {
             int mDownloaded = 0;
             ByteBufferList buffer = new ByteBufferList();
@@ -462,7 +469,6 @@ public class AsyncHttpClient {
                     invoke(handler, callback, AsyncServer.getDefault(), response, ex, null);
                     return;
                 }
-                cancel.response = response;
                 
                 final int contentLength = response.getHeaders().getContentLength();
 
