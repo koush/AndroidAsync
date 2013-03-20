@@ -3,26 +3,33 @@ package com.koushikdutta.async;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 
-public class FilteredDataEmitter implements DataEmitter {
+public class FilteredDataEmitter implements DataEmitter, DataCallback {
     DataEmitter mEmitter;
     public DataEmitter getDataEmitter() {
         return mEmitter;
     }
     
+    protected void report(Exception e) {
+        if (mEndCallback != null)
+            mEndCallback.onCompleted(e);
+    }
+
     public void setDataEmitter(DataEmitter emitter) {
         if (mEmitter != null) {
             mEmitter.setDataCallback(null);
         }
         mEmitter = emitter;
-        mEmitter.setDataCallback(new DataCallback() {
+        mEmitter.setDataCallback(this);
+        mEmitter.setEndCallback(new CompletedCallback() {
             @Override
-            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                FilteredDataEmitter.this.onDataAvailable(emitter, bb);
+            public void onCompleted(Exception ex) {
+                report(ex);
             }
         });
     }
     
-    protected void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+    @Override
+    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         Util.emitAllData(this, bb);
         // if there's data after the emitting, and it is paused... the underlying implementation
         // is obligated to cache the byte buffer list.
@@ -59,13 +66,19 @@ public class FilteredDataEmitter implements DataEmitter {
         return mEmitter.isPaused();
     }
 
+    CompletedCallback mEndCallback;
     @Override
     public void setEndCallback(CompletedCallback callback) {
-        mEmitter.setEndCallback(callback);
+        mEndCallback = callback;
     }
 
     @Override
     public CompletedCallback getEndCallback() {
-        return mEmitter.getEndCallback();
+        return mEndCallback;
+    }
+
+    @Override
+    public AsyncServer getServer() {
+        return mEmitter.getServer();
     }
 }

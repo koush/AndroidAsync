@@ -120,7 +120,8 @@ public class GZIPInputFilter extends InflaterInputFilter {
                                 crc.reset();
                             }
                             mNeedsHeader = false;
-                            emitter.setDataCallback(GZIPInputFilter.this);
+                            setDataEmitter(emitter);
+//                            emitter.setDataCallback(GZIPInputFilter.this);
                         }
                     });
                 }

@@ -87,4 +87,9 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     public CompletedCallback getEndCallback() {
         return mEndCallback;
     }
+
+    @Override
+    public AsyncServer getServer() {
+        return mEmitter.getServer();
+    }
 }

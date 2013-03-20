@@ -3,6 +3,8 @@ package com.koushikdutta.async.http.server;
 import java.util.regex.Matcher;
 
 import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -12,26 +14,14 @@ import com.koushikdutta.async.http.Util;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
-public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerRequest, CompletedCallback {
+public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter implements AsyncHttpServerRequest, CompletedCallback {
     private RawHeaders mRawHeaders = new RawHeaders();
     AsyncSocket mSocket;
     Matcher mMatcher;
 
-    private CompletedCallback mCompleted;
-    @Override
-    public void setEndCallback(CompletedCallback callback) {
-        mCompleted = callback;
-    }
-
-    @Override
-    public CompletedCallback getEndCallback() {
-        return mCompleted;
-    }
-
     private CompletedCallback mReporter = new CompletedCallback() {
         @Override
         public void onCompleted(Exception error) {
-//            System.out.println("completion of request");
             AsyncHttpServerRequestImpl.this.onCompleted(error);
         }
     };
@@ -40,8 +30,7 @@ public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerReque
     public void onCompleted(Exception e) {
         if (mBody != null)
             mBody.onCompleted(e);
-        if (mCompleted != null)
-            mCompleted.onCompleted(e);
+        report(e);
     }
 
     abstract protected void onHeadersReceived();
@@ -66,9 +55,9 @@ public abstract class AsyncHttpServerRequestImpl implements AsyncHttpServerReque
                     mRawHeaders.addLine(s);
                 }
                 else {
-                    mBody = Util.getBody(mRawHeaders);
-                    DataCallback callback = Util.getBodyDecoder(mBody, mRawHeaders, true, mReporter);
-                    mSocket.setDataCallback(callback);
+                    DataEmitter emitter = Util.getBodyDecoder(mSocket, mRawHeaders, true, mReporter);
+                    mBody = Util.getBody(emitter, mReporter, mRawHeaders);
+                    emitter.setDataCallback(mBody);
                     onHeadersReceived();
                 }
             }

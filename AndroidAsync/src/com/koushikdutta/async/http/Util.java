@@ -1,12 +1,12 @@
 package com.koushikdutta.async.http;
 
 import junit.framework.Assert;
+import android.util.Log;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.FilteredDataCallback;
+import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
@@ -14,7 +14,7 @@ import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.UnknownRequestBody;
 
 public class Util {
-    public static AsyncHttpRequestBody getBody(RawHeaders headers) {
+    public static AsyncHttpRequestBody getBody(DataEmitter emitter, final CompletedCallback reporter, RawHeaders headers) {
         String contentType = headers.get("Content-Type");
         if (contentType != null) {
             String[] values = contentType.split(";");
@@ -24,27 +24,19 @@ public class Util {
             for (String ct: values) {
                 if (UrlEncodedFormBody.CONTENT_TYPE.equals(ct))
                     return new UrlEncodedFormBody();
-                if (MultipartFormDataBody.CONTENT_TYPE.equals(ct))
-                    return new MultipartFormDataBody(contentType, values);
+                if (MultipartFormDataBody.CONTENT_TYPE.equals(ct)) {
+                    MultipartFormDataBody ret = new MultipartFormDataBody(contentType, values);
+                    ret.setDataEmitter(emitter);
+                    ret.setEndCallback(null);
+                    emitter.setEndCallback(reporter);
+                    return ret;
+                }
             }
         }
         return new UnknownRequestBody(contentType);
     }
     
-    public static DataCallback getBodyDecoder(DataCallback callback, RawHeaders headers, boolean server, final CompletedCallback reporter) {
-        if ("gzip".equals(headers.get("Content-Encoding"))) {
-            GZIPInputFilter gunzipper = new GZIPInputFilter();
-            gunzipper.setDataCallback(callback);
-            gunzipper.setEndCallback(reporter);
-            callback = gunzipper;
-        }        
-        else if ("deflate".equals(headers.get("Content-Encoding"))) {
-            InflaterInputFilter inflater = new InflaterInputFilter();
-            inflater.setEndCallback(reporter);
-            inflater.setDataCallback(callback);
-            callback = inflater;
-        }
-
+    public static DataEmitter getBodyDecoder(DataEmitter emitter, RawHeaders headers, boolean server, final CompletedCallback reporter) {
         int _contentLength;
         try {
             _contentLength = Integer.parseInt(headers.get("Content-Length"));
@@ -55,15 +47,24 @@ public class Util {
         final int contentLength = _contentLength;
         if (-1 != contentLength) {
             if (contentLength < 0) {
-                reporter.onCompleted(new Exception("not using chunked encoding, and no content-length found."));
-                return callback;
+                emitter.getServer().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        reporter.onCompleted(new Exception("not using chunked encoding, and no content-length found."));
+                    }
+                });
+                return emitter;
             }
             if (contentLength == 0) {
-                reporter.onCompleted(null);
-                return callback;
+                emitter.getServer().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        reporter.onCompleted(null);
+                    }
+                });
+                return emitter;
             }
-//            System.out.println("Content len: " + contentLength);
-            FilteredDataCallback contentLengthWatcher = new FilteredDataCallback() {
+            FilteredDataEmitter contentLengthWatcher = new FilteredDataEmitter() {
                 int totalRead = 0;
                 @Override
                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -75,23 +76,39 @@ public class Util {
                         report(null);
                 }
             };
-            contentLengthWatcher.setDataCallback(callback);
+            contentLengthWatcher.setDataEmitter(emitter);
             contentLengthWatcher.setEndCallback(reporter);
-            callback = contentLengthWatcher;
+            emitter = contentLengthWatcher;
         }
         else if ("chunked".equalsIgnoreCase(headers.get("Transfer-Encoding"))) {
             ChunkedInputFilter chunker = new ChunkedInputFilter();
-            
+            chunker.setDataEmitter(emitter);
             chunker.setEndCallback(reporter);
-            chunker.setDataCallback(callback);
-            callback = chunker;
+            emitter = chunker;
         }
         else if (server) {
             // if this is the server, and the client has not indicated a request body, the client is done
-            reporter.onCompleted(null);
+            emitter.getServer().post(new Runnable() {
+                @Override
+                public void run() {
+                    reporter.onCompleted(null);
+                }
+            });
         }
+
+        if ("gzip".equals(headers.get("Content-Encoding"))) {
+            GZIPInputFilter gunzipper = new GZIPInputFilter();
+            gunzipper.setDataEmitter(emitter);
+            emitter = gunzipper;
+        }        
+        else if ("deflate".equals(headers.get("Content-Encoding"))) {
+            InflaterInputFilter inflater = new InflaterInputFilter();
+            inflater.setDataEmitter(emitter);
+            emitter = inflater;
+        }
+
         // conversely, if this is the client, and the server has not indicated a request body, we do not report
         // the close/end event until the server actually closes the connection.
-        return callback;
+        return emitter;
     }
 }

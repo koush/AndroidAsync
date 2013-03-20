@@ -2,13 +2,12 @@ package com.koushikdutta.async.http.server;
 
 import junit.framework.Assert;
 
-import com.koushikdutta.async.FilteredDataCallback;
-import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 
-public class AsyncHttpRequestBodyBase extends FilteredDataCallback implements AsyncHttpRequestBody {
+public class AsyncHttpRequestBodyBase extends FilteredDataEmitter implements AsyncHttpRequestBody {
     public AsyncHttpRequestBodyBase(String contentType) {
         mContentType = contentType;
     }
@@ -26,9 +25,7 @@ public class AsyncHttpRequestBodyBase extends FilteredDataCallback implements As
 
     @Override
     public void onCompleted(Exception ex) {
-        CompletedCallback callback = getEndCallback();
-        if (callback != null)
-            callback.onCompleted(ex);
+        report(ex);
     }
 
     @Override

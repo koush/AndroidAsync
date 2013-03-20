@@ -122,28 +122,6 @@ public class AsyncServer {
             e.printStackTrace();
         }
     }
-    
-    private static final long DEFAULT_WAIT = 100;
-    private static long runQueue(LinkedList<Scheduled> queue) {
-        long wait = DEFAULT_WAIT;
-        long now = System.currentTimeMillis();
-        LinkedList<Scheduled> later = null;
-        while (queue.size() > 0) {
-            Scheduled s = queue.remove();
-            if (s.time < now)
-                s.runnable.run();
-            else {
-                wait = Math.min(wait, s.time - now);
-                if (later == null)
-                    later = new LinkedList<AsyncServer.Scheduled>();
-                later.add(s);
-            }
-        }
-        if (later != null)
-            queue.addAll(later);
-        
-        return wait;
-    }
 
     private static class Scheduled {
         public Scheduled(Runnable runnable, long time) {
@@ -417,13 +395,39 @@ public class AsyncServer {
         }
     }
     
+    private static final long DEFAULT_WAIT = 100;
     private static long lockAndRunQueue(AsyncServer server, LinkedList<Scheduled> queue) {
-        LinkedList<Scheduled> copy;
+        long wait = DEFAULT_WAIT;
+        LinkedList<Scheduled> copy = null;
+        // first filter out the queue items we can actually run
         synchronized (server) {
-            copy = new LinkedList<Scheduled>(queue);
-            queue.clear();
+            long now = System.currentTimeMillis();
+            LinkedList<Scheduled> later = null;
+            while (queue.size() > 0) {
+                Scheduled s = queue.remove();
+                if (s.time <= now) {
+                    if (copy == null)
+                        copy = new LinkedList<AsyncServer.Scheduled>();
+                    copy.add(s);
+                }
+                else {
+                    wait = Math.min(wait, s.time - now);
+                    if (later == null)
+                        later = new LinkedList<AsyncServer.Scheduled>();
+                    later.add(s);
+                }
+            }
+            if (later != null)
+                queue.addAll(later);
         }
-        return runQueue(copy);
+        
+        // now run
+        if (copy != null) {
+            while (copy.size() > 0) {
+                copy.remove().runnable.run();
+            }
+        }
+        return wait;
     }
 
     private static void runLoop(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) throws IOException {

@@ -6,9 +6,9 @@ import junit.framework.Assert;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.FilteredDataCallback;
+import com.koushikdutta.async.FilteredDataEmitter;
 
-public class BoundaryEmitter extends FilteredDataCallback {
+public class BoundaryEmitter extends FilteredDataEmitter {
     private byte[] boundary;
     public BoundaryEmitter(String boundary) {
         this.boundary = ("--" + boundary).getBytes();
@@ -18,24 +18,6 @@ public class BoundaryEmitter extends FilteredDataCallback {
     }
     
     protected void onBoundaryEnd() {
-    }
-    
-    private static int matches(byte[] a1, int o1, byte[] a2, int o2, int count) {
-        Assert.assertTrue(count <= a1.length - o1);
-        Assert.assertTrue(count <= a2.length - o2);
-        for (int i = 0; i < count; i++, o1++, o2++) {
-            if (a1[o1] != a2[o2]) {
-//                System.out.println("match fail at " + i);
-                return i;
-            }
-        }
-        return count;
-    }
-    
-    @Override
-    protected void report(Exception e) {
-        e.printStackTrace();
-        super.report(e);
     }
     
     // >= 0 matching
@@ -85,7 +67,7 @@ public class BoundaryEmitter extends FilteredDataCallback {
                         ByteBuffer b = ByteBuffer.wrap(buf, last, len);
                         ByteBufferList list = new ByteBufferList();
                         list.add(b);
-                        super.onDataAvailable(emitter, list);
+                        super.onDataAvailable(this, list);
                     }
                     else {
                         // len can be -1 on the first boundary
@@ -117,7 +99,7 @@ public class BoundaryEmitter extends FilteredDataCallback {
                     ByteBuffer b = ByteBuffer.wrap(buf, last, i - last - boundary.length - 4);
                     ByteBufferList list = new ByteBufferList();
                     list.add(b);
-                    super.onDataAvailable(emitter, list);
+                    super.onDataAvailable(this, list);
 //                    System.out.println("bend");
                     onBoundaryEnd();
                 }
@@ -158,7 +140,7 @@ public class BoundaryEmitter extends FilteredDataCallback {
             ByteBuffer b = ByteBuffer.wrap(buf, last, buf.length - last - keep);
             ByteBufferList list = new ByteBufferList();
             list.add(b);
-            super.onDataAvailable(emitter, list);
+            super.onDataAvailable(this, list);
         }
     }
 }

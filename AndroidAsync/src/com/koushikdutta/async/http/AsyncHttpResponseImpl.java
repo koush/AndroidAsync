@@ -9,18 +9,17 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
-import com.koushikdutta.async.FilteredDataCallback;
+import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
-abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements AsyncHttpResponse {
+abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncHttpResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
     public RawHeaders getRawHeaders() {
         return mRawHeaders;
@@ -70,9 +69,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
         mSocket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                if (!mCompleted) {
-                    report(new Exception("connection closed before response completed."));
-                }
+                // TODO: do we care? throw if socket is still writing or something?
             }
         });
     }
@@ -80,7 +77,12 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
     private CompletedCallback mReporter = new CompletedCallback() {
         @Override
         public void onCompleted(Exception error) {
-            report(error);
+            if (error != null && !mCompleted) {
+                report(new Exception("connection closed before response completed."));
+            }
+            else {
+                report(error);
+            }
         }
     };
     
@@ -102,8 +104,8 @@ abstract class AsyncHttpResponseImpl extends FilteredDataCallback implements Asy
                     // socket may get detached after headers (websocket)
                     if (mSocket == null)
                         return;
-                    DataCallback callback = Util.getBodyDecoder(AsyncHttpResponseImpl.this, mRawHeaders, false, mReporter);
-                    mSocket.setDataCallback(callback);
+                    DataEmitter emitter = Util.getBodyDecoder(mSocket, mRawHeaders, false, mReporter);
+                    setDataEmitter(emitter);
                 }
             }
             catch (Exception ex) {

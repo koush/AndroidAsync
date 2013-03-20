@@ -101,6 +101,7 @@ public class AsyncHttpServer {
                     res = new AsyncHttpServerResponseImpl(socket, this) {
                         @Override
                         protected void onEnd() {
+                            mSocket.setEndCallback(null);
                             responseComplete = true;
                             // reuse the socket for a subsequent request.
                             handleOnCompleted();

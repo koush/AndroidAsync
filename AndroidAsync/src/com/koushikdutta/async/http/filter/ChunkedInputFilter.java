@@ -4,11 +4,10 @@ import junit.framework.Assert;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.FilteredDataCallback;
+import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.Util;
-import com.koushikdutta.async.callback.CompletedCallback;
 
-public class ChunkedInputFilter extends FilteredDataCallback {
+public class ChunkedInputFilter extends FilteredDataEmitter {
     private int mChunkLength = 0;
     private int mChunkLengthRemaining = 0;
     private State mState = State.CHUNK_LEN;

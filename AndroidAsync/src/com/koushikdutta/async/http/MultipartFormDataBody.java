@@ -1,9 +1,8 @@
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
+import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpRequestBodyBase;
@@ -33,20 +32,7 @@ public class MultipartFormDataBody extends AsyncHttpRequestBodyBase {
                                 headers.addLine(s);
                             }
                             else {
-                                Part part = new Part(headers);
-                                DataCallback callback = onPart(part);
-                                if (callback == null)
-                                    callback = new DataCallback() {
-                                        int total;
-                                        @Override
-                                        public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                                            total += bb.remaining();
-//                                            System.out.println(total);
-//                                            System.out.println(bb.peekString());
-                                            bb.clear();
-                                        }
-                                    };
-                                boundaryEmitter.setDataCallback(callback);
+                                boundaryEmitter.setDataCallback(onPart(new Part(headers)));
                             }
                         }
                     });
@@ -56,16 +42,12 @@ public class MultipartFormDataBody extends AsyncHttpRequestBodyBase {
 //                    System.out.println("boundary end");
                 }
             };
+            boundaryEmitter.setDataEmitter(this);
             return;
         }
         report(new Exception ("No boundary found for multipart/form-data"));
     }
-    
-    @Override
-    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        boundaryEmitter.onDataAvailable(emitter, bb);
-    }
-    
+
     MultipartCallback mCallback;
     public void setMultipartCallback(MultipartCallback callback) {
         mCallback = callback;
@@ -74,12 +56,12 @@ public class MultipartFormDataBody extends AsyncHttpRequestBodyBase {
     public MultipartCallback getMultipartCallback() {
         return mCallback;
     }
-    
+
     private DataCallback onPart(Part part) {
 //        System.out.println("here");
 //        System.out.println(headers.toHeaderString());
         if (mCallback == null)
-            return null;
+            return new NullDataCallback();
         return mCallback.onPart(part);
     }
 }

@@ -11,6 +11,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -52,15 +53,9 @@ public class MainActivity extends Activity {
         getMenuInflater().inflate(R.menu.activity_main, menu);
         return true;
     }
-    
+
     private void getFile(final ImageView iv, String url, final String filename) {
         AsyncHttpClient.getDefaultInstance().get(url, filename, new AsyncHttpClient.FileCallback() {
-            @Override
-            public void onProgress(AsyncHttpResponse response, int downloaded, int total) {
-                response.pause();
-                super.onProgress(response, downloaded, total);
-            }
-            
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse response, File result) {
                 if (e != null) {

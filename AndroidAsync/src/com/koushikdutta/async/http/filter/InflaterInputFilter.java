@@ -7,10 +7,10 @@ import junit.framework.Assert;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.FilteredDataCallback;
+import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.Util;
 
-public class InflaterInputFilter extends FilteredDataCallback {
+public class InflaterInputFilter extends FilteredDataEmitter {
     private Inflater mInflater;
 
     @Override
