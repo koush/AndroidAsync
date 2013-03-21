@@ -24,7 +24,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-public class AsyncSSLSocket implements WrapperSocket {
+public class AsyncSSLSocket implements WrapperSocket, IAsyncSSLSocket {
     AsyncSocket mSocket;
     BufferedDataEmitter mEmitter;
     BufferedDataSink mSink;
@@ -183,11 +183,11 @@ public class AsyncSSLSocket implements WrapperSocket {
                 for (TrustManager tm : tmf.getTrustManagers()) {
                     try {
                         X509TrustManager xtm = (X509TrustManager) tm;
-                        X509Certificate[] certs = (X509Certificate[]) engine.getSession().getPeerCertificates();
-                        xtm.checkServerTrusted(certs, "SSL");
+                        peerCertificates = (X509Certificate[]) engine.getSession().getPeerCertificates();
+                        xtm.checkServerTrusted(peerCertificates, "SSL");
                         if (mHost != null) {
                             StrictHostnameVerifier verifier = new StrictHostnameVerifier();
-                            verifier.verify(mHost, StrictHostnameVerifier.getCNs(certs[0]), StrictHostnameVerifier.getDNSSubjectAlts(certs[0]));
+                            verifier.verify(mHost, StrictHostnameVerifier.getCNs(peerCertificates[0]), StrictHostnameVerifier.getDNSSubjectAlts(peerCertificates[0]));
                         }
                         trusted = true;
                         break;
@@ -386,5 +386,11 @@ public class AsyncSSLSocket implements WrapperSocket {
     @Override
     public AsyncSocket getSocket() {
         return mSocket;
+    }
+    
+    X509Certificate[] peerCertificates;
+    @Override
+    public X509Certificate[] getPeerCertificates() {
+        return peerCertificates;
     }
 }

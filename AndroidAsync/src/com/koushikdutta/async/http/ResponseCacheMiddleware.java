@@ -32,18 +32,17 @@ import java.util.Map;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import junit.framework.Assert;
-
 import android.os.Bundle;
 import android.util.Base64;
-import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.Cancelable;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.IAsyncSSLSocket;
 import com.koushikdutta.async.SimpleCancelable;
-import com.koushikdutta.async.WrapperSocketBase;
+import com.koushikdutta.async.DataWrapperSocket;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -54,7 +53,7 @@ import com.koushikdutta.async.util.cache.Charsets;
 import com.koushikdutta.async.util.cache.DiskLruCache;
 import com.koushikdutta.async.util.cache.StrictLineReader;
 
-public class ResponseCacheMiddleware implements AsyncHttpClientMiddleware {
+public class ResponseCacheMiddleware extends SimpleMiddleware {
     private DiskLruCache cache;
     private static final int VERSION = 201105;
     private static final int ENTRY_METADATA = 0;
@@ -89,11 +88,26 @@ public class ResponseCacheMiddleware implements AsyncHttpClientMiddleware {
             throw new AssertionError(e);
         }
     }
+    
+    private class CachedSSLSocket extends CachedSocket implements IAsyncSSLSocket {
+        public CachedSSLSocket(CacheResponse cacheResponse) {
+            super(cacheResponse);
+        }
 
-    private class CachingSocket extends WrapperSocketBase {
+        @Override
+        public X509Certificate[] getPeerCertificates() {
+            return null;
+        }
+    }
+
+    private static class CachingSocket extends DataWrapperSocket {
         CacheRequestImpl cacheRequest;
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ByteArrayOutputStream outputStream;
         ByteBufferList cached;
+        
+        public CachingSocket() {
+            reset();
+        }
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
             if (cached != null) {
@@ -116,10 +130,8 @@ public class ResponseCacheMiddleware implements AsyncHttpClientMiddleware {
                 }
             }
             catch (Exception e) {
-                e.printStackTrace();
                 outputStream = null;
-                this.outputStream = null;
-                cacheRequest = null;
+                abort();
             }
             
             super.onDataAvailable(emitter, bb);
@@ -130,9 +142,33 @@ public class ResponseCacheMiddleware implements AsyncHttpClientMiddleware {
                 bb.clear();
             }
         }
+        
+        public void abort() {
+            if (cacheRequest != null) {
+                cacheRequest.abort();
+                cacheRequest = null;
+            }
+            
+            outputStream = null;
+        }
+        
+        public void commit() {
+            if (cacheRequest != null) {
+                try {
+                    cacheRequest.getBody().close();
+                }
+                catch (Exception e) {
+                }
+            }
+        }
+        
+        public void reset() {
+            outputStream = new ByteArrayOutputStream();
+            cacheRequest = null;
+        }
     }
     
-    class CachedSocket implements AsyncSocket {
+    private class CachedSocket implements AsyncSocket {
         CacheResponse cacheResponse;
         public CachedSocket(CacheResponse cacheResponse) {
             this.cacheResponse = cacheResponse;
@@ -304,9 +340,7 @@ public class ResponseCacheMiddleware implements AsyncHttpClientMiddleware {
         }
 
 //        Log.i(LOGTAG, "Serving from cache");
-        final CachedSocket socket = new CachedSocket(entry.isHttps()
-                ? new EntrySecureCacheResponse(entry, snapshot)
-                : new EntryCacheResponse(entry, snapshot));
+        final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket(new EntrySecureCacheResponse(entry, snapshot)) : new CachedSocket(new EntryCacheResponse(entry, snapshot));
         
         client.getServer().post(new Runnable() {
             @Override
@@ -351,8 +385,7 @@ public class ResponseCacheMiddleware implements AsyncHttpClientMiddleware {
             return;
 
         if (!headers.isCacheable(request.getHeaders())) {
-            caching.outputStream = null;
-            caching.cacheRequest = null;
+            caching.abort();
             return;
         }
         
@@ -374,9 +407,11 @@ public class ResponseCacheMiddleware implements AsyncHttpClientMiddleware {
             caching.outputStream = null;
             caching.cacheRequest.getBody().write(bytes);
         }
-        catch (IOException e) {
+        catch (Exception e) {
 //            Log.e(LOGTAG, "error", e);
             caching.outputStream = null;
+            if (caching.cacheRequest != null)
+                caching.cacheRequest.abort();
             caching.cacheRequest = null;
         }
     }
@@ -390,16 +425,15 @@ public class ResponseCacheMiddleware implements AsyncHttpClientMiddleware {
 //        Log.i(LOGTAG, "Cache done: " + ex);
         try {
             if (ex != null)
-                caching.cacheRequest.abort();
+                caching.abort();
             else
-                caching.cacheRequest.getBody().close();
+                caching.commit();
         }
         catch (Exception e) {
         }
 
         // reset for socket reuse
-        caching.outputStream = new ByteArrayOutputStream();
-        caching.cacheRequest = null;
+        caching.reset();
     }
     
     

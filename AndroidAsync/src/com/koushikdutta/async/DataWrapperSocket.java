@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-public class WrapperSocketBase extends FilteredDataEmitter implements WrapperSocket {
+public class DataWrapperSocket extends FilteredDataEmitter implements WrapperSocket {
     private AsyncSocket mSocket;
     public void setSocket(AsyncSocket socket) {
         mSocket = socket;

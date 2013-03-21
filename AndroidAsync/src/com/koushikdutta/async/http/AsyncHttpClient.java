@@ -8,6 +8,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeoutException;
 
@@ -51,6 +52,24 @@ public class AsyncHttpClient {
         }
     }
     
+    HashMap<String, Integer> protocolPort = new HashMap<String, Integer>();
+    
+    public void setProtocolPort(String protocol, int port) {
+        protocolPort.put(protocol, port);
+    }
+    
+    public int getProtocolPort(URI uri) {
+        if (uri.getPort() == -1) {
+            Integer mapped = protocolPort.get(uri.getScheme());
+            if (mapped == null)
+                return -1;
+            return mapped;
+        }
+        else {
+            return uri.getPort();
+        }
+    }
+
     AsyncServer mServer;
     public AsyncHttpClient(AsyncServer server) {
         mServer = server;
@@ -208,7 +227,9 @@ public class AsyncHttpClient {
                 };
 
                 for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                    socket = middleware.onSocket(state, socket, request);
+                    AsyncSocket newSocket = middleware.onSocket(state, socket, request);
+                    if (newSocket != null)
+                        socket = newSocket;
                 }
                 
                 ret.setSocket(socket);
