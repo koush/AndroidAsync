@@ -12,8 +12,8 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-class AsyncSocketImpl implements AsyncSocket {
-    AsyncSocketImpl() {
+public class AsyncNetworkSocket implements AsyncSocket {
+    AsyncNetworkSocket() {
     }
     
     public boolean isChunked() {

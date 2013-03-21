@@ -162,4 +162,15 @@ public class Util {
         bbl.add(bb);
         writeAll(sink, bbl, callback);
     }
+
+    public static AsyncSocket getWrappedSocket(AsyncSocket socket, Class wrappedClass) {
+        if (wrappedClass.isInstance(socket))
+            return socket;
+        while (socket instanceof WrapperSocket) {
+            socket = ((WrapperSocket)socket).getSocket();
+            if (wrappedClass.isInstance(socket))
+                return socket;
+        }
+        return null;
+    }
 }

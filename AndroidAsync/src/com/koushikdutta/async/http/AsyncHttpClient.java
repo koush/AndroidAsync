@@ -8,19 +8,19 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeoutException;
+
+import junit.framework.Assert;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 
 import com.koushikdutta.async.AsyncSSLException;
-import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
@@ -45,16 +45,17 @@ public class AsyncHttpClient {
     }
     
     ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
-    public void addMiddleware(AsyncHttpClientMiddleware middleware) {
+    public void insertMiddleware(AsyncHttpClientMiddleware middleware) {
         synchronized (mMiddleware) {
-            mMiddleware.add(middleware);
+            mMiddleware.add(0, middleware);
         }
     }
     
-    private Hashtable<String, HashSet<AsyncSocket>> mSockets = new Hashtable<String, HashSet<AsyncSocket>>();
     AsyncServer mServer;
     public AsyncHttpClient(AsyncServer server) {
         mServer = server;
+        insertMiddleware(new AsyncSocketMiddleware(this));
+        insertMiddleware(new AsyncSSLSocketMiddleware(this));
     }
 
     private static abstract class InternalConnectCallback implements ConnectCallback {
@@ -102,19 +103,7 @@ public class AsyncHttpClient {
             return;
         }
         final URI uri = request.getUri();
-        int port = uri.getPort();
-        if (port == -1) {
-            if (uri.getScheme().equals("http"))
-                port = 80;
-            else if (uri.getScheme().equals("https"))
-                port = 443;
-            else {
-                reportConnectedCompleted(cancel, new Exception("invalid uri scheme"), null, callback);
-                return;
-            }
-        }
-        final String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
-        final int finalPort = port;
+        final Bundle state = new Bundle();
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
             Object scheduled;
@@ -145,9 +134,8 @@ public class AsyncHttpClient {
                     reportConnectedCompleted(cancel, ex, null, callback);
                     return;
                 }
+
                 final AsyncHttpResponseImpl ret = new AsyncHttpResponseImpl(request) {
-                    boolean keepalive = false;
-                    boolean headersReceived;
                     protected void onHeadersReceived() {
                         try {
                             if (cancel.isCanceled())
@@ -155,12 +143,11 @@ public class AsyncHttpClient {
 
                             if (scheduled != null)
                                 mServer.removeAllCallbacks(scheduled);
-                            headersReceived = true;
                             RawHeaders headers = getRawHeaders();
 
-                            String kas = headers.get("Connection");
-                            if (kas != null && "keep-alive".toLowerCase().equals(kas.toLowerCase()))
-                                keepalive = true;
+                            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                                middleware.onHeadersReceived(state, getSocket(), request, getHeaders());
+                            }
 
                             if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
                                 URI redirect = URI.create(headers.get("Location"));
@@ -196,32 +183,12 @@ public class AsyncHttpClient {
                             return;
                         super.report(ex);
                         if (!socket.isOpen() || ex != null) {
-                            if (!headersReceived && ex != null)
+                            if (getHeaders() == null && ex != null)
                                 reportConnectedCompleted(cancel, ex, null, callback);
-                            return;
                         }
-                        if (!keepalive) {
-                            socket.close();
-                        }
-                        else {
-                            HashSet<AsyncSocket> sockets = mSockets.get(lookup);
-                            if (sockets == null) {
-                                sockets = new HashSet<AsyncSocket>();
-                                mSockets.put(lookup, sockets);
-                            }
-                            final HashSet<AsyncSocket> ss = sockets;
-                            synchronized (sockets) {
-                                sockets.add(socket);
-                                socket.setClosedCallback(new CompletedCallback() {
-                                    @Override
-                                    public void onCompleted(Exception ex) {
-                                        synchronized (ss) {
-                                            ss.remove(socket);
-                                        }
-                                        socket.setClosedCallback(null);
-                                    }
-                                });
-                            }
+                        
+                        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                            middleware.onRequestComplete(state, socket, request, getHeaders(), ex);
                         }
                     }
 
@@ -238,53 +205,21 @@ public class AsyncHttpClient {
                         setSocket(null);
                         return socket;
                     }
-
-                    @Override
-                    public boolean isReusedSocket() {
-                        return reused;
-                    }
                 };
 
-                // if this socket is not being reused,
-                // check to see if an AsyncSSLSocket needs to be wrapped around it.
-                if (!reused) {
-                    if (request.getUri().getScheme().equals("https")) {
-                        socket = new AsyncSSLSocket(socket, uri.getHost(), finalPort);
-                    }
+                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                    socket = middleware.onSocket(state, socket, request);
                 }
-
+                
                 ret.setSocket(socket);
             }
         };
         
-        synchronized (mMiddleware) {
-            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                if (middleware.getSocket(request, socketConnected))
-                    return;
-            }
+        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+            if (null != (cancel.socketCancelable = middleware.getSocket(state, request, socketConnected)))
+                return;
         }
-
-        HashSet<AsyncSocket> sockets = mSockets.get(lookup);
-        if (sockets != null) {
-            synchronized (sockets) {
-                for (final AsyncSocket socket: sockets) {
-                    if (socket.isOpen()) {
-                        sockets.remove(socket);
-                        socket.setClosedCallback(null);
-                        mServer.post(new Runnable() {
-                            @Override
-                            public void run() {
-//                                Log.i(LOGTAG, "Reusing socket.");
-                                socketConnected.reused = true;
-                                socketConnected.onConnectCompleted(null, socket);
-                            }
-                        });
-                        return;
-                    }
-                }
-            }
-        }
-        cancel.socketCancelable = mServer.connectSocket(uri.getHost(), port, socketConnected);
+        Assert.fail();
     }
     
     public Cancelable execute(URI uri, final HttpConnectCallback callback) {
@@ -541,5 +476,9 @@ public class AsyncHttpClient {
     public void websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
         final AsyncHttpGet get = new AsyncHttpGet(uri);
         websocket(get, protocol, callback);
+    }
+    
+    AsyncServer getServer() {
+        return mServer;
     }
 }

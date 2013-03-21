@@ -12,5 +12,4 @@ public interface AsyncHttpResponse extends DataEmitter, DataSink {
     public ResponseHeaders getHeaders();
     public void end();
     public AsyncSocket detachSocket();
-    public boolean isReusedSocket();
 }

@@ -24,7 +24,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-public class AsyncSSLSocket implements AsyncSocket {
+public class AsyncSSLSocket implements WrapperSocket {
     AsyncSocket mSocket;
     BufferedDataEmitter mEmitter;
     BufferedDataSink mSink;
@@ -381,5 +381,10 @@ public class AsyncSSLSocket implements AsyncSocket {
     @Override
     public AsyncServer getServer() {
         return mSocket.getServer();
+    }
+
+    @Override
+    public AsyncSocket getSocket() {
+        return mSocket;
     }
 }

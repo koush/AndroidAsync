@@ -65,7 +65,7 @@ public class AsyncServer {
     public AsyncServer() {
     }
 
-    private void handleSocket(final AsyncSocketImpl handler) throws ClosedChannelException {
+    private void handleSocket(final AsyncNetworkSocket handler) throws ClosedChannelException {
         final ChannelWrapper sc = handler.getChannel();
         SelectionKey ckey = sc.register(mSelector);
         ckey.attach(handler);
@@ -285,7 +285,7 @@ public class AsyncServer {
 
     public AsyncSocket connectDatagram(final SocketAddress remote) throws IOException {
         final DatagramChannel socket = DatagramChannel.open();
-        final AsyncSocketImpl handler = new AsyncSocketImpl();
+        final AsyncNetworkSocket handler = new AsyncNetworkSocket();
         handler.attach(socket);
         // ugh.. this should really be post to make it nonblocking...
         // but i want datagrams to be immediately writable.
@@ -470,19 +470,19 @@ public class AsyncServer {
                     sc.configureBlocking(false);
                     SelectionKey ckey = sc.register(selector, SelectionKey.OP_READ);
                     ListenCallback serverHandler = (ListenCallback) key.attachment();
-                    AsyncSocketImpl handler = new AsyncSocketImpl();
+                    AsyncNetworkSocket handler = new AsyncNetworkSocket();
                     handler.attach(sc);
                     handler.setup(server, ckey);
                     ckey.attach(handler);
                     serverHandler.onAccepted(handler);
                 }
                 else if (key.isReadable()) {
-                    AsyncSocketImpl handler = (AsyncSocketImpl) key.attachment();
+                    AsyncNetworkSocket handler = (AsyncNetworkSocket) key.attachment();
                     int transmitted = handler.onReadable();
                     server.onDataTransmitted(transmitted);
                 }
                 else if (key.isWritable()) {
-                    AsyncSocketImpl handler = (AsyncSocketImpl) key.attachment();
+                    AsyncNetworkSocket handler = (AsyncNetworkSocket) key.attachment();
                     handler.onDataWritable();
                 }
                 else if (key.isConnectable()) {
@@ -491,7 +491,7 @@ public class AsyncServer {
                     key.interestOps(SelectionKey.OP_READ);
                     try {
                         sc.finishConnect();
-                        AsyncSocketImpl newHandler = new AsyncSocketImpl();
+                        AsyncNetworkSocket newHandler = new AsyncNetworkSocket();
                         newHandler.setup(server, key);
                         newHandler.attach(sc);
                         key.attach(newHandler);

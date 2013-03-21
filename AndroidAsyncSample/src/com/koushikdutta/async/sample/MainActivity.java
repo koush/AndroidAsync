@@ -11,19 +11,25 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpResponse;
+import com.koushikdutta.async.http.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.UrlEncodedFormBody;
 
 public class MainActivity extends Activity {
+    static boolean cacheAdded = false;
+    static ResponseCacheMiddleware cacher; 
+    
     ImageView rommanager;
     ImageView tether;
     ImageView desksms;
@@ -32,6 +38,12 @@ public class MainActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        if (!cacheAdded) {
+            cacheAdded = true;
+            AsyncHttpClient.getDefaultInstance().insertMiddleware(cacher = new ResponseCacheMiddleware(AsyncHttpClient.getDefaultInstance(), getFileStreamPath("asynccache")));
+            cacher.setCaching(false);
+        }
         setContentView(R.layout.activity_main);
         
         Button b = (Button)findViewById(R.id.go);
@@ -46,11 +58,25 @@ public class MainActivity extends Activity {
         tether = (ImageView)findViewById(R.id.tether);
         desksms = (ImageView)findViewById(R.id.desksms);
         chart = (ImageView)findViewById(R.id.chart);
+        
+        showCacheToast();
     }
 
+    void showCacheToast() {
+        boolean caching = cacher.getCaching();
+        Toast.makeText(getApplicationContext(), "Caching: " + caching, Toast.LENGTH_SHORT).show();
+    }
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.activity_main, menu);
+        menu.add("Toggle Caching").setOnMenuItemClickListener(new OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                cacher.setCaching(!cacher.getCaching());
+                showCacheToast();
+                return true;
+            }
+        });
         return true;
     }
 
