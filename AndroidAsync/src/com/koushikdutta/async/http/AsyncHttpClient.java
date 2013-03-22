@@ -46,6 +46,9 @@ public class AsyncHttpClient {
     }
     
     ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
+    public ArrayList<AsyncHttpClientMiddleware> getMiddleware() {
+        return mMiddleware;
+    }
     public void insertMiddleware(AsyncHttpClientMiddleware middleware) {
         synchronized (mMiddleware) {
             mMiddleware.add(0, middleware);

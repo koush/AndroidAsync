@@ -61,13 +61,18 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private static final int ENTRY_COUNT = 2;
     private AsyncHttpClient client;
 
-    public ResponseCacheMiddleware(AsyncHttpClient client, File cacheDir) {
-        try {
-            this.client = client;
-            cache = DiskLruCache.open(cacheDir, VERSION, ENTRY_COUNT, 1024L * 1024L * 10L);
+    private ResponseCacheMiddleware() {
+    }
+    
+    public static ResponseCacheMiddleware addCache(AsyncHttpClient client, File cacheDir, long size) throws IOException {
+        for (AsyncHttpClientMiddleware middleware: client.getMiddleware()) {
+            if (middleware instanceof ResponseCacheMiddleware)
+                throw new IOException("Response cache already added to http client");
         }
-        catch (IOException e) {
-        }
+        ResponseCacheMiddleware ret = new ResponseCacheMiddleware();
+        ret.client = client;
+        ret.cache = DiskLruCache.open(cacheDir, VERSION, ENTRY_COUNT, size);
+        return ret;
     }
     
     boolean caching = true;

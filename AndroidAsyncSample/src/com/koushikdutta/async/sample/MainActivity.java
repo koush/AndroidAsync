@@ -1,6 +1,7 @@
 package com.koushikdutta.async.sample;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.http.NameValuePair;
@@ -27,7 +28,6 @@ import com.koushikdutta.async.http.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.UrlEncodedFormBody;
 
 public class MainActivity extends Activity {
-    static boolean cacheAdded = false;
     static ResponseCacheMiddleware cacher; 
     
     ImageView rommanager;
@@ -39,10 +39,14 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        if (!cacheAdded) {
-            cacheAdded = true;
-            AsyncHttpClient.getDefaultInstance().insertMiddleware(cacher = new ResponseCacheMiddleware(AsyncHttpClient.getDefaultInstance(), getFileStreamPath("asynccache")));
-            cacher.setCaching(false);
+        if (cacher == null) {
+            try {
+                cacher = ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(), getFileStreamPath("asynccache"), 1024 * 1024 * 10);
+                cacher.setCaching(false);
+            }
+            catch (IOException e) {
+                Toast.makeText(getApplicationContext(), "unable to create cache", Toast.LENGTH_SHORT).show();
+            }
         }
         setContentView(R.layout.activity_main);
         

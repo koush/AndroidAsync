@@ -24,6 +24,9 @@ public class Util {
             }
         }
         if (list.remaining() != 0 && !emitter.isPaused()) {
+            // not all the data was consumed...
+            // call byteBufferList.clear() or read all the data to prevent this assertion.
+            // this is nice to have, as it identifies protocol or parsing errors.
             System.out.println("Data: " + list.peekString());
             System.out.println("handler: " + handler);
             Assert.fail();

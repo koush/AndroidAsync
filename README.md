@@ -45,6 +45,44 @@ AsyncHttpClient.getDefaultInstance().get(url, filename, new AsyncHttpClient.File
 
 
 
+### Caching is supported too (experimental)
+
+```java
+// arguments are the http client, the directory to store the cache, and the maximum size of the cache
+ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(), getFileStreamPath("asynccache"), 1024 * 1024 * 10);
+```
+
+
+### Can also create web sockets:
+
+```java
+AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocketConnectCallback() {
+    @Override
+    public void onCompleted(Exception ex, WebSocket webSocket) {
+        if (ex != null) {
+            ex.printStackTrace();
+            return;
+        }
+
+        webSocket.send("a string");
+        webSocket.send(new byte[10]);
+        
+        webSocket.setStringCallback(new StringCallback() {
+            public void onStringAvailable(String s) {
+                System.out.println("I got a string: " + s);
+            }
+        });
+        
+        webSocket.setDataCallback(new DataCallback() {
+            public void onDataAvailable(ByteBufferList byteBufferList) {
+                System.out.println("I got some bytes!");
+                // note that this data has been read
+                byteBufferList.clear();
+            }
+        });
+    }
+});
+```
 
 
 ### AndroidAsync also let's you create simple HTTP servers:
