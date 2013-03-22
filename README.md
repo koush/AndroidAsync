@@ -49,7 +49,9 @@ AsyncHttpClient.getDefaultInstance().get(url, filename, new AsyncHttpClient.File
 
 ```java
 // arguments are the http client, the directory to store cache files, and the size of the cache in bytes
-ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(), getFileStreamPath("asynccache"), 1024 * 1024 * 10);
+ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(),
+                                  getFileStreamPath("asynccache"),
+                                  1024 * 1024 * 10);
 ```
 
 
