@@ -169,10 +169,21 @@ public class Util {
     public static AsyncSocket getWrappedSocket(AsyncSocket socket, Class wrappedClass) {
         if (wrappedClass.isInstance(socket))
             return socket;
-        while (socket instanceof WrapperSocket) {
-            socket = ((WrapperSocket)socket).getSocket();
+        while (socket instanceof AsyncSocketWrapper) {
+            socket = ((AsyncSocketWrapper)socket).getSocket();
             if (wrappedClass.isInstance(socket))
                 return socket;
+        }
+        return null;
+    }
+
+    public static DataEmitter getWrappedDataEmitter(DataEmitter emitter, Class wrappedClass) {
+        if (wrappedClass.isInstance(emitter))
+            return emitter;
+        while (emitter instanceof DataEmitterWrapper) {
+            emitter = ((AsyncSocketWrapper)emitter).getSocket();
+            if (wrappedClass.isInstance(emitter))
+                return emitter;
         }
         return null;
     }

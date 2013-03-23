@@ -2,16 +2,22 @@ package com.koushikdutta.async.sample;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
+import android.net.http.HttpResponseCache;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
@@ -35,11 +41,55 @@ public class MainActivity extends Activity {
     ImageView desksms;
     ImageView chart;
 
+    @SuppressLint("NewApi")
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
+        new Thread() {
+            public void run() {
+                try {
+                    HttpResponseCache cache;
+                    try {
+                        File httpCacheDir = new File(getCacheDir(), "http");
+                        long httpCacheSize = 10 * 1024 * 1024; // 10 MiB
+                        cache = HttpResponseCache.install(httpCacheDir, httpCacheSize);
+                    }
+                     catch (IOException e) {
+                        Log.i("cache", "HTTP response cache installation failed:" + e);
+                        return;
+                    }
+                    URL url = new URL("https://desksms.appspot.com");
+                    URLConnection conn = url.openConnection();
+                    for (String header: conn.getRequestProperties().keySet()) {
+                        System.out.println(header + ": ");
+                        for (String value: conn.getRequestProperties().get(header)) {
+                            System.out.println(value);
+                        }
+                    }
+                    for (String header: conn.getHeaderFields().keySet()) {
+                        System.out.println(header + ": " + conn.getHeaderField(header));
+                    }
+                    InputStream in = conn.getInputStream();
+                    int count = 0;
+                    while (in.read() != -1) {
+                        count++;
+                    }
+                    in.close();
+                    System.out.println("count: " + count);
+                    
+                    System.out.println("cache count: " + cache.getHitCount());
+                    System.out.println("network count: " + cache.getNetworkCount());
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            };
+        }.start();
+
+
         if (cacher == null) {
+            
             try {
                 cacher = ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(), getFileStreamPath("asynccache"), 1024 * 1024 * 10);
                 cacher.setCaching(false);
@@ -149,8 +199,8 @@ public class MainActivity extends Activity {
         chart.setImageBitmap(null);
         
         getFile(rommanager, "https://raw.github.com/koush/AndroidAsync/master/rommanager.png", getFileStreamPath(randomFile()).getAbsolutePath());
-        getFile(tether, "https://raw.github.com/koush/AndroidAsync/master/tether.png", getFileStreamPath(randomFile()).getAbsolutePath());
-        getFile(desksms, "https://raw.github.com/koush/AndroidAsync/master/desksms.png", getFileStreamPath(randomFile()).getAbsolutePath());
-        getChartFile();
+//        getFile(tether, "https://raw.github.com/koush/AndroidAsync/master/tether.png", getFileStreamPath(randomFile()).getAbsolutePath());
+//        getFile(desksms, "https://raw.github.com/koush/AndroidAsync/master/desksms.png", getFileStreamPath(randomFile()).getAbsolutePath());
+//        getChartFile();
     }
 }

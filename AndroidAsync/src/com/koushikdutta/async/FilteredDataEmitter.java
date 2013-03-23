@@ -1,10 +1,13 @@
 package com.koushikdutta.async;
 
+import junit.framework.Assert;
+
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 
-public class FilteredDataEmitter implements DataEmitter, DataCallback {
+public class FilteredDataEmitter implements DataEmitter, DataCallback, DataEmitterWrapper {
     DataEmitter mEmitter;
+    @Override
     public DataEmitter getDataEmitter() {
         return mEmitter;
     }
@@ -20,6 +23,8 @@ public class FilteredDataEmitter implements DataEmitter, DataCallback {
         }
         mEmitter = emitter;
         mEmitter.setDataCallback(this);
+//        mEndCallback = mEmitter.getEndCallback();
+//        Assert.assertNull(mEndCallback);
         mEmitter.setEndCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {

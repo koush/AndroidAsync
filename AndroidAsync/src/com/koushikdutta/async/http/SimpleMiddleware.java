@@ -1,28 +1,32 @@
 package com.koushikdutta.async.http;
 
-import android.os.Bundle;
-
-import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.Cancelable;
-import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
 public class SimpleMiddleware implements AsyncHttpClientMiddleware {
+
     @Override
-    public Cancelable getSocket(Bundle state, AsyncHttpRequest request, ConnectCallback callback) {
+    public Cancelable getSocket(GetSocketData data) {
         return null;
     }
 
     @Override
-    public AsyncSocket onSocket(Bundle state, AsyncSocket socket, AsyncHttpRequest request) {
-        return null;
+    public void onSocket(OnSocketData data) {
+        
     }
 
     @Override
-    public void onHeadersReceived(Bundle state, AsyncSocket socket, AsyncHttpRequest request, ResponseHeaders headers) {
+    public void onHeadersReceived(OnHeadersReceivedData data) {
+        
     }
 
     @Override
-    public void onRequestComplete(Bundle state, AsyncSocket socket, AsyncHttpRequest request, ResponseHeaders headers, Exception ex) {
+    public void onBodyDecoder(OnBodyData data) {
+        
     }
+
+    @Override
+    public void onRequestComplete(OnRequestCompleteData data) {
+        
+    }
+
 }

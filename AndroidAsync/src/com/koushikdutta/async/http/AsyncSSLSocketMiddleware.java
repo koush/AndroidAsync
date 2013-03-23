@@ -1,27 +1,28 @@
 package com.koushikdutta.async.http;
 
-import android.os.Bundle;
+import java.net.URI;
 
 import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.IAsyncSSLSocket;
+import com.koushikdutta.async.callback.ConnectCallback;
 
-public class AsyncSSLSocketMiddleware extends SimpleMiddleware {
-    AsyncHttpClient mClient;
+public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
     public AsyncSSLSocketMiddleware(AsyncHttpClient client) {
-        mClient = client;
-        mClient.setProtocolPort("https", 443);
+        super(client, "https", 443);
     }
-    
+
     @Override
-    public AsyncSocket onSocket(Bundle state, AsyncSocket socket, AsyncHttpRequest request) {
-        if (!request.getUri().getScheme().equals("https"))
-            return super.onSocket(state, socket, request);
-        
-        // don't wrap anything that is already an ssl socket
-        if (com.koushikdutta.async.Util.getWrappedSocket(socket, IAsyncSSLSocket.class) != null)
-            return super.onSocket(state, socket, request);
-        
-        return new AsyncSSLSocket(socket, request.getUri().getHost(), mClient.getProtocolPort(request.getUri()));
+    protected ConnectCallback wrapCallback(final ConnectCallback callback, final URI uri, final int port) {
+        return new ConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, AsyncSocket socket) {
+                if (ex == null) {
+                    callback.onConnectCompleted(ex, new AsyncSSLSocket(socket, uri.getHost(), port));
+                }
+                else {
+                    callback.onConnectCompleted(ex, socket);
+                }
+            }
+        };
     }
 }

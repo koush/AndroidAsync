@@ -8,7 +8,6 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeoutException;
 
@@ -34,7 +33,9 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.RequestCallback;
+import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.libcore.ResponseHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
@@ -52,24 +53,6 @@ public class AsyncHttpClient {
     public void insertMiddleware(AsyncHttpClientMiddleware middleware) {
         synchronized (mMiddleware) {
             mMiddleware.add(0, middleware);
-        }
-    }
-    
-    HashMap<String, Integer> protocolPort = new HashMap<String, Integer>();
-    
-    public void setProtocolPort(String protocol, int port) {
-        protocolPort.put(protocol, port);
-    }
-    
-    public int getProtocolPort(URI uri) {
-        if (uri.getPort() == -1) {
-            Integer mapped = protocolPort.get(uri.getScheme());
-            if (mapped == null)
-                return -1;
-            return mapped;
-        }
-        else {
-            return uri.getPort();
         }
     }
 
@@ -125,7 +108,8 @@ public class AsyncHttpClient {
             return;
         }
         final URI uri = request.getUri();
-        final Bundle state = new Bundle();
+        final OnRequestCompleteData data = new OnRequestCompleteData();
+        data.request = request;
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
             Object scheduled;
@@ -145,19 +129,37 @@ public class AsyncHttpClient {
             }
             
             @Override
-            public void onConnectCompleted(Exception ex, AsyncSocket socket) {
+            public void onConnectCompleted(Exception ex, AsyncSocket _socket) {
                 if (cancel.isCanceled()) {
-                    if (socket != null)
-                        socket.close();
+                    if (_socket != null)
+                        _socket.close();
                     return;
                 }
+
+                data.socket = _socket;
+                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                    middleware.onSocket(data);
+                }
+                
+                AsyncSocket socket = data.socket;
                 cancel.socket = socket;
+
                 if (ex != null) {
                     reportConnectedCompleted(cancel, ex, null, callback);
                     return;
                 }
 
                 final AsyncHttpResponseImpl ret = new AsyncHttpResponseImpl(request) {
+                    @Override
+                    public void setDataEmitter(DataEmitter emitter) {
+                        data.bodyEmitter = emitter;
+                        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                            middleware.onBodyDecoder(data);
+                        }
+                        mHeaders = data.headers;
+                        super.setDataEmitter(data.bodyEmitter);
+                    }
+                    
                     protected void onHeadersReceived() {
                         try {
                             if (cancel.isCanceled())
@@ -165,11 +167,14 @@ public class AsyncHttpClient {
 
                             if (scheduled != null)
                                 mServer.removeAllCallbacks(scheduled);
-                            RawHeaders headers = getRawHeaders();
 
+                            data.headers = mHeaders;
                             for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                                middleware.onHeadersReceived(state, getSocket(), request, getHeaders());
+                                middleware.onHeadersReceived(data);
                             }
+                            mHeaders = data.headers;
+                            RawHeaders headers = mHeaders.getHeaders();
+                            
 
                             if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
                                 URI redirect = URI.create(headers.get("Location"));
@@ -209,8 +214,9 @@ public class AsyncHttpClient {
                                 reportConnectedCompleted(cancel, ex, null, callback);
                         }
                         
+                        data.exception = ex;
                         for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                            middleware.onRequestComplete(state, socket, request, getHeaders(), ex);
+                            middleware.onRequestComplete(data);
                         }
                     }
 
@@ -229,18 +235,13 @@ public class AsyncHttpClient {
                     }
                 };
 
-                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                    AsyncSocket newSocket = middleware.onSocket(state, socket, request);
-                    if (newSocket != null)
-                        socket = newSocket;
-                }
-                
                 ret.setSocket(socket);
             }
         };
-        
+        data.connectCallback = socketConnected;
+
         for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-            if (null != (cancel.socketCancelable = middleware.getSocket(state, request, socketConnected)))
+            if (null != (cancel.socketCancelable = middleware.getSocket(data)))
                 return;
         }
         Assert.fail();

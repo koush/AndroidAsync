@@ -16,7 +16,7 @@
 
 package com.koushikdutta.async.http.libcore;
 
-enum ResponseSource {
+public enum ResponseSource {
 
     /**
      * Return the response from the cache immediately.

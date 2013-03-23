@@ -31,24 +31,26 @@ import java.util.Map;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 
-import junit.framework.Assert;
-import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Base64;
+import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.Cancelable;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataWrapperSocket;
+import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.IAsyncSSLSocket;
 import com.koushikdutta.async.SimpleCancelable;
-import com.koushikdutta.async.DataWrapperSocket;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
+import com.koushikdutta.async.http.libcore.ResponseSource;
 import com.koushikdutta.async.util.cache.Charsets;
 import com.koushikdutta.async.util.cache.DiskLruCache;
 import com.koushikdutta.async.util.cache.StrictLineReader;
@@ -72,6 +74,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         ResponseCacheMiddleware ret = new ResponseCacheMiddleware();
         ret.client = client;
         ret.cache = DiskLruCache.open(cacheDir, VERSION, ENTRY_COUNT, size);
+        client.insertMiddleware(ret);
         return ret;
     }
     
@@ -105,73 +108,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
     }
 
-    private static class CachingSocket extends DataWrapperSocket {
-        CacheRequestImpl cacheRequest;
-        ByteArrayOutputStream outputStream;
-        ByteBufferList cached;
-        
-        public CachingSocket() {
-            reset();
-        }
-        @Override
-        public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-            if (cached != null) {
-                com.koushikdutta.async.Util.emitAllData(this, cached);
-                // couldn't emit it all, so just wait for another day...
-                if (cached.remaining() > 0)
-                    return;
-                cached = null;
-            }
-
-            // write to cache... any data not consumed needs to be retained for the next callback
-            OutputStream outputStream = this.outputStream;
-            try {
-                if (outputStream == null && cacheRequest != null)
-                    outputStream = cacheRequest.getBody();
-                if (outputStream != null) {
-                    for (ByteBuffer b: bb) {
-                        outputStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
-                    }
-                }
-            }
-            catch (Exception e) {
-                outputStream = null;
-                abort();
-            }
-            
-            super.onDataAvailable(emitter, bb);
-            
-            if (outputStream != null && bb.remaining() > 0) {
-                cached = new ByteBufferList();
-                cached.add(bb);
-                bb.clear();
-            }
-        }
-        
-        public void abort() {
-            if (cacheRequest != null) {
-                cacheRequest.abort();
-                cacheRequest = null;
-            }
-            
-            outputStream = null;
-        }
-        
-        public void commit() {
-            if (cacheRequest != null) {
-                try {
-                    cacheRequest.getBody().close();
-                }
-                catch (Exception e) {
-                }
-            }
-        }
-        
-        public void reset() {
-            outputStream = new ByteArrayOutputStream();
-            cacheRequest = null;
-        }
-    }
     
     private class CachedSocket implements AsyncSocket {
         CacheResponse cacheResponse;
@@ -316,15 +252,37 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
     }
     
-//    private static final String LOGTAG = "AsyncHttpCache";
+    public static class CacheData implements Parcelable {
+        CacheResponse candidate;
+        ResponseHeaders cachedResponseHeaders;
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+        }
+        
+    }
     
+    private static final String LOGTAG = "AsyncHttpCache";
+    
+    // step 1) see if we can serve request from the cache directly.
+    // also see if this can be turned into a conditional cache request.
     @Override
-    public Cancelable getSocket(Bundle state, AsyncHttpRequest request, final ConnectCallback callback) {
+    public Cancelable getSocket(final GetSocketData data) {
+        if (cache == null)
+            return null;
+        
         if (!caching)
+            return null;
+        if (data.request.getHeaders().isNoCache())
             return null;
 //        Log.i(LOGTAG, "getting cache socket: " + request.getUri().toString());
 
-        String key = uriToKey(request.getUri());
+        String key = uriToKey(data.request.getUri());
         DiskLruCache.Snapshot snapshot;
         Entry entry;
         try {
@@ -339,106 +297,302 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return null;
         }
 
-        if (!entry.matches(request.getUri(), request.getMethod(), request.getHeaders().getHeaders().toMultimap())) {
+        if (!entry.matches(data.request.getUri(), data.request.getMethod(), data.request.getHeaders().getHeaders().toMultimap())) {
             snapshot.close();
             return null;
         }
-
-//        Log.i(LOGTAG, "Serving from cache");
-        final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket(new EntrySecureCacheResponse(entry, snapshot)) : new CachedSocket(new EntryCacheResponse(entry, snapshot));
         
-        client.getServer().post(new Runnable() {
-            @Override
-            public void run() {
-                callback.onConnectCompleted(null, socket);
-                socket.spewInternal();
+        ResponseSource responseSource = ResponseSource.NETWORK;
+
+        CacheResponse candidate = entry.isHttps() ? new EntrySecureCacheResponse(entry, snapshot) : new EntryCacheResponse(entry, snapshot);
+
+        Map<String, List<String>> responseHeadersMap;
+        InputStream cachedResponseBody;
+        try {
+            responseHeadersMap = candidate.getHeaders();
+            cachedResponseBody = candidate.getBody();
+        }
+        catch (Exception e) {
+            return null;
+        }
+        if (responseHeadersMap == null || cachedResponseBody == null) {
+            try {
+                cachedResponseBody.close();
             }
-        });
+            catch (Exception e) {
+            }
+            return null;
+        }
+
+        RawHeaders rawResponseHeaders = RawHeaders.fromMultimap(responseHeadersMap);
+        ResponseHeaders cachedResponseHeaders = new ResponseHeaders(data.request.getUri(), rawResponseHeaders);
+
+        
+        ////
+        if (false) {
+            final CachedSocket ss = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
+
+            ss.pending.add(ByteBuffer.wrap(rawResponseHeaders.toHeaderString().getBytes()));
+            
+            client.getServer().post(new Runnable() {
+                @Override
+                public void run() {
+                    data.connectCallback.onConnectCompleted(null, ss);
+                    ss.spewInternal();
+                }
+            });
+
+            if (true)
+                return new SimpleCancelable();
+        }
+        ///
+        
+        
+        long now = System.currentTimeMillis();
+        responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
+        
+        if (responseSource == ResponseSource.CACHE) {
+            final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
+
+            client.getServer().post(new Runnable() {
+                @Override
+                public void run() {
+                    data.connectCallback.onConnectCompleted(null, socket);
+                    socket.spewInternal();
+                }
+            });
+        }
+        else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
+            CacheData cacheData = new CacheData();
+            cacheData.cachedResponseHeaders = cachedResponseHeaders;
+            cacheData.candidate = candidate;
+            data.state.putParcelable("cache-data", cacheData);
+
+            return null;
+        }
+        else {
+            // NETWORK or other
+            try {
+                cachedResponseBody.close();
+            }
+            catch (Exception e) {
+            }
+            return null;
+        }
+        
         return new SimpleCancelable();
     }
 
-    @Override
-    public AsyncSocket onSocket(Bundle state, AsyncSocket socket, AsyncHttpRequest request) {
-        if (!caching)
-            return socket;
+    private static class BodyCacher extends FilteredDataEmitter implements Parcelable {
+        CacheRequestImpl cacheRequest;
+        ByteBufferList cached;
 
-        // dont cache socket served from cache
-        if (com.koushikdutta.async.Util.getWrappedSocket(socket, CachedSocket.class) != null)
-            return socket;
-        
-        if (cache == null)
-            return socket;
-        
-        if (!request.getMethod().equals(AsyncHttpGet.METHOD))
-            return socket;
-        
-        try {
-            CachingSocket ret = new CachingSocket();
-            ret.setSocket(socket);
-            return ret;
+        @Override
+        public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            if (cached != null) {
+                com.koushikdutta.async.Util.emitAllData(this, cached);
+                // couldn't emit it all, so just wait for another day...
+                if (cached.remaining() > 0)
+                    return;
+                cached = null;
+            }
+
+            // write to cache... any data not consumed needs to be retained for the next callback
+            try {
+                if (cacheRequest != null) {
+                    OutputStream outputStream = cacheRequest.getBody();
+                    if (outputStream != null) {
+                        for (ByteBuffer b: bb) {
+                            outputStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                        }
+                    }
+                    else {
+                        abort();
+                    }
+                }
+            }
+            catch (Exception e) {
+                abort();
+            }
+            
+            super.onDataAvailable(emitter, bb);
+            
+            if (cacheRequest != null && bb.remaining() > 0) {
+                cached = new ByteBufferList();
+                cached.add(bb);
+                bb.clear();
+            }
         }
-        catch (Exception e) {
-            return socket;
+        
+        public void abort() {
+            if (cacheRequest != null) {
+                cacheRequest.abort();
+                cacheRequest = null;
+            }
+        }
+        
+        public void commit() {
+            if (cacheRequest != null) {
+                try {
+                    cacheRequest.getBody().close();
+                }
+                catch (Exception e) {
+                }
+            }
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
         }
     }
+    
+    private static class BodySpewer extends FilteredDataEmitter {
+        CacheResponse cacheResponse;
 
-    @Override
-    public void onHeadersReceived(Bundle state, AsyncSocket socket, AsyncHttpRequest request, ResponseHeaders headers) {
-//        Log.i(LOGTAG, "headers: " + request.getUri().toString());
-        CachingSocket caching = (CachingSocket)com.koushikdutta.async.Util.getWrappedSocket(socket, CachingSocket.class);
-        if (caching == null)
-            return;
+        void spewInternal() {
+            if (pending.remaining() > 0) {
+                com.koushikdutta.async.Util.emitAllData(BodySpewer.this, pending);
+                if (pending.remaining() > 0)
+                    return;
+            }
 
-        if (!headers.isCacheable(request.getHeaders())) {
-            caching.abort();
-            return;
+            // fill pending
+            try {
+                while (pending.remaining() == 0) {
+                    ByteBuffer buffer = ByteBuffer.allocate(8192);
+                    int read = cacheResponse.getBody().read(buffer.array());
+                    if (read == -1) {
+                        allowEnd = true;
+                        report(null);
+                        return;
+                    }
+                    buffer.limit(read);
+                    pending.add(buffer);
+                    com.koushikdutta.async.Util.emitAllData(BodySpewer.this, pending);
+                }
+            }
+            catch (IOException e) {
+                allowEnd = true;
+                report(e);
+            }
+        }
+
+        ByteBufferList pending = new ByteBufferList();
+        void spew() {
+            getServer().post(new Runnable() {
+                @Override
+                public void run() {
+                    spewInternal();
+                }
+            });
         }
         
-        String key = uriToKey(request.getUri());
-        RawHeaders varyHeaders = request.getHeaders().getHeaders().getAll(headers.getVaryFields());
-        Entry entry = new Entry(request.getUri(), varyHeaders, request, headers);
+        boolean paused;
+        @Override
+        public void resume() {
+            paused = false;
+            spew();
+        }
+
+        @Override
+        public boolean isPaused() {
+            return paused;
+        }
+
+        boolean allowEnd;
+        @Override
+        protected void report(Exception e) {
+            if (!allowEnd)
+                return;
+            super.report(e);
+        }
+    }
+    
+
+    // step 3) if this is a conditional cache request, serve it from the cache if necessary
+    // otherwise, see if it is cacheable
+    @Override
+    public void onBodyDecoder(OnBodyData data) {
+        CacheData cacheData = data.state.getParcelable("cache-data");
+        if (cacheData != null) {
+            if (cacheData.cachedResponseHeaders.validate(data.headers)) {
+                data.headers = cacheData.cachedResponseHeaders.combine(data.headers);
+                data.headers.getHeaders().setStatusLine(cacheData.cachedResponseHeaders.getHeaders().getStatusLine());
+                
+                BodySpewer bodySpewer = new BodySpewer();
+                bodySpewer.cacheResponse = cacheData.candidate;
+                bodySpewer.setDataEmitter(data.bodyEmitter);
+                data.bodyEmitter = bodySpewer;
+                bodySpewer.spew();
+                return;
+            }
+            
+            // did not validate, so fall through and cache the response
+            data.state.remove("cache-data");
+        }
+        
+        if (!caching)
+            return;
+
+        if (!data.headers.isCacheable(data.request.getHeaders()))
+            return;
+
+        String key = uriToKey(data.request.getUri());
+        RawHeaders varyHeaders = data.request.getHeaders().getHeaders().getAll(data.headers.getVaryFields());
+        Entry entry = new Entry(data.request.getUri(), varyHeaders, data.request, data.headers);
         DiskLruCache.Editor editor = null;
+        BodyCacher cacher = new BodyCacher();
         try {
             editor = cache.edit(key);
             if (editor == null) {
-//                Log.i(LOGTAG, "can't cache");
-                caching.outputStream = null;
+                // Log.i(LOGTAG, "can't cache");
                 return;
             }
             entry.writeTo(editor);
-            caching.cacheRequest = new CacheRequestImpl(editor);
-            Assert.assertNotNull(caching.outputStream);
-            byte[] bytes = caching.outputStream.toByteArray();
-            caching.outputStream = null;
-            caching.cacheRequest.getBody().write(bytes);
+
+
+            cacher.cacheRequest = new CacheRequestImpl(editor);
+            if (cacher.cacheRequest.getBody() == null)
+                return;
+//            cacher.cacheData = 
+            cacher.setDataEmitter(data.bodyEmitter);
+            data.bodyEmitter = cacher;
+            
+            data.state.putParcelable("body-cacher", cacher);
         }
         catch (Exception e) {
-//            Log.e(LOGTAG, "error", e);
-            caching.outputStream = null;
-            if (caching.cacheRequest != null)
-                caching.cacheRequest.abort();
-            caching.cacheRequest = null;
+            // Log.e(LOGTAG, "error", e);
+            if (cacher.cacheRequest != null)
+                cacher.cacheRequest.abort();
+            cacher.cacheRequest = null;
         }
     }
 
+    
     @Override
-    public void onRequestComplete(Bundle state, AsyncSocket socket, AsyncHttpRequest request, ResponseHeaders headers, Exception ex) {
-        CachingSocket caching = (CachingSocket)com.koushikdutta.async.Util.getWrappedSocket(socket, CachingSocket.class);
-        if (caching == null)
+    public void onRequestComplete(OnRequestCompleteData data) {
+//        CachingSocket caching = (CachingSocket)com.koushikdutta.async.Util.getWrappedSocket(data.socket, CachingSocket.class);
+//        if (caching == null)
+//            return;
+        
+        BodyCacher cacher = data.state.getParcelable("body-cacher");
+        if (cacher == null)
             return;
 
 //        Log.i(LOGTAG, "Cache done: " + ex);
         try {
-            if (ex != null)
-                caching.abort();
+            if (data.exception != null)
+                cacher.abort();
             else
-                caching.commit();
+                cacher.commit();
         }
         catch (Exception e) {
         }
-
-        // reset for socket reuse
-        caching.reset();
     }
     
     

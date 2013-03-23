@@ -20,11 +20,6 @@ import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
 abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncHttpResponse {
-    private RawHeaders mRawHeaders = new RawHeaders();
-    public RawHeaders getRawHeaders() {
-        return mRawHeaders;
-    }
-
     private AsyncHttpRequestBody mWriter;
     
     public AsyncSocket getSocket() {
@@ -90,13 +85,14 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     protected abstract void onHeadersReceived();
     
     StringCallback mHeaderCallback = new StringCallback() {
+        private RawHeaders mRawHeaders = new RawHeaders();
         @Override
         public void onStringAvailable(String s) {
             try {
                 if (mRawHeaders.getStatusLine() == null) {
                     mRawHeaders.setStatusLine(s);
                 }
-                else if (!"\r".equals(s)){
+                else if (!"\r".equals(s)) {
                     mRawHeaders.addLine(s);
                 }
                 else {
@@ -137,7 +133,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     
     private AsyncHttpRequest mRequest;
     private AsyncSocket mSocket;
-    private ResponseHeaders mHeaders;
+    ResponseHeaders mHeaders;
     public AsyncHttpResponseImpl(AsyncHttpRequest request) {
         mRequest = request;
     }

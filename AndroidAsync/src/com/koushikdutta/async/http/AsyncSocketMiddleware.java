@@ -4,21 +4,36 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.Hashtable;
 
-import android.os.Bundle;
 import android.util.Log;
 
-import com.koushikdutta.async.AsyncNetworkSocket;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.Cancelable;
 import com.koushikdutta.async.SimpleCancelable;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
-    public AsyncSocketMiddleware(AsyncHttpClient client) {
+    String scheme;
+    int port;
+    public AsyncSocketMiddleware(AsyncHttpClient client, String scheme, int port) {
         mClient = client;
-        mClient.setProtocolPort("http", 80);
+        this.scheme = scheme;
+        this.port = port;
+    }
+    
+    public int getSchemePort(URI uri) {
+        if (!uri.getScheme().equals(scheme))
+            return -1;
+        if (uri.getPort() == -1) {
+            return port;
+        }
+        else {
+            return uri.getPort();
+        }
+    }
+
+    public AsyncSocketMiddleware(AsyncHttpClient client) {
+        this(client, "http", 80);
     }
 
     AsyncHttpClient mClient;
@@ -29,13 +44,15 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
     }
 
     @Override
-    public Cancelable getSocket(Bundle state, AsyncHttpRequest request, final ConnectCallback callback) {
-        final URI uri = request.getUri();
-        final int port = mClient.getProtocolPort(uri);
+    public Cancelable getSocket(final GetSocketData data) {
+        final URI uri = data.request.getUri();
+        final int port = getSchemePort(data.request.getUri());
         if (port == -1) {
             return null;
         }
         final String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
+        
+        data.state.putBoolean(getClass().getCanonicalName() + ".owned", true);
 
         HashSet<AsyncSocket> sockets = mSockets.get(lookup);
         if (sockets != null) {
@@ -48,7 +65,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                             @Override
                             public void run() {
                                 Log.i("AsyncHttpSocket", "Reusing socket.");
-                                callback.onConnectCompleted(null, socket);
+                                data.connectCallback.onConnectCompleted(null, socket);
                             }
                         });
                         // just a noop/dummy, as this can't actually be cancelled.
@@ -58,28 +75,30 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             }
         }
         
-        return mClient.getServer().connectSocket(uri.getHost(), port, callback);
+        return mClient.getServer().connectSocket(uri.getHost(), port, wrapCallback(data.connectCallback, uri, port));
     }
 
     @Override
-    public void onRequestComplete(Bundle state, final AsyncSocket socket, AsyncHttpRequest request, ResponseHeaders headers, Exception ex) {
-        if (com.koushikdutta.async.Util.getWrappedSocket(socket, AsyncNetworkSocket.class) == null) {
-            Log.i("AsyncHttpSocket", getClass().getCanonicalName() + " Not keeping non-owned socket: " + state.getString("socket.owner"));
+    public void onRequestComplete(final OnRequestCompleteData data) {
+        if (!data.state.getBoolean(getClass().getCanonicalName() + ".owned", false)) {
+            Log.i("AsyncHttpSocket", getClass().getCanonicalName() + " Not keeping non-owned socket: " + data.state.getString("socket.owner"));
             return;
         }
 
-        if (ex != null || !socket.isOpen()) {
-            socket.close();
+        if (data.exception != null || !data.socket.isOpen()) {
+            data.socket.close();
             return;
         }
-        String kas = headers.getConnection();
+        String kas = data.headers.getConnection();
         if (kas == null || !"keep-alive".toLowerCase().equals(kas.toLowerCase())) {
-            socket.close();
+            data.socket.close();
             return;
         }
         
-        final URI uri = request.getUri();
-        final int port = mClient.getProtocolPort(uri);
+        Log.i("AsynchttpSocket", "recycling");
+        
+        final URI uri = data.request.getUri();
+        final int port = getSchemePort(data.request.getUri());
         final String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
         HashSet<AsyncSocket> sockets = mSockets.get(lookup);
         if (sockets == null) {
@@ -88,14 +107,14 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         }
         final HashSet<AsyncSocket> ss = sockets;
         synchronized (sockets) {
-            sockets.add(socket);
-            socket.setClosedCallback(new CompletedCallback() {
+            sockets.add(data.socket);
+            data.socket.setClosedCallback(new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
                     synchronized (ss) {
-                        ss.remove(socket);
+                        ss.remove(data.socket);
                     }
-                    socket.setClosedCallback(null);
+                    data.socket.setClosedCallback(null);
                 }
             });
         }

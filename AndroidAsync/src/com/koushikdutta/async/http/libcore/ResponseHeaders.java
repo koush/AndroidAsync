@@ -435,15 +435,15 @@ public final class ResponseHeaders {
             return ResponseSource.CACHE;
         }
 
-        if (lastModified != null) {
+        if (etag != null) {
+            request.setIfNoneMatch(etag);
+        }
+        else if (lastModified != null) {
             request.setIfModifiedSince(lastModified);
         } else if (servedDate != null) {
             request.setIfModifiedSince(servedDate);
         }
 
-        if (etag != null) {
-            request.setIfNoneMatch(etag);
-        }
 
         return request.hasConditions()
                 ? ResponseSource.CONDITIONAL_CACHE

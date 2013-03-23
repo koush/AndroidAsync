@@ -6,7 +6,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-public class SimpleWrapperSocket implements WrapperSocket {
+public class SimpleWrapperSocket implements AsyncSocketWrapper {
     AsyncSocket socket;
     public void setSocket(AsyncSocket socket) {
         this.socket = socket;
@@ -99,6 +99,11 @@ public class SimpleWrapperSocket implements WrapperSocket {
 
     @Override
     public AsyncSocket getSocket() {
+        return socket;
+    }
+    
+    @Override
+    public DataEmitter getDataEmitter() {
         return socket;
     }
 }

@@ -1,6 +1,8 @@
 package com.koushikdutta.async.http;
 
+import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
 import com.koushikdutta.async.http.filter.ContentLengthFilter;
@@ -74,15 +76,24 @@ public class Util {
             chunker.setDataEmitter(emitter);
             emitter = chunker;
         }
-        else if (server) {
-            // if this is the server, and the client has not indicated a request body, the client is done
-            emitter.getServer().post(new Runnable() {
-                @Override
-                public void run() {
-                    reporter.onCompleted(null);
-                }
-            });
-            return emitter;
+        else {
+            if (server || headers.getStatusLine().contains("HTTP/1.1")) {
+                // if this is the server, and the client has not indicated a request body, the client is done
+                final AsyncServer srv = emitter.getServer();
+                final FilteredDataEmitter wrapped = new FilteredDataEmitter() {
+                    {
+                        srv.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                report(null);
+                            }
+                        });
+                    }
+                };
+                wrapped.setDataEmitter(emitter);
+                emitter = wrapped;
+                return emitter;
+            }
         }
 
         if ("gzip".equals(headers.get("Content-Encoding"))) {
@@ -96,7 +107,7 @@ public class Util {
             emitter = inflater;
         }
 
-        // conversely, if this is the client, and the server has not indicated a request body, we do not report
+        // conversely, if this is the client (http 1.0), and the server has not indicated a request body, we do not report
         // the close/end event until the server actually closes the connection.
         return emitter;
     }
