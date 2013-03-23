@@ -2,7 +2,6 @@ package com.koushikdutta.async.http;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
@@ -34,26 +33,24 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Base64;
-import android.util.Log;
 
+import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.Cancelable;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataWrapperSocket;
 import com.koushikdutta.async.FilteredDataEmitter;
-import com.koushikdutta.async.IAsyncSSLSocket;
 import com.koushikdutta.async.SimpleCancelable;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.http.libcore.Charsets;
+import com.koushikdutta.async.http.libcore.DiskLruCache;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 import com.koushikdutta.async.http.libcore.ResponseSource;
-import com.koushikdutta.async.util.cache.Charsets;
-import com.koushikdutta.async.util.cache.DiskLruCache;
-import com.koushikdutta.async.util.cache.StrictLineReader;
+import com.koushikdutta.async.http.libcore.StrictLineReader;
 
 public class ResponseCacheMiddleware extends SimpleMiddleware {
     private DiskLruCache cache;
@@ -97,7 +94,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
     }
     
-    private class CachedSSLSocket extends CachedSocket implements IAsyncSSLSocket {
+    private class CachedSSLSocket extends CachedSocket implements AsyncSSLSocket {
         public CachedSSLSocket(CacheResponse cacheResponse) {
             super(cacheResponse);
         }
@@ -327,31 +324,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         RawHeaders rawResponseHeaders = RawHeaders.fromMultimap(responseHeadersMap);
         ResponseHeaders cachedResponseHeaders = new ResponseHeaders(data.request.getUri(), rawResponseHeaders);
 
-        
-        ////
-        if (false) {
-            final CachedSocket ss = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
-
-            ss.pending.add(ByteBuffer.wrap(rawResponseHeaders.toHeaderString().getBytes()));
-            
-            client.getServer().post(new Runnable() {
-                @Override
-                public void run() {
-                    data.connectCallback.onConnectCompleted(null, ss);
-                    ss.spewInternal();
-                }
-            });
-
-            if (true)
-                return new SimpleCancelable();
-        }
-        ///
-        
-        
         long now = System.currentTimeMillis();
         responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
         
         if (responseSource == ResponseSource.CACHE) {
+            cacheStoreCount++;
             final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
 
             client.getServer().post(new Runnable() {
@@ -513,16 +490,40 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
     }
     
+    int conditionalCacheHitCount;
+    int cacheHitCount;
+    int networkCount;
+    int cacheStoreCount;
+    
+    public int getConditionalCacheHitCount() {
+        return conditionalCacheHitCount;
+    }
+    public int getCacheHitCount() {
+        return cacheHitCount;
+    }
+    public int getNetworkCount() {
+        return networkCount;
+    }
+    public int getCacheStoreCount() {
+        return cacheStoreCount;
+    }
+    
 
     // step 3) if this is a conditional cache request, serve it from the cache if necessary
     // otherwise, see if it is cacheable
     @Override
     public void onBodyDecoder(OnBodyData data) {
+        CachedSocket cached = (CachedSocket) com.koushikdutta.async.Util.getWrappedSocket(data.socket, CachedSocket.class);
+        if (cached != null)
+            return;
+
         CacheData cacheData = data.state.getParcelable("cache-data");
         if (cacheData != null) {
             if (cacheData.cachedResponseHeaders.validate(data.headers)) {
                 data.headers = cacheData.cachedResponseHeaders.combine(data.headers);
                 data.headers.getHeaders().setStatusLine(cacheData.cachedResponseHeaders.getHeaders().getStatusLine());
+                
+                conditionalCacheHitCount++;
                 
                 BodySpewer bodySpewer = new BodySpewer();
                 bodySpewer.cacheResponse = cacheData.candidate;
@@ -539,8 +540,15 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         if (!caching)
             return;
 
-        if (!data.headers.isCacheable(data.request.getHeaders()))
+        if (!data.headers.isCacheable(data.request.getHeaders()) || !data.request.getMethod().equals(AsyncHttpGet.METHOD)) {
+            /*
+             * Don't cache non-GET responses. We're technically allowed to cache
+             * HEAD requests and some POST requests, but the complexity of doing
+             * so is high and the benefit is low.
+             */
+            networkCount++;
             return;
+        }
 
         String key = uriToKey(data.request.getUri());
         RawHeaders varyHeaders = data.request.getHeaders().getHeaders().getAll(data.headers.getVaryFields());
@@ -564,27 +572,24 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             data.bodyEmitter = cacher;
             
             data.state.putParcelable("body-cacher", cacher);
+            cacheStoreCount++;
         }
         catch (Exception e) {
             // Log.e(LOGTAG, "error", e);
             if (cacher.cacheRequest != null)
                 cacher.cacheRequest.abort();
             cacher.cacheRequest = null;
+            networkCount++;
         }
     }
 
     
     @Override
     public void onRequestComplete(OnRequestCompleteData data) {
-//        CachingSocket caching = (CachingSocket)com.koushikdutta.async.Util.getWrappedSocket(data.socket, CachingSocket.class);
-//        if (caching == null)
-//            return;
-        
         BodyCacher cacher = data.state.getParcelable("body-cacher");
         if (cacher == null)
             return;
 
-//        Log.i(LOGTAG, "Cache done: " + ex);
         try {
             if (data.exception != null)
                 cacher.abort();

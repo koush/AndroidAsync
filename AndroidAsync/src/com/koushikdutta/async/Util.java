@@ -11,6 +11,8 @@ import junit.framework.Assert;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
+import com.koushikdutta.async.wrapper.DataEmitterWrapper;
 
 public class Util {
     public static void emitAllData(DataEmitter emitter, ByteBufferList list) {

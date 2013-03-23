@@ -64,7 +64,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                         mClient.getServer().post(new Runnable() {
                             @Override
                             public void run() {
-                                Log.i("AsyncHttpSocket", "Reusing socket.");
+//                                Log.i("AsyncHttpSocket", "Reusing keep-alive socket");
                                 data.connectCallback.onConnectCompleted(null, socket);
                             }
                         });
@@ -95,7 +95,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             return;
         }
         
-        Log.i("AsynchttpSocket", "recycling");
+//        Log.i("AsynchttpSocket", "Recycling keep-alive socket");
         
         final URI uri = data.request.getUri();
         final int port = getSchemePort(data.request.getUri());

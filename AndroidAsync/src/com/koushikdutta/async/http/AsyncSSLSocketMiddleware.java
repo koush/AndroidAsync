@@ -2,7 +2,7 @@ package com.koushikdutta.async.http;
 
 import java.net.URI;
 
-import com.koushikdutta.async.AsyncSSLSocket;
+import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.callback.ConnectCallback;
 
@@ -17,7 +17,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                 if (ex == null) {
-                    callback.onConnectCompleted(ex, new AsyncSSLSocket(socket, uri.getHost(), port));
+                    callback.onConnectCompleted(ex, new AsyncSSLSocketWrapper(socket, uri.getHost(), port));
                 }
                 else {
                     callback.onConnectCompleted(ex, socket);

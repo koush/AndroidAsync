@@ -1,4 +1,4 @@
-package com.koushikdutta.async.util.cache;
+package com.koushikdutta.async.http.libcore;
 
 import java.io.IOException;
 import java.io.Reader;

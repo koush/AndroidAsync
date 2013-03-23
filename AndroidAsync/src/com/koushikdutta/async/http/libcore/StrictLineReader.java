@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.koushikdutta.async.util.cache;
+package com.koushikdutta.async.http.libcore;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;

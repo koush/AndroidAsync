@@ -1,4 +1,4 @@
-package com.koushikdutta.async.util.cache;
+package com.koushikdutta.async.http.libcore;
 
 import java.io.Closeable;
 import java.io.File;

@@ -46,50 +46,7 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        new Thread() {
-            public void run() {
-                try {
-                    HttpResponseCache cache;
-                    try {
-                        File httpCacheDir = new File(getCacheDir(), "http");
-                        long httpCacheSize = 10 * 1024 * 1024; // 10 MiB
-                        cache = HttpResponseCache.install(httpCacheDir, httpCacheSize);
-                    }
-                     catch (IOException e) {
-                        Log.i("cache", "HTTP response cache installation failed:" + e);
-                        return;
-                    }
-                    URL url = new URL("https://desksms.appspot.com");
-                    URLConnection conn = url.openConnection();
-                    for (String header: conn.getRequestProperties().keySet()) {
-                        System.out.println(header + ": ");
-                        for (String value: conn.getRequestProperties().get(header)) {
-                            System.out.println(value);
-                        }
-                    }
-                    for (String header: conn.getHeaderFields().keySet()) {
-                        System.out.println(header + ": " + conn.getHeaderField(header));
-                    }
-                    InputStream in = conn.getInputStream();
-                    int count = 0;
-                    while (in.read() != -1) {
-                        count++;
-                    }
-                    in.close();
-                    System.out.println("count: " + count);
-                    
-                    System.out.println("cache count: " + cache.getHitCount());
-                    System.out.println("network count: " + cache.getNetworkCount());
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
-            };
-        }.start();
-
-
         if (cacher == null) {
-            
             try {
                 cacher = ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(), getFileStreamPath("asynccache"), 1024 * 1024 * 10);
                 cacher.setCaching(false);
@@ -142,7 +99,6 @@ public class MainActivity extends Activity {
                     e.printStackTrace();
                     return;
                 }
-                System.out.println(result.getAbsolutePath());
                 Bitmap bitmap = BitmapFactory.decodeFile(filename);
                 result.delete();
                 if (bitmap == null)
@@ -173,7 +129,6 @@ public class MainActivity extends Activity {
                         e.printStackTrace();
                         return;
                     }
-                    System.out.println(result.getAbsolutePath());
                     Bitmap bitmap = BitmapFactory.decodeFile(filename);
                     result.delete();
                     if (bitmap == null)
@@ -199,8 +154,15 @@ public class MainActivity extends Activity {
         chart.setImageBitmap(null);
         
         getFile(rommanager, "https://raw.github.com/koush/AndroidAsync/master/rommanager.png", getFileStreamPath(randomFile()).getAbsolutePath());
-//        getFile(tether, "https://raw.github.com/koush/AndroidAsync/master/tether.png", getFileStreamPath(randomFile()).getAbsolutePath());
-//        getFile(desksms, "https://raw.github.com/koush/AndroidAsync/master/desksms.png", getFileStreamPath(randomFile()).getAbsolutePath());
-//        getChartFile();
+        getFile(tether, "https://raw.github.com/koush/AndroidAsync/master/tether.png", getFileStreamPath(randomFile()).getAbsolutePath());
+        getFile(desksms, "https://raw.github.com/koush/AndroidAsync/master/desksms.png", getFileStreamPath(randomFile()).getAbsolutePath());
+        getChartFile();
+        
+        Log.i(LOGTAG, "cache hit: " + cacher.getCacheHitCount());
+        Log.i(LOGTAG, "cache store: " + cacher.getCacheStoreCount());
+        Log.i(LOGTAG, "conditional cache hit: " + cacher.getConditionalCacheHitCount());
+        Log.i(LOGTAG, "network: " + cacher.getNetworkCount());
     }
+    
+    private static final String LOGTAG = "AsyncSample";
 }
