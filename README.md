@@ -93,8 +93,11 @@ AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocket
 SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000", new SocketIOConnectCallback() {
     @Override
     public void onConnectCompleted(Exception ex, SocketIOClient client) {
-        System.out.println("hello!");
-        
+        if (ex != null) {
+            ex.printStackTrace();
+            return;
+        }
+
         client.setStringCallback(new StringCallback() {
             @Override
             public void onString(String string) {
