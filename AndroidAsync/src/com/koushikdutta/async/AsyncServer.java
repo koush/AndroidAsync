@@ -444,7 +444,7 @@ public class AsyncServer {
                 // if there is nothing to select now, make sure we don't have an empty key set
                 // which means it would be time to turn this thread off.
                 if (selector.keys().size() == 0 && !keepRunning) {
-                    Log.i(LOGTAG, "Shutting down. keys: " + selector.keys().size() + " keepRunning: " + keepRunning);
+//                    Log.i(LOGTAG, "Shutting down. keys: " + selector.keys().size() + " keepRunning: " + keepRunning);
                     return;
                 }
             }

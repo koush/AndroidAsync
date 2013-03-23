@@ -16,7 +16,6 @@ import junit.framework.Assert;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -35,7 +34,6 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.RequestCallback;
 import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.ResponseHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
 public class AsyncHttpClient {
@@ -481,9 +479,9 @@ public class AsyncHttpClient {
         public void onCompleted(Exception ex, WebSocket webSocket);
     }
     
-    public void websocket(final AsyncHttpRequest req, String protocol, final WebSocketConnectCallback callback) {
+    public Cancelable websocket(final AsyncHttpRequest req, String protocol, final WebSocketConnectCallback callback) {
         WebSocketImpl.addWebSocketUpgradeHeaders(req.getHeaders().getHeaders(), protocol);
-        execute(req, new HttpConnectCallback() {
+        return execute(req, new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
                 if (ex != null) {
@@ -498,9 +496,9 @@ public class AsyncHttpClient {
         });
     }
     
-    public void websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
+    public Cancelable websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
         final AsyncHttpGet get = new AsyncHttpGet(uri);
-        websocket(get, protocol, callback);
+        return websocket(get, protocol, callback);
     }
     
     AsyncServer getServer() {

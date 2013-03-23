@@ -87,7 +87,40 @@ AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocket
 ```
 
 
-### AndroidAsync also let's you create simple HTTP servers:
+### AndroidAsync also supports socket.io
+
+```java
+SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000", new SocketIOConnectCallback() {
+    @Override
+    public void onConnectCompleted(Exception ex, SocketIOClient client) {
+        System.out.println("hello!");
+        
+        client.setStringCallback(new StringCallback() {
+            @Override
+            public void onString(String string) {
+                System.out.println(string);
+            }
+        });
+        
+        client.setEventCallback(new EventCallback() {
+            @Override
+            public void onEvent(String event, JSONArray arguments) {
+                System.out.println("event: " + event + " args: " + arguments.toString());
+            }
+        });
+        
+        client.setJSONCallback(new JSONCallback() {
+            @Override
+            public void onJSON(JSONObject json) {
+                System.out.println("json: " + json.toString());
+            }
+        });
+    }
+});
+```
+
+
+### AndroidAsync also let's you create simple HTTP servers (and websocket servers):
 
 ```java
 // listen on port 5000
