@@ -15,4 +15,8 @@ public class GoogleTest extends TestCase {
         Future<String> ret = client.get("http://google.com", (StringCallback)null);
         assertNotNull(ret.get(5000, TimeUnit.MILLISECONDS));
     }
+    
+    public void testGithubRandomData() {
+        String dataNameAndHash = "6691924d7d24237d3b3679310157d640";
+    }
 }
