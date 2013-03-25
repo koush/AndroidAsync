@@ -1,7 +1,5 @@
 package com.koushikdutta.async;
 
-import junit.framework.Assert;
-
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;

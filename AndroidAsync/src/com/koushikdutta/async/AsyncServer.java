@@ -68,6 +68,7 @@ public class AsyncServer {
         }
         
         public boolean tryAcquire(long timeout, TimeUnit timeunit) throws InterruptedException {
+            long timeoutMs = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
             ThreadQueue threadQueue = getOrCreateThreadQueue(Thread.currentThread());
             AsyncSemaphore last = threadQueue.waiter;
             threadQueue.waiter = this;
@@ -77,19 +78,25 @@ public class AsyncServer {
                 if (semaphore.tryAcquire())
                     return true;
 
-                // run the queue
-                while (true) {
-                    Runnable run = threadQueue.remove();
-                    if (run == null)
-                        break;
-//                    Log.i(LOGTAG, "Pumping for AsyncSemaphore");
-                    run.run();
-                }
+                long start = System.currentTimeMillis();
+                do {
+                    // run the queue
+                    while (true) {
+                        Runnable run = threadQueue.remove();
+                        if (run == null)
+                            break;
+//                        Log.i(LOGTAG, "Pumping for AsyncSemaphore");
+                        run.run();
+                    }
 
-                int permits = Math.max(1, queueSemaphore.availablePermits());
-                if (!queueSemaphore.tryAcquire(permits, timeout, timeunit))
-                    return false;
-                return semaphore.tryAcquire();
+                    int permits = Math.max(1, queueSemaphore.availablePermits());
+                    if (!queueSemaphore.tryAcquire(permits, timeoutMs, TimeUnit.MILLISECONDS))
+                        return false;
+                    if (semaphore.tryAcquire())
+                        return true;
+                }
+                while (System.currentTimeMillis() - start < timeoutMs);
+                return false;
             }
             finally {
                 threadQueue.waiter = last;
@@ -283,33 +290,36 @@ public class AsyncServer {
 
     public void stop() {
         Log.i(LOGTAG, "****AsyncServer is shutting down.****");
-//        synchronized (this) {
-//            if (mSelector == null)
-//                return;
-//            // replace the current queue with a new queue
-//            // and post a shutdown.
-//            // this is guaranteed to be the last job on the queue.
-//            final Selector currentSelector = mSelector;
-//            post(new Runnable() {
-//                @Override
-//                public void run() {
-//                    shutdownEverything(currentSelector);
-//                }
-//            });
-//            mQueue = new LinkedList<Scheduled>();
-//            mSelector = null;
-//            mAffinity = null;
-//        }
-        final Selector currentSelector = mSelector;
-        run(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (AsyncServer.this) {
-                    if (currentSelector == mSelector)
-                        shutdownEverything(currentSelector);
+        synchronized (this) {
+            if (mSelector == null)
+                return;
+            // replace the current queue with a new queue
+            // and post a shutdown.
+            // this is guaranteed to be the last job on the queue.
+            final Selector currentSelector = mSelector;
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    shutdownEverything(currentSelector);
                 }
+            });
+            synchronized (mServers) {
+                mServers.remove(mAffinity);
             }
-        });
+            mQueue = new LinkedList<Scheduled>();
+            mSelector = null;
+            mAffinity = null;
+        }
+//        final Selector currentSelector = mSelector;
+//        run(new Runnable() {
+//            @Override
+//            public void run() {
+//                synchronized (AsyncServer.this) {
+//                    if (currentSelector == mSelector)
+//                        shutdownEverything(currentSelector);
+//                }
+//            }
+//        });
     }
     
     protected void onDataTransmitted(int transmitted) {

@@ -44,7 +44,7 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
                 waiter = new AsyncSemaphore();
         }
         if (!waiter.tryAcquire(timeout, unit))
-            return null;
+            throw new TimeoutException();
         return getResult();
     }
     

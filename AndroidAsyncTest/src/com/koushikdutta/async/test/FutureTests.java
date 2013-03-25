@@ -5,7 +5,10 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
+import android.os.Handler;
+import android.os.Looper;
 
+import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
 import com.koushikdutta.async.future.Continuation;
@@ -249,5 +252,40 @@ public class FutureTests extends TestCase {
         for (int i = 0; i < 10; i++) {
             assertEquals((int)results.get(i), i);
         }
+    }
+    
+    
+    class TriggerFuture extends SimpleFuture<Integer> {
+        public void trigger() {
+            setComplete(2020);
+        }
+    }
+    
+    public void testReentrancy() throws Exception {
+        // verify reentrancy will work
+        
+        assertNotNull(Looper.myLooper());
+        
+        final Thread originalThread = Thread.currentThread();
+        final TriggerFuture trigger = new TriggerFuture();
+        final Handler handler = new Handler();
+        
+        AsyncServer.getDefault().post(new Runnable() {
+            @Override
+            public void run() {
+                AsyncServer.post(handler, new Runnable() {
+                    @Override
+                    public void run() {
+                        // callstack here should be on top of trigger.get below.
+                        // reentrant.
+                        assertEquals(Thread.currentThread(), originalThread);
+                        trigger.trigger();
+                    }
+                });
+            }
+        });
+        
+        // trigger.get will do a reentrant block.
+        assertEquals((int)trigger.get(5000, TimeUnit.MILLISECONDS), 2020);
     }
 }
