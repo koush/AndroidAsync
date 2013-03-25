@@ -63,16 +63,24 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private ResponseCacheMiddleware() {
     }
     
+    long size;
+    File cacheDir;
     public static ResponseCacheMiddleware addCache(AsyncHttpClient client, File cacheDir, long size) throws IOException {
         for (AsyncHttpClientMiddleware middleware: client.getMiddleware()) {
             if (middleware instanceof ResponseCacheMiddleware)
                 throw new IOException("Response cache already added to http client");
         }
         ResponseCacheMiddleware ret = new ResponseCacheMiddleware();
+        ret.size = size;
         ret.client = client;
-        ret.cache = DiskLruCache.open(cacheDir, VERSION, ENTRY_COUNT, size);
+        ret.cacheDir = cacheDir;
+        ret.open();
         client.insertMiddleware(ret);
         return ret;
+    }
+    
+    private void open() throws IOException {
+        cache = DiskLruCache.open(cacheDir, VERSION, ENTRY_COUNT, size);
     }
     
     boolean caching = true;
@@ -934,6 +942,13 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 return null;
             }
             return ((X509Certificate) entry.localCertificates[0]).getSubjectX500Principal();
+        }
+    }
+    
+    public void clear() throws IOException {
+        if (cache != null) {
+            cache.delete();
+            open();
         }
     }
 }
