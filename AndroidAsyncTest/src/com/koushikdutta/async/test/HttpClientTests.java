@@ -81,6 +81,11 @@ public class HttpClientTests extends TestCase {
         assertTrue(md5.digest().equals(dataNameAndHash));
     }
     
+    public void testGithubHelloWithFuture() throws Exception {
+        Future<String> string = client.get("https://" + githubPath + "hello.txt", (StringCallback)null);
+        assertEquals(string.get(TIMEOUT, TimeUnit.MILLISECONDS), "hello world");
+    }
+    
     public void testCache() throws Exception {
         ResponseCacheMiddleware cache = ResponseCacheMiddleware.addCache(client, new File(Environment.getExternalStorageDirectory(), "AndroidAsyncTest"), 1024 * 1024 * 10);
         try {
