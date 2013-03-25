@@ -36,13 +36,12 @@ public class HttpClientTests extends TestCase {
         assertNotNull(ret.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
     
+    // this testdata file was generated using /dev/random. filename is also the md5 of the file.
     final static String dataNameAndHash = "6691924d7d24237d3b3679310157d640";
     final static String githubPath = "github.com/koush/AndroidAsync/raw/master/AndroidAsyncTest/testdata/";
     final static String github = "https://" + githubPath + dataNameAndHash;
     final static String githubInsecure = "http://" + githubPath + dataNameAndHash;
     public void testGithubRandomData() throws Exception {
-        // this was generated using /dev/random. filename is also the md5 of the file.
-        
         final Semaphore semaphore = new Semaphore(0);
         final Md5 md5 = Md5.createInstance();
         client.execute(github, new HttpConnectCallback() {
