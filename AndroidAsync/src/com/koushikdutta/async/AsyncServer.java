@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -16,7 +17,6 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import junit.framework.Assert;
@@ -282,30 +282,41 @@ public class AsyncServer {
     LinkedList<Scheduled> mQueue = new LinkedList<Scheduled>();
 
     public void stop() {
-        synchronized (this) {
-            if (mSelector == null)
-                return;
-            // replace the current queue with a new queue
-            // and post a shutdown.
-            // this is guaranteed to be the last job on the queue.
-            final Selector currentSelector = mSelector;
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    shutdownEverything(currentSelector);
+        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
+//        synchronized (this) {
+//            if (mSelector == null)
+//                return;
+//            // replace the current queue with a new queue
+//            // and post a shutdown.
+//            // this is guaranteed to be the last job on the queue.
+//            final Selector currentSelector = mSelector;
+//            post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    shutdownEverything(currentSelector);
+//                }
+//            });
+//            mQueue = new LinkedList<Scheduled>();
+//            mSelector = null;
+//            mAffinity = null;
+//        }
+        final Selector currentSelector = mSelector;
+        run(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (AsyncServer.this) {
+                    if (currentSelector == mSelector)
+                        shutdownEverything(currentSelector);
                 }
-            });
-            mQueue = new LinkedList<Scheduled>();
-            mSelector = null;
-            mAffinity = null;
-        }
+            }
+        });
     }
     
     protected void onDataTransmitted(int transmitted) {
     }
     
     public void listen(final InetAddress host, final int port, final ListenCallback handler) {
-        post(new Runnable() {
+        run(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -325,8 +336,7 @@ public class AsyncServer {
                             try {
                                 server.close();
                             }
-                            catch (IOException e) {
-                                e.printStackTrace();
+                            catch (Exception e) {
                             }
                             try {
                                 key.cancel();
@@ -337,8 +347,8 @@ public class AsyncServer {
                     });
                 }
                 catch (Exception e) {
-                    handler.onCompleted(e);
                     e.printStackTrace();
+                    handler.onCompleted(e);
                 }
             }
         });
@@ -484,9 +494,6 @@ public class AsyncServer {
         }
         return true;
     }
-    private void removeMe() {
-        mServers.remove(Thread.currentThread());
-    }
     
     public static AsyncServer getCurrentThreadServer() {
         return mServers.get(Thread.currentThread());
@@ -515,14 +522,12 @@ public class AsyncServer {
                     queue = mQueue;
                 }
                 catch (IOException e) {
-                    removeMe();
                     return;
                 }
                 if (newThread) {
                     mAffinity = new Thread("AsyncServer") {
                         public void run() {
                             AsyncServer.run(AsyncServer.this, selector, queue, keepRunning);
-                            removeMe();
                         };
                     };
                 }
@@ -537,6 +542,7 @@ public class AsyncServer {
                     }
                     mSelector = null;
                     mAffinity = null;
+                    return;
                 }
                 if (newThread) {
                     mAffinity.start();
@@ -561,7 +567,6 @@ public class AsyncServer {
         }
         
         run(this, selector, queue, keepRunning);
-        removeMe();
     }
     
     private static void run(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) {
@@ -576,6 +581,8 @@ public class AsyncServer {
         while(true) {
             try {
                 runLoop(server, selector, queue, keepRunning);
+            }
+            catch (ClosedSelectorException e) {
             }
             catch (Exception e) {
                 Log.i(LOGTAG, "exception?");
@@ -595,12 +602,20 @@ public class AsyncServer {
                 break;
             }
         }
+        synchronized (mServers) {
+            mServers.remove(Thread.currentThread());
+        }
         Log.i(LOGTAG, "****AsyncServer has shut down.****");
     }
     
     private static void shutdownEverything(Selector selector) {
         try {
             for (SelectionKey key: selector.keys()) {
+                try {
+                    key.channel().close();
+                }
+                catch (Exception e) {
+                }
                 try {
                     key.cancel();
                 }
