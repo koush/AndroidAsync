@@ -1,5 +1,6 @@
 package com.koushikdutta.async.test;
 
+import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -90,5 +91,163 @@ public class FutureTests extends TestCase {
         
         assertEquals((int)i1.get(), 2);
         assertEquals((int)i2.get(), 3);
+    }
+    
+    public void testContinuationFail() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
+        final Continuation c = new Continuation(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                assertNotNull(ex);
+                semaphore.release();
+            }
+        });
+        
+        c.add(new ContinuationCallback() {
+            @Override
+            public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                throw new Exception("fail");
+            }
+        });
+        
+        new Thread() {
+            public void run() {
+                c.start();
+            };
+        }.start();
+        
+        assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
+    }
+    
+    public void testContinuationCancel() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
+        final Continuation c = new Continuation(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                fail();
+                semaphore.release();
+            }
+        });
+        c.setCancelCallback(new Runnable() {
+            @Override
+            public void run() {
+                semaphore.release();
+            }
+        });
+        
+        c.add(new ContinuationCallback() {
+            @Override
+            public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                Thread.sleep(10000);
+            }
+        });
+        
+        new Thread() {
+            public void run() {
+                c.start();
+            };
+        }.start();
+        
+        new Thread() {
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                }
+                catch (Exception e) {
+                }
+                c.cancel();
+            };
+        }.start();
+        
+        assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
+    }
+    
+    
+    public void testChildContinuationCancel() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
+        final Continuation c = new Continuation(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                fail();
+                semaphore.release();
+            }
+        });
+        c.setCancelCallback(new Runnable() {
+            @Override
+            public void run() {
+                semaphore.release();
+            }
+        });
+        
+        c.add(new ContinuationCallback() {
+            @Override
+            public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                Thread.sleep(10000);
+            }
+        });
+        
+        final Continuation child = new Continuation();
+        child.add(new ContinuationCallback() {
+            @Override
+            public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                Thread.sleep(10000);
+            }
+        });
+
+        c.add(child);
+        
+        new Thread() {
+            public void run() {
+                c.start();
+            };
+        }.start();
+        
+        new Thread() {
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                }
+                catch (Exception e) {
+                }
+                child.cancel();
+            };
+        }.start();
+        
+        assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
+    }
+    
+    public void testContinuationArray() throws Exception {
+        final ArrayList<Integer> results = new ArrayList<Integer>();
+        final Semaphore semaphore = new Semaphore(0);
+        final Continuation c = new Continuation(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                semaphore.release();
+            }
+        });
+        
+        for (int i = 0; i < 10; i++) {
+            final int j = i;
+            c.add(new ContinuationCallback() {
+                @Override
+                public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                    results.add(j);
+                    next.onCompleted(null);
+                }
+            });
+        }
+        
+        new Thread() {
+            public void run() {
+                c.start();
+            };
+        }.start();
+        
+        assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
+        
+        assertEquals(10, results.size());
+        for (int i = 0; i < 10; i++) {
+            assertEquals((int)results.get(i), i);
+        }
     }
 }

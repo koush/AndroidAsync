@@ -39,6 +39,24 @@ public class Util {
         return ret;
     }
     
+    private static class EndEmitter extends FilteredDataEmitter {
+        private EndEmitter() {
+        }
+        
+        public static EndEmitter create(AsyncServer server, final Exception e) {
+            final EndEmitter ret = new EndEmitter();
+            // don't need to worry about any race conditions with post and this return value
+            // since we are in the server thread.
+            server.post(new Runnable() {
+                @Override
+                public void run() {
+                    ret.report(e);
+                }
+            });
+            return ret;
+        }
+    }
+    
     public static DataEmitter getBodyDecoder(DataEmitter emitter, RawHeaders headers, boolean server, final CompletedCallback reporter) {
         int _contentLength;
         try {
@@ -50,21 +68,15 @@ public class Util {
         final int contentLength = _contentLength;
         if (-1 != contentLength) {
             if (contentLength < 0) {
-                emitter.getServer().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        reporter.onCompleted(new Exception("not using chunked encoding, and no content-length found."));
-                    }
-                });
+                EndEmitter ender = EndEmitter.create(emitter.getServer(), new Exception("not using chunked encoding, and no content-length found."));
+                ender.setDataEmitter(emitter);
+                emitter = ender;
                 return emitter;
             }
             if (contentLength == 0) {
-                emitter.getServer().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        reporter.onCompleted(null);
-                    }
-                });
+                EndEmitter ender = EndEmitter.create(emitter.getServer(), null);
+                ender.setDataEmitter(emitter);
+                emitter = ender;
                 return emitter;
             }
             ContentLengthFilter contentLengthWatcher = new ContentLengthFilter(contentLength);
@@ -79,19 +91,9 @@ public class Util {
         else {
             if (server || headers.getStatusLine().contains("HTTP/1.1")) {
                 // if this is the server, and the client has not indicated a request body, the client is done
-                final AsyncServer srv = emitter.getServer();
-                final FilteredDataEmitter wrapped = new FilteredDataEmitter() {
-                    {
-                        srv.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                report(null);
-                            }
-                        });
-                    }
-                };
-                wrapped.setDataEmitter(emitter);
-                emitter = wrapped;
+                EndEmitter ender = EndEmitter.create(emitter.getServer(), null);
+                ender.setDataEmitter(emitter);
+                emitter = ender;
                 return emitter;
             }
         }
