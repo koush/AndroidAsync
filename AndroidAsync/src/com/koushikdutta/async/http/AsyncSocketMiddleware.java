@@ -7,10 +7,10 @@ import java.util.Hashtable;
 import android.util.Log;
 
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.Cancelable;
-import com.koushikdutta.async.SimpleCancelable;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.SimpleCancelable;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
     String scheme;
@@ -44,7 +44,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
     }
 
     @Override
-    public Cancelable getSocket(final GetSocketData data) {
+    public Cancellable getSocket(final GetSocketData data) {
         final URI uri = data.request.getUri();
         final int port = getSchemePort(data.request.getUri());
         if (port == -1) {

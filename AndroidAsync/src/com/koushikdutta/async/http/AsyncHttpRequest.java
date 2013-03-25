@@ -15,6 +15,9 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpParams;
 
+import android.os.Handler;
+import android.os.Looper;
+
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
@@ -80,7 +83,15 @@ public class AsyncHttpRequest implements HttpRequest {
     
     private RawHeaders mRawHeaders = new RawHeaders();
     private RequestHeaders mHeaders;
+    private Handler mHandler = Looper.myLooper() == null ? null : new Handler();
     
+    public Handler getHandler() {
+        return mHandler;
+    }
+    public void setHandler(Handler handler) {
+        mHandler = handler;
+    }
+
     public RequestHeaders getHeaders() {
         return mHeaders;
     }

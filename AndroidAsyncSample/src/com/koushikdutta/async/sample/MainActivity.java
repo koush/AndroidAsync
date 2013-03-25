@@ -6,8 +6,6 @@ import java.util.ArrayList;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -29,11 +27,6 @@ import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.ResponseCacheMiddleware;
-import com.koushikdutta.async.http.SocketIOClient;
-import com.koushikdutta.async.http.SocketIOClient.EventCallback;
-import com.koushikdutta.async.http.SocketIOClient.JSONCallback;
-import com.koushikdutta.async.http.SocketIOClient.SocketIOConnectCallback;
-import com.koushikdutta.async.http.SocketIOClient.StringCallback;
 import com.koushikdutta.async.http.UrlEncodedFormBody;
 
 public class MainActivity extends Activity {
@@ -74,35 +67,6 @@ public class MainActivity extends Activity {
         chart = (ImageView)findViewById(R.id.chart);
         
         showCacheToast();
-        
-        
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000", new SocketIOConnectCallback() {
-            @Override
-            public void onConnectCompleted(Exception ex, SocketIOClient client) {
-                System.out.println("hello!");
-                
-                client.setStringCallback(new StringCallback() {
-                    @Override
-                    public void onString(String string) {
-                        System.out.println(string);
-                    }
-                });
-                
-                client.setEventCallback(new EventCallback() {
-                    @Override
-                    public void onEvent(String event, JSONArray arguments) {
-                        System.out.println("event: " + event + " args: " + arguments.toString());
-                    }
-                });
-                
-                client.setJSONCallback(new JSONCallback() {
-                    @Override
-                    public void onJSON(JSONObject json) {
-                        System.out.println("json: " + json.toString());
-                    }
-                });
-            }
-        });
     }
 
     void showCacheToast() {

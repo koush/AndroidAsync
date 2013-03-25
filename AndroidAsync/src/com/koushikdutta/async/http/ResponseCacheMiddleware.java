@@ -38,13 +38,13 @@ import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.Cancelable;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
-import com.koushikdutta.async.SimpleCancelable;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.SimpleCancelable;
 import com.koushikdutta.async.http.libcore.Charsets;
 import com.koushikdutta.async.http.libcore.DiskLruCache;
 import com.koushikdutta.async.http.libcore.RawHeaders;
@@ -269,7 +269,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     // step 1) see if we can serve request from the cache directly.
     // also see if this can be turned into a conditional cache request.
     @Override
-    public Cancelable getSocket(final GetSocketData data) {
+    public Cancellable getSocket(final GetSocketData data) {
         if (cache == null)
             return null;
         

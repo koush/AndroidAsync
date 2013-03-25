@@ -3,9 +3,9 @@ package com.koushikdutta.async.http;
 import android.os.Bundle;
 
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.Cancelable;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
 public interface AsyncHttpClientMiddleware {
@@ -31,7 +31,7 @@ public interface AsyncHttpClientMiddleware {
         Exception exception;
     }
     
-    public Cancelable getSocket(GetSocketData data);
+    public Cancellable getSocket(GetSocketData data);
     public void onSocket(OnSocketData data);
     public void onHeadersReceived(OnHeadersReceivedData data);
     public void onBodyDecoder(OnBodyData data);

@@ -9,10 +9,11 @@ import org.json.JSONObject;
 import android.os.Handler;
 import android.os.Looper;
 
-import com.koushikdutta.async.Cancelable;
 import com.koushikdutta.async.NullDataCallback;
-import com.koushikdutta.async.SimpleCancelable;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.Future;
+import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient.WebSocketConnectCallback;
 
 public class SocketIOClient {
@@ -40,7 +41,9 @@ public class SocketIOClient {
         public void onEvent(String event, JSONArray arguments);
     }
     
-    private static void reportError(Handler handler, final SocketIOConnectCallback callback, final Exception e) {
+    private static void reportError(FutureImpl future, Handler handler, final SocketIOConnectCallback callback, final Exception e) {
+        if (!future.setComplete(e))
+            return;
         if (handler != null) {
             handler.post(new Runnable() {
                 @Override
@@ -54,46 +57,26 @@ public class SocketIOClient {
         }
     }
     
-    private static class CancelableImpl extends SimpleCancelable {
-        public Cancelable session;
-        public Cancelable websocket;
-        
-        @Override
-        public Cancelable cancel() {
-            if (isCompleted())
-                return this;
-            
-            if (isCanceled())
-                return this;
-            
-            if (session != null)
-                session.cancel();
-            if (websocket != null)
-                websocket.cancel();
-            return super.cancel();
-        }
+    private static class FutureImpl extends SimpleFuture<SocketIOClient> {
     }
     
-    public static Cancelable connect(final AsyncHttpClient client, String uri, final SocketIOConnectCallback callback) {
+    public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, final SocketIOConnectCallback callback) {
         // get the socket.io endpoint
         final String websocketUrl = uri.replaceAll("/$", "") + "/socket.io/1/";
 
-        final Handler handler;
-        if (Looper.myLooper() == null)
-            handler = null;
-        else
-            handler = new Handler();
+        final Handler handler = Looper.myLooper() == null ? null : new Handler();
         
-        
-        final CancelableImpl cancel = new CancelableImpl();
+        final FutureImpl ret = new FutureImpl();
         
         AsyncHttpPost post = new AsyncHttpPost(websocketUrl);
+        // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
+        post.setHandler(null);
         // initiate a session
-        cancel.session = client.execute(post, new AsyncHttpClient.StringCallback() {
+        Cancellable cancel = client.execute(post, new AsyncHttpClient.StringCallback() {
             @Override
             public void onCompleted(final Exception e, AsyncHttpResponse response, String result) {
                 if (e != null) {
-                    reportError(handler, callback, e);
+                    reportError(ret, handler, callback, e);
                     return;
                 }
                 
@@ -112,28 +95,30 @@ public class SocketIOClient {
                     if (!set.contains("websocket"))
                         throw new Exception("websocket not supported");
                     
-                    cancel.websocket = client.websocket(websocketUrl + "websocket/" + session, null, new WebSocketConnectCallback() {
+                    Cancellable cancel = client.websocket(websocketUrl + "websocket/" + session, null, new WebSocketConnectCallback() {
                         @Override
                         public void onCompleted(Exception ex, WebSocket webSocket) {
                             if (ex != null) {
-                                reportError(handler, callback, ex);
+                                reportError(ret, handler, callback, ex);
                                 return;
                             }
                             
-                            final SocketIOClient client = new SocketIOClient(webSocket, handler);
-                            client.heartbeat = heartbeat;
-                            client.attach(callback);
+                            final SocketIOClient client = new SocketIOClient(webSocket, handler, heartbeat);
+                            client.attach(callback, ret);
                         }
                     });
+                    
+                    ret.setParent(cancel);
                 }
                 catch (Exception ex) {
-                    reportError(handler, callback, ex);
+                    reportError(ret, handler, callback, ex);
                 }
             }
         });
 
+        ret.setParent(cancel);
         
-        return cancel;
+        return ret;
     }
     
     CompletedCallback closedCallback;
@@ -169,9 +154,10 @@ public class SocketIOClient {
     }
     
     WebSocket webSocket;
-    private SocketIOClient(WebSocket webSocket, Handler handler) {
+    private SocketIOClient(WebSocket webSocket, Handler handler, int heartbeat) {
         this.webSocket = webSocket;
         this.handler = handler;
+        this.heartbeat = heartbeat;
     }
     
     boolean connected;
@@ -188,7 +174,7 @@ public class SocketIOClient {
     };
     
     Handler handler;
-    private void attach(final SocketIOConnectCallback callback) {
+    private void attach(final SocketIOConnectCallback callback, final FutureImpl future) {
         webSocket.setDataCallback(new NullDataCallback());
         webSocket.setClosedCallback(new CompletedCallback() {
             @Override
@@ -252,6 +238,9 @@ public class SocketIOClient {
                         if (connected)
                             throw new Exception("received duplicate connect event");
 
+                        if (!future.setComplete(SocketIOClient.this))
+                            throw new Exception("request canceled");
+                        
                         connected = true;
                         heartbeatRunner.run();
                         callback.onConnectCompleted(null, SocketIOClient.this);
@@ -363,7 +352,7 @@ public class SocketIOClient {
                 catch (Exception ex) {
                     webSocket.close();
                     if (!connected) {
-                        reportError(handler, callback, ex);
+                        reportError(future, handler, callback, ex);
                     }
                     else {
                         disconnected = true;

@@ -1,4 +1,4 @@
-package com.koushikdutta.async;
+package com.koushikdutta.async.future;
 
 import java.util.LinkedList;
 
@@ -7,7 +7,7 @@ import junit.framework.Assert;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
 
-public class Continuation implements ContinuationCallback, Runnable, Cancelable {
+public class Continuation extends SimpleCancelable implements ContinuationCallback, Runnable, Cancellable {
     CompletedCallback callback;
     Runnable cancelCallback;
     
@@ -24,7 +24,7 @@ public class Continuation implements ContinuationCallback, Runnable, Cancelable 
     public void setCancelCallback(Runnable cancelCallback) {
         this.cancelCallback = cancelCallback;
     }
-    public void setCancelCallback(final Cancelable cancel) {
+    public void setCancelCallback(final Cancellable cancel) {
         if (cancel == null) {
             this.cancelCallback = null;
             return;
@@ -69,23 +69,29 @@ public class Continuation implements ContinuationCallback, Runnable, Cancelable 
         };
     }
     
-    boolean completed;
     void reportCompleted(Exception ex) {
-        if (cancel)
+        if (!setComplete())
             return;
-        completed = true;
         if (callback != null)
             callback.onCompleted(ex);        
     }
     
     LinkedList<ContinuationCallback> mCallbacks = new LinkedList<ContinuationCallback>();
     
+    private ContinuationCallback hook(ContinuationCallback callback) {
+        if (callback instanceof SimpleCancelable) {
+            SimpleCancelable child = (SimpleCancelable)callback;
+            child.setParent(this);
+        }
+        return callback;
+    }
+    
     public void add(ContinuationCallback callback) {
-        mCallbacks.add(callback);
+        mCallbacks.add(hook(callback));
     }
     
     public void insert(ContinuationCallback callback) {
-        mCallbacks.add(0, callback);
+        mCallbacks.add(0, hook(callback));
     }
     
     private boolean inNext;
@@ -93,11 +99,7 @@ public class Continuation implements ContinuationCallback, Runnable, Cancelable 
     private void next() {
         if (inNext)
             return;
-        if (isCanceled()) {
-            reportCompleted(null);
-            return;
-        }
-        while (mCallbacks.size() > 0 && !waiting && !completed && !cancel) {
+        while (mCallbacks.size() > 0 && !waiting && !isDone() && !isCancelled()) {
             ContinuationCallback cb = mCallbacks.remove();
             try {
                 inNext = true;
@@ -113,38 +115,25 @@ public class Continuation implements ContinuationCallback, Runnable, Cancelable 
         }
         if (waiting)
             return;
-        if (completed)
+        if (isDone())
             return;
-        if (cancel)
+        if (isCancelled())
             return;
 
         reportCompleted(null);
     }
-    
-    public boolean isCompleted() {
-        return completed;
-    }
-    
-    public boolean isCanceled() {
-        return cancel || (parent != null && parent.isCanceled());
-    }
-    
-    public Cancelable cancel() {
-        cancelThis();
-        if (parent != null)
-            parent.cancel();
-        return this;
-    }
-    
-    public void cancelThis() {
-        if (isCanceled())
-            return;
-        cancel = true;
+
+    @Override
+    public boolean cancel() {
+        if (!super.cancel())
+            return false;
+        
         if (cancelCallback != null)
             cancelCallback.run();
+        
+        return true;
     }
     
-    boolean cancel;
     boolean started;
     public Continuation start() {
         Assert.assertTrue(!started);
@@ -153,12 +142,9 @@ public class Continuation implements ContinuationCallback, Runnable, Cancelable 
         return this;
     }
 
-    Continuation parent;
     @Override
     public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
-        parent = continuation;
         setCallback(next);
-        setCancelCallback(continuation.getCancelCallback());
         start();
     }
 

@@ -11,8 +11,8 @@ NIO is extremely efficient.
 // url is the URL to download. The callback will be invoked on the UI thread
 // once the download is complete.
 AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.StringCallback() {
-    @Override
     // Callback is invoked with any exceptions/errors, and the result, if available.
+    @Override
     public void onCompleted(Exception e, String result) {
         if (e != null) {
             e.printStackTrace();

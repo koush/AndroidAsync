@@ -1,11 +1,11 @@
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.Cancelable;
+import com.koushikdutta.async.future.Cancellable;
 
 public class SimpleMiddleware implements AsyncHttpClientMiddleware {
 
     @Override
-    public Cancelable getSocket(GetSocketData data) {
+    public Cancellable getSocket(GetSocketData data) {
         return null;
     }
 
