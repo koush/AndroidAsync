@@ -79,8 +79,8 @@ public class Continuation extends SimpleCancelable implements ContinuationCallba
     LinkedList<ContinuationCallback> mCallbacks = new LinkedList<ContinuationCallback>();
     
     private ContinuationCallback hook(ContinuationCallback callback) {
-        if (callback instanceof SimpleCancelable) {
-            SimpleCancelable child = (SimpleCancelable)callback;
+        if (callback instanceof DependentCancellable) {
+            DependentCancellable child = (DependentCancellable)callback;
             child.setParent(this);
         }
         return callback;
@@ -92,6 +92,17 @@ public class Continuation extends SimpleCancelable implements ContinuationCallba
     
     public void insert(ContinuationCallback callback) {
         mCallbacks.add(0, hook(callback));
+    }
+   
+    public void add(final DependentFuture future) {
+        future.setParent(this);
+        add(new ContinuationCallback() {
+            @Override
+            public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                future.get();
+                next.onCompleted(null);
+            }
+        });
     }
     
     private boolean inNext;

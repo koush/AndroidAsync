@@ -6,7 +6,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.koushikdutta.async.AsyncServer.AsyncSemaphore;
 
-public class SimpleFuture<T> extends SimpleCancelable implements Future<T> {
+public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture<T> {
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return cancel();

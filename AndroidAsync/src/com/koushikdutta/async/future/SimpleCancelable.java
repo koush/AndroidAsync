@@ -1,6 +1,6 @@
 package com.koushikdutta.async.future;
 
-public class SimpleCancelable implements Cancellable {
+public class SimpleCancelable implements DependentCancellable {
     boolean complete;
     @Override
     public boolean isDone() {
@@ -32,10 +32,12 @@ public class SimpleCancelable implements Cancellable {
     boolean canceled;
 
     Cancellable parent;
+    @Override
     public Cancellable getParent() {
         return parent;
     }
     
+    @Override
     public void setParent(Cancellable parent) {
         this.parent = parent;
     }
