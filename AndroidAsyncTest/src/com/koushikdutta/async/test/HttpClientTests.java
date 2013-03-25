@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import junit.framework.Assert;
 import junit.framework.TestCase;
 import android.os.Environment;
 
@@ -47,6 +48,8 @@ public class HttpClientTests extends TestCase {
         client.execute(github, new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
+                // make sure gzip decoding works, as that is generally what github sends.
+                Assert.assertEquals("gzip", response.getHeaders().getContentEncoding());
                 response.setDataCallback(new DataCallback() {
                     @Override
                     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {

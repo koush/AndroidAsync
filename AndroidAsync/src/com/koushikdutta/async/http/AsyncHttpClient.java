@@ -158,7 +158,24 @@ public class AsyncHttpClient {
                             middleware.onBodyDecoder(data);
                         }
                         mHeaders = data.headers;
+
                         super.setDataEmitter(data.bodyEmitter);
+
+                        RawHeaders headers = mHeaders.getHeaders();
+                        if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
+                            URI redirect = URI.create(headers.get("Location"));
+                            if (redirect == null || redirect.getScheme() == null) {
+                                redirect = URI.create(uri.toString().substring(0, uri.toString().length() - uri.getPath().length()) + headers.get("Location"));
+                            }
+                            AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
+                            execute(newReq, callback, redirectCount + 1, cancel);
+                            
+                            setDataCallback(new NullDataCallback());
+                            return;
+                        }
+                        
+                        // at this point the headers are done being modified
+                        reportConnectedCompleted(cancel, null, this, callback);
                     }
                     
                     protected void onHeadersReceived() {
@@ -169,6 +186,8 @@ public class AsyncHttpClient {
                             if (scheduled != null)
                                 mServer.removeAllCallbacks(scheduled);
 
+                            // allow the middleware to massage the headers before the body is decoded
+
                             data.headers = mHeaders;
                             for (AsyncHttpClientMiddleware middleware: mMiddleware) {
                                 middleware.onHeadersReceived(data);
@@ -176,20 +195,8 @@ public class AsyncHttpClient {
                             mHeaders = data.headers;
                             RawHeaders headers = mHeaders.getHeaders();
                             
-
-                            if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
-                                URI redirect = URI.create(headers.get("Location"));
-                                if (redirect == null || redirect.getScheme() == null) {
-                                    redirect = URI.create(uri.toString().substring(0, uri.toString().length() - uri.getPath().length()) + headers.get("Location"));
-                                }
-                                AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
-                                execute(newReq, callback, redirectCount + 1, cancel);
-                                
-                                setDataCallback(new NullDataCallback());
-                                return;
-                            }
-
-                            reportConnectedCompleted(cancel, null, this, callback);
+                            // drop through, and setDataEmitter will be called for the body decoder.
+                            // headers will be further massaged in there.
                         }
                         catch (Exception ex) {
                             reportConnectedCompleted(cancel, ex, null, callback);
