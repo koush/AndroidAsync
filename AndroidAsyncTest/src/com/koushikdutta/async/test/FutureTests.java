@@ -1,8 +1,10 @@
 package com.koushikdutta.async.test;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import junit.framework.TestCase;
 import android.os.Handler;
@@ -276,6 +278,28 @@ public class FutureTests extends TestCase {
                 AsyncServer.post(handler, new Runnable() {
                     @Override
                     public void run() {
+                        final TriggerFuture trigger2 = new TriggerFuture();
+
+                        AsyncServer.getDefault().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                AsyncServer.post(handler, new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        assertEquals(Thread.currentThread(), originalThread);
+                                        trigger2.trigger();
+                                    }
+                                });
+                            }
+                        });
+                        
+                        try {
+                            assertEquals((int)trigger2.get(5000, TimeUnit.MILLISECONDS), 2020);
+                        }
+                        catch (Exception e) {
+                            fail();
+                        }
+
                         // callstack here should be on top of trigger.get below.
                         // reentrant.
                         assertEquals(Thread.currentThread(), originalThread);
