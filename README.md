@@ -123,6 +123,28 @@ SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2
 ```
 
 
+### Need to do multipart/form-data uploads? That works too.
+
+```java
+AsyncHttpPost post = new AsyncHttpPost("http://myservercom/postform.html");
+MultipartFormDataBody body = new MultipartFormDataBody();
+body.addFilePart("my-file", new File("/path/to/file.txt");
+body.addStringPart("foo", "bar");
+post.setBody(body);
+
+AsyncHttpClient.getDefaultInstance().execute(post, new StringCallback() {
+    @Override
+    public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
+        if (e != null) {
+            ex.printStackTrace();
+            return;
+        }
+        System.out.println("Server says: " + result);
+    }
+});
+```
+
+
 ### AndroidAsync also let's you create simple HTTP servers (and websocket servers):
 
 ```java

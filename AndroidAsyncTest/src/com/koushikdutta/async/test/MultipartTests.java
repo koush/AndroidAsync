@@ -15,6 +15,7 @@ import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpClient.StringCallback;
 import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.MultipartCallback;
 import com.koushikdutta.async.http.MultipartFormDataBody;
 import com.koushikdutta.async.http.Part;
@@ -89,14 +90,16 @@ public class MultipartTests extends TestCase {
         StreamUtility.writeFile(dummy, DUMMY_VAL);
         
         AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000");
-//        AsyncHttpPost post = new AsyncHttpPost("http://192.168.1.2:3000");
-
         MultipartFormDataBody body = new MultipartFormDataBody();
         body.addFilePart("my-file", dummy);
         body.addStringPart("foo", FIELD_VAL);
         post.setBody(body);
 
-        Future<String> ret = AsyncHttpClient.getDefaultInstance().execute(post, (StringCallback)null);
+        Future<String> ret = AsyncHttpClient.getDefaultInstance().execute(post, new StringCallback() {
+            @Override
+            public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
+            }
+        });
         
         assertEquals(ret.get(5000000, TimeUnit.MILLISECONDS), DUMMY_VAL + FIELD_VAL);
     }
