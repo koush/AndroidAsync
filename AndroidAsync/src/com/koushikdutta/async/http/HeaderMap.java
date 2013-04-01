@@ -17,6 +17,8 @@ public class HeaderMap {
             String v = null;
             if (pair.length > 1)
                 v = pair[1];
+            if (v != null && v.endsWith("\"") && v.startsWith("\""))
+                v = v.substring(1, v.length() - 1);
             map.put(key, v);
         }
         return Collections.unmodifiableMap(map);

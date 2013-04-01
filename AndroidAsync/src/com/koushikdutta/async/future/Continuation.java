@@ -86,12 +86,14 @@ public class Continuation extends SimpleCancelable implements ContinuationCallba
         return callback;
     }
     
-    public void add(ContinuationCallback callback) {
+    public Continuation add(ContinuationCallback callback) {
         mCallbacks.add(hook(callback));
+        return this;
     }
     
-    public void insert(ContinuationCallback callback) {
+    public Continuation insert(ContinuationCallback callback) {
         mCallbacks.add(0, hook(callback));
+        return this;
     }
    
     public void add(final DependentFuture future) {

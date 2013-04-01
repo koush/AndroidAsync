@@ -14,6 +14,22 @@ public class BoundaryEmitter extends FilteredDataEmitter {
         this.boundary = ("--" + boundary).getBytes();
     }
     
+    public String getBoundary() {
+        if (boundary == null)
+            return null;
+        return new String(boundary, 2, boundary.length - 2);
+    }
+    
+    public String getBoundaryStart() {
+        Assert.assertNotNull(boundary);
+        return new String(boundary);
+    }
+    
+    public String getBoundaryEnd() {
+        Assert.assertNotNull(boundary);
+        return new String(boundary) + "--\r\n";
+    }
+    
     protected void onBoundaryStart() {
     }
     

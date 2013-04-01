@@ -16,8 +16,9 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
     public ByteBufferList() {
     }
 
-    public ByteBufferList(ByteBuffer b) {
-        add(b);
+    public ByteBufferList(ByteBuffer... b) {
+        for (ByteBuffer bb: b)
+            add(bb);
     }
     
     public ByteBufferList(byte[] buf) {

@@ -1,18 +1,52 @@
 package com.koushikdutta.async.http;
 
-import junit.framework.Assert;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.UUID;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.ContinuationCallback;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.BoundaryEmitter;
 
 public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpRequestBody {
     LineEmitter liner;
+    RawHeaders formData;
+    ByteBufferList last;
+    String lastName;
 
+    void handleLast() {
+        if (last == null)
+            return;
+        
+        if (formData == null)
+            formData = new RawHeaders();
+        
+        formData.add(lastName, last.peekString());
+        
+        lastName = null;
+        last = null;
+    }
+    
+    public String getField(String name) {
+        if (formData == null)
+            return null;
+        return formData.get(name);
+    }
+    
+    @Override
+    protected void onBoundaryEnd() {
+        super.onBoundaryEnd();
+        handleLast();
+    }
+    
     @Override
     protected void onBoundaryStart() {
         final RawHeaders headers = new RawHeaders();
@@ -24,12 +58,29 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                     headers.addLine(s);
                 }
                 else {
+                    handleLast();
+                    
                     liner = null;
                     setDataCallback(null);
+                    Part part = new Part(headers);
                     if (mCallback != null)
-                        mCallback.onPart(new Part(headers));
-                    if (getDataCallback() == null)
-                        setDataCallback(new NullDataCallback());
+                        mCallback.onPart(part);
+                    if (getDataCallback() == null) {
+                        if (part.isFile()) {
+                            setDataCallback(new NullDataCallback());
+                            return;
+                        }
+
+                        lastName = part.getName();
+                        last = new ByteBufferList();
+                        setDataCallback(new DataCallback() {
+                            @Override
+                            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                                last.add(bb);
+                                bb.clear();
+                            }
+                        });
+                    }
                 }
             }
         });
@@ -74,13 +125,52 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     }
 
     @Override
-    public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
-        Assert.fail();
+    public void write(AsyncHttpRequest request, final AsyncHttpResponse sink) {
+        if (mParts == null) {
+            sink.end();
+            return;
+        }
+        
+        Continuation c = new Continuation(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+//                if (ex == null)
+//                    sink.end();
+//                else
+//                    sink.close();
+            }
+        });
+
+        for (final Part part: mParts) {
+            c.add(new ContinuationCallback() {
+                @Override
+                public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                    part.getRawHeaders().setStatusLine(getBoundaryStart());
+                    com.koushikdutta.async.Util.writeAll(sink, part.getRawHeaders().toHeaderString().getBytes(), next);
+                }
+            })
+            .add(new ContinuationCallback() {
+                @Override
+                public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                    part.write(sink, next);
+                }
+            });
+        }
+        c.add(new ContinuationCallback() {
+            @Override
+            public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                com.koushikdutta.async.Util.writeAll(sink, ("\r\n" + getBoundaryEnd() + "\r\n").getBytes(), next);
+            }
+        });
+        c.start();
     }
 
     @Override
     public String getContentType() {
-        return CONTENT_TYPE;
+        if (getBoundary() == null) {
+            setBoundary("----------------------------" + UUID.randomUUID().toString().replace("-", ""));
+        }
+        return CONTENT_TYPE + "; boundary=" + getBoundary();
     }
 
     @Override
@@ -90,6 +180,36 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
 
     @Override
     public int length() {
-        return -1;
+        if (getBoundary() == null) {
+            setBoundary("----------------------------" + UUID.randomUUID().toString().replace("-", ""));
+        }
+
+        int length = 0;
+        for (final Part part: mParts) {
+            part.getRawHeaders().setStatusLine(getBoundaryStart());
+            if (part.length() == -1)
+                return -1;
+            length += part.length() + part.getRawHeaders().toHeaderString().getBytes().length;
+        }
+        length += (getBoundaryEnd() + "\r\n").getBytes().length;
+        return length;
+    }
+    
+    public MultipartFormDataBody() {
+    }
+    
+    public void addFilePart(String name, File file) {
+        addPart(new FilePart(name, file));
+    }
+    
+    public void addStringPart(String name, String value) {
+        addPart(new StringPart(name, value));
+    }
+    
+    private ArrayList<Part> mParts;
+    public void addPart(Part part) {
+        if (mParts == null)
+            mParts = new ArrayList<Part>();
+        mParts.add(part);
     }
 }
