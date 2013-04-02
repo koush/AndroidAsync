@@ -45,8 +45,10 @@ public class FutureTests extends TestCase {
         assertEquals((int)i.get(), 10);
     }
     
+    int someValue;
     public void testContinuation() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
+        someValue = 0;
         final Continuation c = new Continuation(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
@@ -56,8 +58,32 @@ public class FutureTests extends TestCase {
         
         c.add(new ContinuationCallback() {
             @Override
-            public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
-                Thread.sleep(200);
+            public void onContinue(Continuation continuation, final CompletedCallback next) throws Exception {
+                new Thread() {
+                    public void run() {
+                        someValue++;
+                        next.onCompleted(null);
+                    };
+                }.start();
+            }
+        });
+        
+        c.add(new ContinuationCallback() {
+            @Override
+            public void onContinue(Continuation continuation, final CompletedCallback next) throws Exception {
+                new Thread() {
+                    public void run() {
+                        someValue++;
+                        next.onCompleted(null);
+                    };
+                }.start();
+            }
+        });
+        
+        c.add(new ContinuationCallback() {
+            @Override
+            public void onContinue(Continuation continuation, final CompletedCallback next) throws Exception {
+                someValue++;
                 next.onCompleted(null);
             }
         });
@@ -69,6 +95,7 @@ public class FutureTests extends TestCase {
         }.start();
         
         assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
+        assertEquals(someValue, 3);
     }
     
     public void testFutureChain() throws Exception {
