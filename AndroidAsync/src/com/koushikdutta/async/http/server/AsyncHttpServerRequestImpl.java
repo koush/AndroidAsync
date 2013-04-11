@@ -58,6 +58,7 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                     DataEmitter emitter = Util.getBodyDecoder(mSocket, mRawHeaders, true, mReporter);
                     emitter.setEndCallback(mReporter);
                     mBody = Util.getBody(emitter, mReporter, mRawHeaders);
+                    mHeaders = new RequestHeaders(null, mRawHeaders);
                     onHeadersReceived();
                 }
             }
@@ -84,7 +85,7 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         return mSocket;
     }
 
-    private RequestHeaders mHeaders = new RequestHeaders(null, mRawHeaders);
+    private RequestHeaders mHeaders;
     @Override
     public RequestHeaders getHeaders() {
         return mHeaders;
