@@ -148,13 +148,14 @@ AsyncHttpClient.getDefaultInstance().execute(post, new StringCallback() {
 ### AndroidAsync also let's you create simple HTTP servers (and websocket servers):
 
 ```java
-// listen on port 5000
-AsyncHttpServer mServer = new AsyncHttpServer(5000);
-mServer.get("/", new HttpServerRequestCallback() {
+AsyncHttpServer server = new AsyncHttpServer();
+server.get("/", new HttpServerRequestCallback() {
     @Override
     public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
         response.send("Hello!!!");
     }
 });
+// listen on port 5000
+server.listen(5000);
 // browsing http://localhost:5000 will return Hello!!!
 ```

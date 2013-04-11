@@ -52,6 +52,7 @@ public class FutureTests extends TestCase {
         final Continuation c = new Continuation(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
+                assertNull(ex);
                 semaphore.release();
             }
         });
