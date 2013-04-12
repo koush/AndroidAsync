@@ -60,19 +60,25 @@ public class SocketIOClient {
     private static class FutureImpl extends SimpleFuture<SocketIOClient> {
     }
     
+    public static class SocketIORequest extends AsyncHttpPost {
+        public SocketIORequest(String uri) {
+            // get the socket.io endpoint
+            super(uri.replaceAll("/$", "") + "/socket.io/1/");
+        }
+    }
+    
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, final SocketIOConnectCallback callback) {
-        // get the socket.io endpoint
-        final String websocketUrl = uri.replaceAll("/$", "") + "/socket.io/1/";
-
+        return connect(client, new SocketIORequest(uri), callback);
+    }
+    
+    public static Future<SocketIOClient> connect(final AsyncHttpClient client, final SocketIORequest request, final SocketIOConnectCallback callback) {
         final Handler handler = Looper.myLooper() == null ? null : new Handler();
-        
         final FutureImpl ret = new FutureImpl();
         
-        AsyncHttpPost post = new AsyncHttpPost(websocketUrl);
         // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
-        post.setHandler(null);
+        request.setHandler(null);
         // initiate a session
-        Cancellable cancel = client.execute(post, new AsyncHttpClient.StringCallback() {
+        Cancellable cancel = client.execute(request, new AsyncHttpClient.StringCallback() {
             @Override
             public void onCompleted(final Exception e, AsyncHttpResponse response, String result) {
                 if (e != null) {
@@ -95,7 +101,7 @@ public class SocketIOClient {
                     if (!set.contains("websocket"))
                         throw new Exception("websocket not supported");
                     
-                    Cancellable cancel = client.websocket(websocketUrl + "websocket/" + session, null, new WebSocketConnectCallback() {
+                    Cancellable cancel = client.websocket(request.getUri().toString() + "websocket/" + session, null, new WebSocketConnectCallback() {
                         @Override
                         public void onCompleted(Exception ex, WebSocket webSocket) {
                             if (ex != null) {
