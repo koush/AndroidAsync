@@ -8,6 +8,8 @@ import java.nio.channels.SocketChannel;
 
 import junit.framework.Assert;
 
+import android.util.Log;
+
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -150,6 +152,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
                 b.limit(b.position());
                 b.position(0);
                 ByteBufferList list = new ByteBufferList(b);
+                Log.d("ASYNC", list.peekString());
                 Util.emitAllData(this, list);
                 if (b.remaining() != 0) {
                     Assert.assertTrue(pending == null);

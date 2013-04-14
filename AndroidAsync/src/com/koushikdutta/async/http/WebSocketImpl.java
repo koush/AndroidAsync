@@ -110,7 +110,8 @@ public class WebSocketImpl implements WebSocket {
         setupParser();
     }
     
-    public static void addWebSocketUpgradeHeaders(RawHeaders headers, String protocol) {
+    public static void addWebSocketUpgradeHeaders(AsyncHttpRequest req, String protocol) {
+        RawHeaders headers = req.getHeaders().getHeaders();
         final String key = UUID.randomUUID().toString();
         headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
@@ -118,6 +119,9 @@ public class WebSocketImpl implements WebSocket {
         headers.set("Upgrade", "websocket");
         if (protocol != null)
             headers.set("Sec-WebSocket-Protocol", protocol);
+        headers.set("Pragma", "no-cache");
+        headers.set("Cache-Control", "no-cache");
+        req.getHeaders().setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.15 Safari/537.36");
     }
     
     public WebSocketImpl(AsyncSocket socket) {
