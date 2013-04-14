@@ -1,6 +1,7 @@
 # AndroidAsync
 
-### AndroidAsync is a java.nio based socket and http library for Android.
+### Asynchronous socket, http (client+server), websocket, and socket.io library.
+
 It uses java.nio to manage connections. All the connections are thus managed on a *single* thread, rather than one per thread. 
 NIO is extremely efficient.
 
