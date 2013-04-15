@@ -22,7 +22,6 @@ AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.StringCallback
         System.out.println("I got a string: " + result);
     }
 });
-
 ```
 
 
@@ -41,7 +40,6 @@ AsyncHttpClient.getDefaultInstance().get(url, filename, new AsyncHttpClient.File
         System.out.println("my file is available at: " + result.getAbsolutePath());
     }
 });
-
 ```
 
 
@@ -66,16 +64,13 @@ AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocket
             ex.printStackTrace();
             return;
         }
-
         webSocket.send("a string");
         webSocket.send(new byte[10]);
-        
         webSocket.setStringCallback(new StringCallback() {
             public void onStringAvailable(String s) {
                 System.out.println("I got a string: " + s);
             }
         });
-        
         webSocket.setDataCallback(new DataCallback() {
             public void onDataAvailable(ByteBufferList byteBufferList) {
                 System.out.println("I got some bytes!");
@@ -98,21 +93,18 @@ SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2
             ex.printStackTrace();
             return;
         }
-
         client.setStringCallback(new StringCallback() {
             @Override
             public void onString(String string) {
                 System.out.println(string);
             }
         });
-        
         client.setEventCallback(new EventCallback() {
             @Override
             public void onEvent(String event, JSONArray arguments) {
                 System.out.println("event: " + event + " args: " + arguments.toString());
             }
         });
-        
         client.setJSONCallback(new JSONCallback() {
             @Override
             public void onJSON(JSONObject json) {
@@ -132,7 +124,6 @@ MultipartFormDataBody body = new MultipartFormDataBody();
 body.addFilePart("my-file", new File("/path/to/file.txt");
 body.addStringPart("foo", "bar");
 post.setBody(body);
-
 AsyncHttpClient.getDefaultInstance().execute(post, new StringCallback() {
     @Override
     public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
