@@ -61,9 +61,12 @@ public class SocketIOClient {
     }
     
     public static class SocketIORequest extends AsyncHttpPost {
-        public SocketIORequest(String uri) {
+        public SocketIORequest(String uri, String namespace) {
             // get the socket.io endpoint
-            super(uri.replaceAll("/$", "") + "/socket.io/1/");
+            super(uri.replaceAll("/$", "") + "/" + namespace + "/1/");
+        }
+        public SocketIORequest(String uri) {
+            this(uri, "socket.io");
         }
     }
     
