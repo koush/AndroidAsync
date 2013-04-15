@@ -4,10 +4,12 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -56,7 +58,26 @@ public class SocketIOClient {
             callback.onConnectCompleted(e, null);
         }
     }
+
+    public void emit(String name, JSONArray args) {
+        final JSONObject event = new JSONObject();
+        try {
+            event.put("name", name);
+            event.put("args", args);
+            webSocket.send(String.format("5:::%s", event.toString()));
+        }
+        catch (Exception e) {
+        }
+    }
+
+    public void emit(final String message) {
+        webSocket.send(String.format("3:::%s", message));
+    }
     
+    public void emit(final JSONObject jsonMessage) {
+        webSocket.send(String.format("4:::%s", jsonMessage.toString()));
+    }
+
     private static class FutureImpl extends SimpleFuture<SocketIOClient> {
     }
     
