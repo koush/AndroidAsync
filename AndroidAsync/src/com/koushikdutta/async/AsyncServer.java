@@ -139,6 +139,13 @@ public class AsyncServer {
         }
         
         @Override
+        public boolean remove(Object object) {
+            synchronized (this) {
+                return super.remove(object);
+            }
+        }
+
+        @Override
         public Runnable remove() {
             synchronized (this) {
                 if (this.isEmpty())
