@@ -540,4 +540,8 @@ public class AsyncHttpClient {
     AsyncServer getServer() {
         return mServer;
     }
+    
+    public void setDebug(boolean debug) {
+	mServer.mDebug = debug;
+    }
 }
