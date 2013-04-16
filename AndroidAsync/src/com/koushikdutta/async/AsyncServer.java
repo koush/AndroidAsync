@@ -33,6 +33,7 @@ import com.koushikdutta.async.future.SimpleFuture;
 
 public class AsyncServer {
     public static final String LOGTAG = "NIO";
+    public boolean mDebug = false;
     
     public static class AsyncSemaphore {
         Semaphore semaphore = new Semaphore(0);
