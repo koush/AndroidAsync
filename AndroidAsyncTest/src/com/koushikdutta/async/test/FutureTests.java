@@ -1,6 +1,7 @@
 package com.koushikdutta.async.test;
 
 import java.util.ArrayList;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +38,37 @@ public class FutureTests extends TestCase {
             }.start();
             
             return ret;
+        }
+    }
+    
+    public void testFutureCancel() throws Exception {
+        // test a future being cancelled while waiting
+        final IntegerFuture future = IntegerFuture.create(20, 2000);
+        
+        new Thread() {
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                }
+                catch (InterruptedException e) {
+                }
+                future.cancel();
+            };
+        }
+        .start();
+
+        try {
+            future.get(3000, TimeUnit.MILLISECONDS);
+            // this should never reach here as it was cancelled
+            fail();
+        }
+        catch (TimeoutException e) {
+            // timeout should also fail, since it was cancelled
+            fail();
+        }
+        catch (ExecutionException e) {
+            // execution exception is correct, make sure inner exception is cancellation
+            assertTrue(e.getCause() instanceof CancellationException);
         }
     }
     

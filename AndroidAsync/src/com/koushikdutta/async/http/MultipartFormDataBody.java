@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import junit.framework.Assert;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.LineEmitter;
@@ -124,6 +126,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         return mCallback;
     }
 
+    int written;
     @Override
     public void write(AsyncHttpRequest request, final AsyncHttpResponse sink) {
         if (mParts == null) {
@@ -146,20 +149,35 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                 @Override
                 public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
                     part.getRawHeaders().setStatusLine(getBoundaryStart());
-                    com.koushikdutta.async.Util.writeAll(sink, part.getRawHeaders().toHeaderString().getBytes(), next);
+                    byte[] bytes = part.getRawHeaders().toHeaderString().getBytes();
+                    com.koushikdutta.async.Util.writeAll(sink, bytes, next);
+                    written += bytes.length;
                 }
             })
             .add(new ContinuationCallback() {
                 @Override
                 public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                    written += part.length();
                     part.write(sink, next);
+                }
+            })
+            .add(new ContinuationCallback() {
+                @Override
+                public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
+                    byte[] bytes = "\r\n".getBytes();
+                    com.koushikdutta.async.Util.writeAll(sink, bytes, next);
+                    written += bytes.length;
                 }
             });
         }
         c.add(new ContinuationCallback() {
             @Override
             public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
-                com.koushikdutta.async.Util.writeAll(sink, ("\r\n" + getBoundaryEnd() + "\r\n").getBytes(), next);
+                byte[] bytes = (getBoundaryEnd() + "\r\n").getBytes();
+                com.koushikdutta.async.Util.writeAll(sink, bytes, next);
+                written += bytes.length;
+                
+                Assert.assertEquals(written, totalToWrite);
             }
         });
         c.start();
@@ -178,6 +196,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         return false;
     }
 
+    int totalToWrite;
     @Override
     public int length() {
         if (getBoundary() == null) {
@@ -189,10 +208,10 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
             part.getRawHeaders().setStatusLine(getBoundaryStart());
             if (part.length() == -1)
                 return -1;
-            length += part.length() + part.getRawHeaders().toHeaderString().getBytes().length;
+            length += part.length() + part.getRawHeaders().toHeaderString().getBytes().length + "\r\n".length();
         }
         length += (getBoundaryEnd() + "\r\n").getBytes().length;
-        return length;
+        return totalToWrite = length;
     }
     
     public MultipartFormDataBody() {

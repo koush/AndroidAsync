@@ -1,8 +1,11 @@
 package com.koushikdutta.async.test;
 
 import java.io.File;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -87,6 +90,35 @@ public class HttpClientTests extends TestCase {
     public void testGithubHelloWithFuture() throws Exception {
         Future<String> string = client.get("https://" + githubPath + "hello.txt", (StringCallback)null);
         assertEquals(string.get(TIMEOUT, TimeUnit.MILLISECONDS), "hello world");
+    }
+    
+    Future<String> future;
+    public void testCancel() throws Exception {
+        future = AsyncHttpClient.getDefaultInstance().get("http://yahoo.com", new StringCallback() {
+            @Override
+            public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
+                fail();
+            }
+            
+            @Override
+            public void onConnect(AsyncHttpResponse response) {
+                future.cancel();
+            }
+        });
+
+        try {
+            future.get(3000, TimeUnit.MILLISECONDS);
+            // this should never reach here as it was cancelled
+            fail();
+        }
+        catch (TimeoutException e) {
+            // timeout should also fail, since it was cancelled
+            fail();
+        }
+        catch (ExecutionException e) {
+            // execution exception is correct, make sure inner exception is cancellation
+            assertTrue(e.getCause() instanceof CancellationException);
+        }
     }
     
     public void testCache() throws Exception {

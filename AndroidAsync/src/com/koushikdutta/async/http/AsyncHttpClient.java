@@ -75,7 +75,6 @@ public class AsyncHttpClient {
     
     private static final String LOGTAG = "AsyncHttp";
     private static class CancelableImpl extends SimpleCancelable {
-        public HttpConnectCallback callback;
         public Cancellable socketCancelable;
         public AsyncSocket socket;
         
@@ -91,16 +90,19 @@ public class AsyncHttpClient {
             if (socket != null)
                 socket.close();
             
-            // call this?
-            callback.onConnectCompleted(new CancellationException(), null);
-            
             return true;
         }
     }
     
     private void reportConnectedCompleted(CancelableImpl cancel, Exception ex, AsyncHttpResponseImpl response, final HttpConnectCallback callback) {
-        if (cancel.setComplete())
+        if (cancel.setComplete()) {
             callback.onConnectCompleted(ex, response);
+            return;
+        }
+
+        // the request was cancelled, so close up shop, and eat any pending data
+        response.setDataCallback(new NullDataCallback());
+        response.close();
     }
 
     private void execute(final AsyncHttpRequest request, final HttpConnectCallback callback, final int redirectCount, final CancelableImpl cancel) {
@@ -113,19 +115,16 @@ public class AsyncHttpClient {
         data.request = request;
 
         final InternalConnectCallback socketConnected = new InternalConnectCallback() {
-            Object scheduled;
+            Object scheduled = null;
             {
                 if (request.getTimeout() > 0) {
                     scheduled = mServer.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            cancel.cancel();
-                            reportConnectedCompleted(cancel, new TimeoutException(), null, callback);
+                            if (cancel.cancel())
+                                reportConnectedCompleted(cancel, new TimeoutException(), null, callback);
                         }
                     }, request.getTimeout());
-                }
-                else {
-                    scheduled = null;
                 }
             }
             
@@ -173,7 +172,7 @@ public class AsyncHttpClient {
                             setDataCallback(new NullDataCallback());
                             return;
                         }
-                        
+
                         // at this point the headers are done being modified
                         reportConnectedCompleted(cancel, null, this, callback);
                     }
@@ -267,6 +266,9 @@ public class AsyncHttpClient {
         @Override
         public void onProgress(AsyncHttpResponse response, int downloaded, int total) {
         }
+        @Override
+        public void onConnect(AsyncHttpResponse response) {
+        }
     }
     
     public static abstract class DownloadCallback extends RequestCallbackBase<ByteBufferList> {
@@ -352,6 +354,11 @@ public class AsyncHttpClient {
         if (callback != null)
             callback.onProgress(response, downloaded, total);
     }
+    
+    private void invokeConnect(final RequestCallback callback, final AsyncHttpResponse response) {
+        if (callback != null)
+            callback.onConnect(response);
+    }
 
     public Future<File> get(String uri, final String filename, final FileCallback callback) {
         return execute(new AsyncHttpGet(uri), filename, callback);
@@ -410,6 +417,7 @@ public class AsyncHttpClient {
                         invoke(handler, callback, response, ex, null);
                     return;
                 }
+                invokeConnect(callback, response);
 
                 final int contentLength = response.getHeaders().getContentLength();
                 
@@ -459,7 +467,8 @@ public class AsyncHttpClient {
                         invoke(handler, callback, response, ex, null);
                     return;
                 }
-                
+                invokeConnect(callback, response);
+
                 final int contentLength = response.getHeaders().getContentLength();
 
                 response.setDataCallback(new DataCallback() {

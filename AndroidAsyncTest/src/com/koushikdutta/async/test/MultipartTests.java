@@ -67,7 +67,8 @@ public class MultipartTests extends TestCase {
                 request.setEndCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
-                        response.send(list.peekString() + body.getField("foo"));
+                        String val = list.peekString();
+                        response.send(val + body.getField("foo"));
                     }
                 });
             }
@@ -93,6 +94,7 @@ public class MultipartTests extends TestCase {
         MultipartFormDataBody body = new MultipartFormDataBody();
         body.addFilePart("my-file", dummy);
         body.addStringPart("foo", FIELD_VAL);
+        body.addStringPart("baz", FIELD_VAL);
         post.setBody(body);
 
         Future<String> ret = AsyncHttpClient.getDefaultInstance().execute(post, new StringCallback() {
@@ -101,6 +103,7 @@ public class MultipartTests extends TestCase {
             }
         });
         
-        assertEquals(ret.get(5000000, TimeUnit.MILLISECONDS), DUMMY_VAL + FIELD_VAL);
+        String data = ret.get(5000, TimeUnit.MILLISECONDS);
+        assertEquals(data, DUMMY_VAL + FIELD_VAL);
     }
 }

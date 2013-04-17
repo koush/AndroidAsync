@@ -11,23 +11,23 @@ import com.koushikdutta.async.FilteredDataEmitter;
 public class BoundaryEmitter extends FilteredDataEmitter {
     private byte[] boundary;
     public void setBoundary(String boundary) {
-        this.boundary = ("--" + boundary).getBytes();
+        this.boundary = ("\r\n--" + boundary).getBytes();
     }
     
     public String getBoundary() {
         if (boundary == null)
             return null;
-        return new String(boundary, 2, boundary.length - 2);
+        return new String(boundary, 4, boundary.length - 4);
     }
     
     public String getBoundaryStart() {
         Assert.assertNotNull(boundary);
-        return new String(boundary);
+        return new String(boundary, 2, boundary.length - 2);
     }
     
     public String getBoundaryEnd() {
         Assert.assertNotNull(boundary);
-        return new String(boundary) + "--\r\n";
+        return getBoundaryStart() + "--\r\n";
     }
     
     protected void onBoundaryStart() {
@@ -42,7 +42,23 @@ public class BoundaryEmitter extends FilteredDataEmitter {
     // -3 matching \r after boundary
     // -4 matching \n after boundary
     // defunct: -5 matching start - MUST match the start of the first boundary
-    int state = 0;
+    
+    // the state starts out having already matched \r\n
+    
+    
+    /*
+        Content-Type: multipart/form-data; boundary=----------------------------bc3c801ac760
+        
+        ------------------------------bc3c801ac760
+        Content-Disposition: form-data; name="my-file"; filename="foo"
+        Content-Type: application/octet-stream
+        
+        foo         <---------------- the newline is NOT PART OF THE PAYLOAD
+        ------------------------------bc3c801ac760--
+     */
+    
+    
+    int state = 2;
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
 //        System.out.println(bb.getString());
@@ -78,16 +94,12 @@ public class BoundaryEmitter extends FilteredDataEmitter {
             else if (state == -1) {
                 if (buf[i] == '\r') {
                     state = -4;
-                    int len = i - last - boundary.length - 2;
-                    if (len >= 0) {
+                    int len = i - last - boundary.length;
+                    if (last != 0 || len != 0) {
                         ByteBuffer b = ByteBuffer.wrap(buf, last, len);
                         ByteBufferList list = new ByteBufferList();
                         list.add(b);
                         super.onDataAvailable(this, list);
-                    }
-                    else {
-                        // len can be -1 on the first boundary
-                        Assert.assertEquals(-2, len);
                     }
 //                    System.out.println("bstart");
                     onBoundaryStart();
@@ -112,7 +124,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
             else if (state == -3) {
                 if (buf[i] == '\r') {
                     state = -4;
-                    ByteBuffer b = ByteBuffer.wrap(buf, last, i - last - boundary.length - 4);
+                    ByteBuffer b = ByteBuffer.wrap(buf, last, i - last - boundary.length - 6);
                     ByteBufferList list = new ByteBufferList();
                     list.add(b);
                     super.onDataAvailable(this, list);

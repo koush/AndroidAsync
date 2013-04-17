@@ -1,5 +1,6 @@
 package com.koushikdutta.async.future;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -10,6 +11,20 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return cancel();
+    }
+    
+    @Override
+    public boolean cancel() {
+        if (super.cancel()) {
+            synchronized (this) {
+                exception = new CancellationException();
+                if (waiter != null)
+                    waiter.release();
+            }
+            return true;
+        }
+
+        return false;
     }
 
     AsyncSemaphore waiter;
@@ -37,7 +52,7 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
     public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         synchronized (this) {
             if (isCancelled())
-                return null;
+                throw new ExecutionException(new CancellationException());
             if (isDone())
                 return getResult();
             if (waiter == null)
