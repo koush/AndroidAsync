@@ -23,8 +23,7 @@ public class SocketIOTests extends TestCase {
     public void testEchoServer() throws Exception {
         final TriggerFuture trigger = new TriggerFuture();
 
-        
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000", new SocketIOConnectCallback() {
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080", new SocketIOConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, SocketIOClient client) {
                 assertNull(ex);

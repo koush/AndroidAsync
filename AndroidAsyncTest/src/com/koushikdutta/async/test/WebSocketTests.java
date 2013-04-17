@@ -64,26 +64,6 @@ public class WebSocketTests extends TestCase {
         assertTrue(semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
     }
     
-    public void testEchoServer() throws Exception {
-        final Semaphore semaphore = new Semaphore(0);
-
-        AsyncHttpClient.getDefaultInstance().websocket("http://koush.clockworkmod.com:8080", "echo-protocol", new WebSocketConnectCallback() {
-            @Override
-            public void onCompleted(Exception ex, WebSocket webSocket) {
-                webSocket.setStringCallback(new StringCallback() {
-                    @Override
-                    public void onStringAvailable(String s) {
-                        assertEquals(s, "hello");
-                        semaphore.release();
-                    }
-                });
-                webSocket.send("hello");
-            }
-        });
-
-        assertTrue(semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
-    }
-
     @Override
     protected void tearDown() throws Exception {
         super.tearDown();
