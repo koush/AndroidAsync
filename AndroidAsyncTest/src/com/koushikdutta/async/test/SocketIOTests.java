@@ -24,7 +24,7 @@ public class SocketIOTests extends TestCase {
         final TriggerFuture trigger = new TriggerFuture();
 
         
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.10.75:3000", new SocketIOConnectCallback() {
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.com:8080", new SocketIOConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, SocketIOClient client) {
                 assertNull(ex);
