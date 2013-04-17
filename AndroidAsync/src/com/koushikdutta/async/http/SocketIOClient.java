@@ -1,13 +1,16 @@
 package com.koushikdutta.async.http;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.NullDataCallback;
@@ -57,36 +60,45 @@ public class SocketIOClient {
             callback.onConnectCompleted(e, null);
         }
     }
+    
+    private void emitRaw(int type, String message) {
+        webSocket.send(String.format("%d:::%s", type, message));
+
+    }
 
     public void emit(String name, JSONArray args) {
         final JSONObject event = new JSONObject();
         try {
             event.put("name", name);
             event.put("args", args);
-            webSocket.send(String.format("5:::%s", event.toString()));
+            emitRaw(5, event.toString());
         }
         catch (Exception e) {
         }
     }
 
     public void emit(final String message) {
-        webSocket.send(String.format("3:::%s", message));
+        emitRaw(3, message);
     }
     
     public void emit(final JSONObject jsonMessage) {
-        webSocket.send(String.format("4:::%s", jsonMessage.toString()));
+        emitRaw(4, jsonMessage.toString());
     }
 
     private static class FutureImpl extends SimpleFuture<SocketIOClient> {
     }
     
     public static class SocketIORequest extends AsyncHttpPost {
-        public SocketIORequest(String uri, String namespace) {
-            // get the socket.io endpoint
-            super(uri.replaceAll("/$", "") + "/" + namespace + "/1/");
+        String channel;
+        public String getChannel() {
+            return channel;
         }
+        
         public SocketIORequest(String uri) {
-            this(uri, "socket.io");
+            super(Uri.parse(uri).buildUpon().encodedPath("/socket.io/1/").build().toString());
+            channel = Uri.parse(uri).getPath();
+            if (TextUtils.isEmpty(channel))
+                channel = null;
         }
     }
     
@@ -124,7 +136,7 @@ public class SocketIOClient {
                     if (!set.contains("websocket"))
                         throw new Exception("websocket not supported");
                     
-                    Cancellable cancel = client.websocket(request.getUri().toString() + "websocket/" + session, null, new WebSocketConnectCallback() {
+                    Cancellable cancel = client.websocket(request.getUri().toString() + "websocket/" + session + "/", null, new WebSocketConnectCallback() {
                         @Override
                         public void onCompleted(Exception ex, WebSocket webSocket) {
                             if (ex != null) {
@@ -134,6 +146,8 @@ public class SocketIOClient {
                             
                             final SocketIOClient client = new SocketIOClient(webSocket, handler, heartbeat);
                             client.attach(callback, ret);
+                            if (null != request.getChannel())
+                                webSocket.send(String.format("1::%s:", request.getChannel()));
                         }
                     });
                     
