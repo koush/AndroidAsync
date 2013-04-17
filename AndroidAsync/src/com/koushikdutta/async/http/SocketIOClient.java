@@ -4,13 +4,12 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
+import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Cancellable;
@@ -47,7 +46,7 @@ public class SocketIOClient {
         if (!future.setComplete(e))
             return;
         if (handler != null) {
-            handler.post(new Runnable() {
+            AsyncServer.post(handler, new Runnable() {
                 @Override
                 public void run() {
                     callback.onConnectCompleted(e, null);
@@ -224,7 +223,7 @@ public class SocketIOClient {
                 };
                 
                 if (handler != null) {
-                    handler.post(runner);
+                    AsyncServer.post(handler, runner);
                 }
                 else {
                     runner.run();
@@ -251,7 +250,7 @@ public class SocketIOClient {
                         
                         if (closedCallback != null) {
                             if (handler != null) {
-                                handler.post(new Runnable() {
+                                AsyncServer.post(handler, new Runnable() {
                                     @Override
                                     public void run() {
                                         closedCallback.onCompleted(null);
@@ -293,7 +292,7 @@ public class SocketIOClient {
 
                         if (stringCallback != null) {
                             if (handler != null) {
-                                handler.post(new Runnable() {
+                                AsyncServer.post(handler, new Runnable() {
                                     @Override
                                     public void run() {
                                         stringCallback.onString(dataString);
@@ -323,7 +322,7 @@ public class SocketIOClient {
 
                         if (jsonCallback != null) {
                             if (handler != null) {
-                                handler.post(new Runnable() {
+                                AsyncServer.post(handler, new Runnable() {
                                     @Override
                                     public void run() {
                                         jsonCallback.onJSON(jsonMessage);
@@ -353,7 +352,7 @@ public class SocketIOClient {
 
                         if (eventCallback != null) {
                             if (handler != null) {
-                                handler.post(new Runnable() {
+                                AsyncServer.post(handler, new Runnable() {
                                     @Override
                                     public void run() {
                                         eventCallback.onEvent(event, args);
