@@ -129,6 +129,9 @@ public class AsyncHttpServer {
 
                 @Override
                 public void onCompleted(Exception e) {
+                    // if the protocol was switched off http, ignore this request/response.
+                    if (res.getHeaders().getHeaders().getResponseCode() == 101)
+                        return;
                     requestComplete = true;
                     super.onCompleted(e);
                     mSocket.setDataCallback(null);

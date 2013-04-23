@@ -38,8 +38,13 @@ public class WebSocketTests extends TestCase {
     
         httpServer.websocket("/ws", new WebSocketRequestCallback() {
             @Override
-            public void onConnected(WebSocket webSocket, RequestHeaders headers) {
-                webSocket.send("hello");
+            public void onConnected(final WebSocket webSocket, RequestHeaders headers) {
+                webSocket.setStringCallback(new StringCallback() {
+                    @Override
+                    public void onStringAvailable(String s) {
+                        webSocket.send(s);
+                    }
+                });
             }
         });
     }
@@ -51,6 +56,7 @@ public class WebSocketTests extends TestCase {
         AsyncHttpClient.getDefaultInstance().websocket("http://localhost:5000/ws", null, new WebSocketConnectCallback() {
             @Override
             public void onCompleted(Exception ex, WebSocket webSocket) {
+                webSocket.send("hello");
                 webSocket.setStringCallback(new StringCallback() {
                     @Override
                     public void onStringAvailable(String s) {
@@ -61,7 +67,7 @@ public class WebSocketTests extends TestCase {
             }
         });
         
-        assertTrue(semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertTrue(semaphore.tryAcquire(TIMEOUT * 100, TimeUnit.MILLISECONDS));
     }
     
     @Override
