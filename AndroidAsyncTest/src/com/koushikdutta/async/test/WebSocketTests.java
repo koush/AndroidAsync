@@ -67,7 +67,7 @@ public class WebSocketTests extends TestCase {
             }
         });
         
-        assertTrue(semaphore.tryAcquire(TIMEOUT * 100, TimeUnit.MILLISECONDS));
+        assertTrue(semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
     }
     
     @Override
