@@ -124,7 +124,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
             else if (state == -3) {
                 if (buf[i] == '\r') {
                     state = -4;
-                    ByteBuffer b = ByteBuffer.wrap(buf, last, i - last - boundary.length - 6);
+                    ByteBuffer b = ByteBuffer.wrap(buf, last, i - last - boundary.length - 2);
                     ByteBufferList list = new ByteBufferList();
                     list.add(b);
                     super.onDataAvailable(this, list);

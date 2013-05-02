@@ -1,6 +1,7 @@
 package com.koushikdutta.async.test;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
@@ -45,9 +46,9 @@ public class MultipartTests extends TestCase {
         httpServer.listen(server, 5000);
         
         httpServer.post("/", new HttpServerRequestCallback() {
+            int gotten = 0;
             @Override
             public void onRequest(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                final ByteBufferList list = new ByteBufferList();
                 final MultipartFormDataBody body = (MultipartFormDataBody)request.getBody();
                 body.setMultipartCallback(new MultipartCallback() {
                     @Override
@@ -56,7 +57,7 @@ public class MultipartTests extends TestCase {
                             body.setDataCallback(new DataCallback() {
                                 @Override
                                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                                    list.add(bb);
+                                    gotten += bb.remaining();
                                     bb.clear();
                                 }
                             });
@@ -67,8 +68,7 @@ public class MultipartTests extends TestCase {
                 request.setEndCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
-                        String val = list.peekString();
-                        response.send(val + body.getField("foo"));
+                        response.send(body.getField("baz") + gotten + body.getField("foo"));
                     }
                 });
             }
@@ -86,14 +86,19 @@ public class MultipartTests extends TestCase {
 
     public void testUpload() throws Exception {
         File dummy = new File(Environment.getExternalStorageDirectory(), "AndroidAsync/dummy.txt");
-        final String DUMMY_VAL = "dummy";
         final String FIELD_VAL = "bar";
-        StreamUtility.writeFile(dummy, DUMMY_VAL);
+        FileOutputStream fout = new FileOutputStream(dummy);
+        byte[] zeroes = new byte[100000];
+        for (int i = 0; i < 10; i++) {
+            fout.write(zeroes);
+        }
+        fout.close();
+//        StreamUtility.writeFile(dummy, DUMMY_VAL);
         
         AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000");
         MultipartFormDataBody body = new MultipartFormDataBody();
-        body.addFilePart("my-file", dummy);
         body.addStringPart("foo", FIELD_VAL);
+        body.addFilePart("my-file", dummy);
         body.addStringPart("baz", FIELD_VAL);
         post.setBody(body);
 
@@ -103,7 +108,7 @@ public class MultipartTests extends TestCase {
             }
         });
         
-        String data = ret.get(5000, TimeUnit.MILLISECONDS);
-        assertEquals(data, DUMMY_VAL + FIELD_VAL);
+        String data = ret.get(500000, TimeUnit.MILLISECONDS);
+        assertEquals(data, FIELD_VAL + 1000000 + FIELD_VAL);
     }
 }
