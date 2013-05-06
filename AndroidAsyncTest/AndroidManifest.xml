@@ -11,6 +11,7 @@
         android:targetPackage="com.koushikdutta.async.sample" />
 
     <application
+        android:debuggable="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name" >
         <uses-library android:name="android.test.runner" />

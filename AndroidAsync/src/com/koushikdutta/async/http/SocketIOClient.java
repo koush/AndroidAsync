@@ -1,6 +1,5 @@
 package com.koushikdutta.async.http;
 
-import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -25,14 +24,6 @@ public class SocketIOClient {
         public void onConnectCompleted(Exception ex, SocketIOClient client);
     }
 
-    public static interface SocketIOCallback {
-        public void on(String event, JSONArray arguments);
-        public void onDisconnect(int code, String reason);
-        public void onJSON(JSONObject json);
-        public void onMessage(String message);
-        public void onError(Exception error);
-    }
-    
     public static interface JSONCallback {
         public void onJSON(JSONObject json);
     }
@@ -136,22 +127,9 @@ public class SocketIOClient {
                     if (!set.contains("websocket"))
                         throw new Exception("websocket not supported");
                     
-                    Cancellable cancel = client.websocket(request.getUri().toString() + "websocket/" + session + "/", null, new WebSocketConnectCallback() {
-                        @Override
-                        public void onCompleted(Exception ex, WebSocket webSocket) {
-                            if (ex != null) {
-                                reportError(ret, handler, callback, ex);
-                                return;
-                            }
-                            
-                            final SocketIOClient client = new SocketIOClient(webSocket, handler, heartbeat);
-                            client.attach(callback, ret);
-                            if (null != request.getChannel())
-                                webSocket.send(String.format("1::%s:", request.getChannel()));
-                        }
-                    });
-                    
-                    ret.setParent(cancel);
+                    final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
+                    final SocketIOClient socketio = new SocketIOClient(handler, heartbeat, sessionUrl, client);
+                    socketio.reconnect(callback, ret);
                 }
                 catch (Exception ex) {
                     reportError(ret, handler, callback, ex);
@@ -196,25 +174,78 @@ public class SocketIOClient {
         eventCallback = callback;
     }
     
+    String sessionUrl;
     WebSocket webSocket;
-    private SocketIOClient(WebSocket webSocket, Handler handler, int heartbeat) {
-        this.webSocket = webSocket;
+    AsyncHttpClient httpClient;
+    private SocketIOClient(Handler handler, int heartbeat, String sessionUrl, AsyncHttpClient httpCliet) {
         this.handler = handler;
         this.heartbeat = heartbeat;
+        this.sessionUrl = sessionUrl;
+        this.httpClient = httpCliet;
     }
     
+    public boolean isConnected() {
+        return connected && !disconnected && webSocket != null && webSocket.isOpen();
+    }
+    
+    public void disconnect() {
+        webSocket.setStringCallback(null);
+        webSocket.setDataCallback(null);
+        webSocket.setClosedCallback(null);
+        webSocket.close();
+        webSocket = null;
+    }
+    
+    private void reconnect(final SocketIOConnectCallback callback, final FutureImpl ret) {
+        if (isConnected()) {
+            httpClient.getServer().post(new Runnable() {
+                @Override
+                public void run() {
+                    ret.setComplete(new Exception("already connected"));
+                }
+            });
+            return;
+        }
+        connected = false;
+        disconnected = false;
+        Cancellable cancel = httpClient.websocket(sessionUrl, null, new WebSocketConnectCallback() {
+            @Override
+            public void onCompleted(Exception ex, WebSocket webSocket) {
+                if (ex != null) {
+                    reportError(ret, handler, callback, ex);
+                    return;
+                }
+                
+                SocketIOClient.this.webSocket = webSocket;
+                attach(callback, ret);
+            }
+        });
+        
+        ret.setParent(cancel);
+    }
+    
+    private Future<SocketIOClient> reconnect(final SocketIOConnectCallback callback) {
+        FutureImpl ret = new FutureImpl();
+        reconnect(callback, ret);
+        return ret;
+    }
+
     boolean connected;
     boolean disconnected;
     int heartbeat;
-    Runnable heartbeatRunner = new Runnable() {
-        @Override
-        public void run() {
-            if (heartbeat <= 0 || disconnected || !connected || !webSocket.isOpen())
-                return;
-            webSocket.send("2:::");
-            webSocket.getServer().postDelayed(this, heartbeat);
-        }
-    };
+    void setupHeartbeat() {
+        final WebSocket ws = webSocket;
+        Runnable heartbeatRunner = new Runnable() {
+            @Override
+            public void run() {
+                if (heartbeat <= 0 || disconnected || !connected || ws != webSocket || ws == null || !ws.isOpen())
+                    return;
+                webSocket.send("2:::");
+                webSocket.getServer().postDelayed(this, heartbeat);
+            }
+        };
+        heartbeatRunner.run();
+    }
     
     Handler handler;
     private void attach(final SocketIOConnectCallback callback, final FutureImpl future) {
@@ -222,6 +253,8 @@ public class SocketIOClient {
         webSocket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(final Exception ex) {
+                disconnected = true;
+                webSocket = null;
                 Runnable runner = new Runnable() {
                     @Override
                     public void run() {
@@ -285,7 +318,7 @@ public class SocketIOClient {
                             throw new Exception("request canceled");
                         
                         connected = true;
-                        heartbeatRunner.run();
+                        setupHeartbeat();
                         callback.onConnectCompleted(null, SocketIOClient.this);
                         break;
                     case 2:
