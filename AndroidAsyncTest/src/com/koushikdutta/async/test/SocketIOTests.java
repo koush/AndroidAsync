@@ -2,13 +2,17 @@ package com.koushikdutta.async.test;
 
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.Assert;
 import junit.framework.TestCase;
-import android.os.Handler;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.SocketIOClient;
+import com.koushikdutta.async.http.SocketIOClient.EventCallback;
+import com.koushikdutta.async.http.SocketIOClient.JSONCallback;
 import com.koushikdutta.async.http.SocketIOClient.SocketIOConnectCallback;
 import com.koushikdutta.async.http.SocketIOClient.StringCallback;
 
@@ -42,7 +46,9 @@ public class SocketIOTests extends TestCase {
 //    }
     
     public void testEchoServer() throws Exception {
-        final TriggerFuture trigger = new TriggerFuture();
+        final TriggerFuture trigger1 = new TriggerFuture();
+        final TriggerFuture trigger2 = new TriggerFuture();
+        final TriggerFuture trigger3 = new TriggerFuture();
 
         SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080", new SocketIOConnectCallback() {
             @Override
@@ -51,14 +57,34 @@ public class SocketIOTests extends TestCase {
                 client.setStringCallback(new StringCallback() {
                     @Override
                     public void onString(String string) {
-                        trigger.trigger("hello".equals(string));
+                        trigger1.trigger("hello".equals(string));
                     }
                 });
-                client.emit("hello");
+                client.setEventCallback(new EventCallback() {
+                    @Override
+                    public void onEvent(String event, JSONArray arguments) {
+                        trigger2.trigger(arguments.length() == 3);
+                    }
+                });
+                client.setJSONCallback(new JSONCallback() {
+                    @Override
+                    public void onJSON(JSONObject json) {
+                        trigger3.trigger("world".equals(json.optString("hello")));
+                    }
+                });
+                try {
+                    client.emit("hello");
+                    client.emit(new JSONObject("{\"hello\":\"world\"}"));
+                    client.emit("ping", new JSONArray("[2,3,4]"));
+                }
+                catch (JSONException e) {
+                }
             }
         });
 
-        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertTrue(trigger1.get(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertTrue(trigger2.get(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertTrue(trigger3.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
 //    public void testReconnect() throws Exception {

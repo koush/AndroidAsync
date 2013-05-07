@@ -390,7 +390,7 @@ public class SocketIOClient {
                         final String dataString = parts[3];
                         JSONObject data = new JSONObject(dataString);
                         final String event = data.getString("name");
-                        final JSONArray args = data.getJSONArray("args");
+                        final JSONArray args = data.optJSONArray("args");
 
                         // ack
                         if(!"".equals(messageId)) {
