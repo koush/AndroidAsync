@@ -1,30 +1,7 @@
 package com.koushikdutta.async.http;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.TimeoutException;
-
-import junit.framework.Assert;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.os.Handler;
-
-import com.koushikdutta.async.AsyncSSLException;
-import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataSink;
-import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -36,6 +13,16 @@ import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
+import junit.framework.Assert;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.concurrent.TimeoutException;
 
 public class AsyncHttpClient {
     private static AsyncHttpClient mDefaultInstance;
@@ -393,9 +380,9 @@ public class AsyncHttpClient {
         };
         ret.setParent(cancel);
         file.getParentFile().mkdirs();
-        final FileOutputStream fout;
+        final OutputStream fout;
         try {
-            fout = new FileOutputStream(file);
+            fout = new BufferedOutputStream(new FileOutputStream(file), 8192);
         }
         catch (FileNotFoundException e) {
             if (ret.setComplete(e))
