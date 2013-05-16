@@ -173,7 +173,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
     
     boolean closeReported;
-    private void reportClose(Exception e) {
+    protected void reportClose(Exception e) {
         if (closeReported)
             return;
         closeReported = true;
@@ -331,5 +331,9 @@ public class AsyncNetworkSocket implements AsyncSocket {
     @Override
     public AsyncServer getServer() {
         return mServer;
+    }
+    
+    public int getLocalPort() {
+        return mChannel.getLocalPort();
     }
 }

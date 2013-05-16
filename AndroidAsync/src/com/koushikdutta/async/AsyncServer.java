@@ -477,9 +477,54 @@ public class AsyncServer {
         }
     }
 
-    public AsyncSocket connectDatagram(final SocketAddress remote) throws IOException {
+    public AsyncDatagramSocket connectDatagram(final String host, final int port) throws IOException {
         final DatagramChannel socket = DatagramChannel.open();
-        final AsyncNetworkSocket handler = new AsyncNetworkSocket();
+        final AsyncDatagramSocket handler = new AsyncDatagramSocket();
+        handler.attach(socket);
+        // ugh.. this should really be post to make it nonblocking...
+        // but i want datagrams to be immediately writable.
+        // they're not really used anyways.
+        run(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final SocketAddress remote = new InetSocketAddress(host, port);
+                    handleSocket(handler);
+                    socket.connect(remote);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        return handler;
+    }
+
+    public AsyncDatagramSocket openDatagram() throws IOException {
+        final DatagramChannel socket = DatagramChannel.open();
+        final AsyncDatagramSocket handler = new AsyncDatagramSocket();
+        handler.attach(socket);
+        // ugh.. this should really be post to make it nonblocking...
+        // but i want datagrams to be immediately writable.
+        // they're not really used anyways.
+        run(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    socket.socket().bind(null);
+                    handleSocket(handler);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        return handler;
+    }
+    
+    public AsyncDatagramSocket connectDatagram(final SocketAddress remote) throws IOException {
+        final DatagramChannel socket = DatagramChannel.open();
+        final AsyncDatagramSocket handler = new AsyncDatagramSocket();
         handler.attach(socket);
         // ugh.. this should really be post to make it nonblocking...
         // but i want datagrams to be immediately writable.

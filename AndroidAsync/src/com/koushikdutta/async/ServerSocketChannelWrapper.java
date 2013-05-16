@@ -12,6 +12,11 @@ import junit.framework.Assert;
 class ServerSocketChannelWrapper extends ChannelWrapper {
     ServerSocketChannel mChannel;
 
+    @Override
+    public int getLocalPort() {
+        return mChannel.socket().getLocalPort();
+    }
+
     ServerSocketChannelWrapper(ServerSocketChannel channel) throws IOException {
         super(channel);
         mChannel = channel;

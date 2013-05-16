@@ -37,7 +37,6 @@ public class GZIPInputFilter extends InflaterInputFilter {
         return b & 0xFF;
     }
     
-    DataEmitterReader mHeaderParser;
     @Override
     @SuppressWarnings("unused")
     public void onDataAvailable(final DataEmitter emitter, ByteBufferList bb) {

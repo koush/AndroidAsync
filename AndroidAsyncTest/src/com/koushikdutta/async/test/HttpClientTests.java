@@ -34,7 +34,7 @@ public class HttpClientTests extends TestCase {
         client = new AsyncHttpClient(server);
     }
     
-    private static final long TIMEOUT = 10000L; 
+    private static final long TIMEOUT = 100000L;
     public void testHomepage() throws Exception {
         Future<String> ret = client.get("http://google.com", (StringCallback)null);
         assertNotNull(ret.get(TIMEOUT, TimeUnit.MILLISECONDS));
@@ -69,8 +69,8 @@ public class HttpClientTests extends TestCase {
             }
         });
         
-        assertTrue(semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
-        assertTrue(md5.digest().equals(dataNameAndHash));
+        assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertTrue("md5", md5.digest().equals(dataNameAndHash));
     }
     
     public void testGithubRandomDataWithFuture() throws Exception {
@@ -107,7 +107,7 @@ public class HttpClientTests extends TestCase {
         });
 
         try {
-            future.get(3000, TimeUnit.MILLISECONDS);
+            future.get(TIMEOUT, TimeUnit.MILLISECONDS);
             // this should never reach here as it was cancelled
             fail();
         }

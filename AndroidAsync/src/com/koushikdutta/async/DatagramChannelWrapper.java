@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
@@ -9,13 +10,35 @@ import java.nio.channels.Selector;
 
 class DatagramChannelWrapper extends ChannelWrapper {
     DatagramChannel mChannel;
-
+    
+    @Override
+    public int getLocalPort() {
+        return mChannel.socket().getLocalPort();
+    }
+    
+    SocketAddress address;
+    public SocketAddress getRemoteAddress() {
+        return address;
+    }
+    
+    public void disconnect() throws IOException {
+        mChannel.disconnect();
+    }
+    
     DatagramChannelWrapper(DatagramChannel channel) throws IOException {
         super(channel);
         mChannel = channel;
     }
     @Override
     public int read(ByteBuffer buffer) throws IOException {
+        if (!isConnected()) {
+            int position = buffer.position();
+            address = mChannel.receive(buffer);
+            if (address == null)
+                return -1;
+            return buffer.position() - position;
+        }
+        address = null;
         return mChannel.read(buffer);
     }
     @Override

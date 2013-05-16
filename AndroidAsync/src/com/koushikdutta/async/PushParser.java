@@ -2,6 +2,7 @@ package com.koushikdutta.async;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -108,6 +109,15 @@ public class PushParser {
         }
     }
     
+    ByteOrder order = ByteOrder.BIG_ENDIAN;
+    public ByteOrder order() {
+        return order;
+    }
+    public PushParser order(ByteOrder order) {
+        this.order = order;
+        return this;
+    }
+    
     public void tap(TapCallback callback) {
         Assert.assertNull(mCallback);
         Assert.assertTrue(mWaiting.size() > 0);
@@ -122,6 +132,8 @@ public class PushParser {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                 try {
+                    if (bb != null)
+                        bb.order(order);
                     while (mWaiting.size() > 0) {
                         Object waiting = mWaiting.peek();
                         if (waiting == null)

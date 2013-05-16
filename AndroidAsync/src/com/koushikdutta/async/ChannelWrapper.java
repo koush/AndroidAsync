@@ -40,4 +40,6 @@ abstract class ChannelWrapper implements ReadableByteChannel {
     public void close() throws IOException {
        mChannel.close();
     }
+    
+    public abstract int getLocalPort();
 }

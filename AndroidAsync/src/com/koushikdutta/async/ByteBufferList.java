@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -8,6 +9,16 @@ import junit.framework.Assert;
 
 public class ByteBufferList implements Iterable<ByteBuffer> {
     LinkedList<ByteBuffer> mBuffers = new LinkedList<ByteBuffer>();
+    
+    ByteOrder order = ByteOrder.BIG_ENDIAN;
+    public ByteOrder order() {
+        return order;
+    }
+    
+    public ByteBufferList order(ByteOrder order) {
+        this.order = order;
+        return this;
+    }
     
     public ByteBuffer peek() {
         return mBuffers.peek();
@@ -93,7 +104,7 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
             offset += remaining;
         }
         
-        return ret;
+        return ret.order(order);
     }
 
     public ByteBuffer read(int count) {
@@ -106,11 +117,11 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         }
         
         if (first == null) {
-            return ByteBuffer.wrap(new byte[0]);
+            return ByteBuffer.wrap(new byte[0]).order(order);
         }
 
         if (first.remaining() >= count) {
-            return first;
+            return first.order(order);
         }
         else {
             // reallocate the count into a single buffer, and return it
@@ -130,7 +141,7 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
                 mBuffers.add(0, bb);
             ByteBuffer ret = ByteBuffer.wrap(bytes);
             mBuffers.add(0, ret);
-            return ret;
+            return ret.order(order);
         }
     }
     

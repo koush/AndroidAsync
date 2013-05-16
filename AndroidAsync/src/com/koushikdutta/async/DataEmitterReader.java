@@ -32,7 +32,7 @@ public class DataEmitterReader implements com.koushikdutta.async.callback.DataCa
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         // if we're registered for data, we must be waiting for a read
-        Assert.assertNotNull(mPendingRead);
+        assert(mPendingRead != null);
         do {
             int need = Math.min(bb.remaining(), mPendingReadLength - mPendingData.remaining());
             mPendingData.add(bb.get(need));

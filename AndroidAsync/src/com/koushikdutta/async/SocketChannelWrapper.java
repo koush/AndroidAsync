@@ -10,6 +10,11 @@ import java.nio.channels.SocketChannel;
 class SocketChannelWrapper extends ChannelWrapper {
     SocketChannel mChannel;
 
+    @Override
+    public int getLocalPort() {
+        return mChannel.socket().getLocalPort();
+    }
+
     SocketChannelWrapper(SocketChannel channel) throws IOException {
         super(channel);
         mChannel = channel;

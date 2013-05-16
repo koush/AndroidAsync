@@ -87,6 +87,7 @@ public class MultipartTests extends TestCase {
     public void testUpload() throws Exception {
         File dummy = new File(Environment.getExternalStorageDirectory(), "AndroidAsync/dummy.txt");
         final String FIELD_VAL = "bar";
+        dummy.getParentFile().mkdirs();
         FileOutputStream fout = new FileOutputStream(dummy);
         byte[] zeroes = new byte[100000];
         for (int i = 0; i < 10; i++) {
