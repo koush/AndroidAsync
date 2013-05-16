@@ -25,7 +25,7 @@ AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.StringCallback
 ```
 
 
-### Download a JSON Object
+### Download JSON from a url
 
 ```java
 // url is the URL to download. The callback will be invoked on the UI thread
