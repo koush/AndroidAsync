@@ -22,11 +22,15 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
     
     void attach(SocketChannel channel) throws IOException {
+        maxAlloc = 256 * 1024; // 256K
         mChannel = new SocketChannelWrapper(channel);
     }
     
     void attach(DatagramChannel channel) throws IOException {
         mChannel = new DatagramChannelWrapper(channel);
+        // keep udp at roughly the mtu, which is 1540 or something
+        // letting it grow freaks out nio apparently.
+        maxAlloc = 8192;
     }
     
     ChannelWrapper getChannel() {
@@ -116,7 +120,8 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
 
     private ByteBufferList pending;
-    
+
+    int maxAlloc;
     int mToAlloc = 0;
     int onReadable() {
         spitPending();
@@ -128,12 +133,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
         int total = 0;
         try {
             boolean closed = false;
-            int maxAlloc = 256 * 1024; // 256K
-            // keep udp at roughly the mtu, which is 1540 or something
-            // letting it grow freaks out nio apparently.
-            if (mChannel.isChunked())
-                maxAlloc = 8192;
-            
+
             ByteBuffer b = ByteBuffer.allocate(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
             // keep track of the max mount read during this read cycle
             // so we can be quicker about allocations during the next

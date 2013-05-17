@@ -1,15 +1,13 @@
 package com.koushikdutta.async.http.filter;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.zip.Inflater;
-
-import junit.framework.Assert;
-
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.Util;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.zip.Inflater;
 
 public class InflaterInputFilter extends FilteredDataEmitter {
     private Inflater mInflater;
@@ -40,7 +38,7 @@ public class InflaterInputFilter extends FilteredDataEmitter {
                             output.limit(output.position());
                             output.position(0);
                             transformed.add(output);
-                            Assert.assertNotSame(totalRead, 0);
+                            assert totalRead != 0;
                             int newSize = output.capacity() * 2;
                             output = ByteBuffer.allocate(newSize);
                         }

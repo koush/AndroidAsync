@@ -1,18 +1,16 @@
 package com.koushikdutta.async;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-
-import junit.framework.Assert;
-
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 
 public class Util {
     public static void emitAllData(DataEmitter emitter, ByteBufferList list) {
@@ -21,8 +19,13 @@ public class Util {
         while (!emitter.isPaused() && (handler = emitter.getDataCallback()) != null && (remaining = list.remaining()) > 0) {
             handler.onDataAvailable(emitter, list);
             if (remaining == list.remaining() && handler == emitter.getDataCallback()) {
-                Assert.fail("mDataHandler failed to consume data, yet remains the mDataHandler.");
-                break;
+                // not all the data was consumed...
+                // call byteBufferList.clear() or read all the data to prevent this assertion.
+                // this is nice to have, as it identifies protocol or parsing errors.
+                System.out.println("Data: " + list.peekString());
+                System.out.println("handler: " + handler);
+                assert false;
+                throw new RuntimeException("mDataHandler failed to consume data, yet remains the mDataHandler.");
             }
         }
         if (list.remaining() != 0 && !emitter.isPaused()) {
@@ -31,7 +34,8 @@ public class Util {
             // this is nice to have, as it identifies protocol or parsing errors.
             System.out.println("Data: " + list.peekString());
             System.out.println("handler: " + handler);
-            Assert.fail();
+            assert false;
+            throw new RuntimeException("mDataHandler failed to consume data, yet remains the mDataHandler.");
         }
     }
 

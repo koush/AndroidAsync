@@ -98,7 +98,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             byte[] md5bytes = messageDigest.digest(uri.toString().getBytes());
             return new BigInteger(1, md5bytes).toString(16);
         } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError(e);
+            throw new RuntimeException(e);
         }
     }
     

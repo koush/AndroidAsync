@@ -13,7 +13,6 @@ import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
-import junit.framework.Assert;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -116,19 +115,18 @@ public class AsyncHttpClient {
             }
             
             @Override
-            public void onConnectCompleted(Exception ex, AsyncSocket _socket) {
+            public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                 if (cancel.isCancelled()) {
-                    if (_socket != null)
-                        _socket.close();
+                    if (socket != null)
+                        socket.close();
                     return;
                 }
 
-                data.socket = _socket;
+                data.socket = socket;
                 for (AsyncHttpClientMiddleware middleware: mMiddleware) {
                     middleware.onSocket(data);
                 }
                 
-                AsyncSocket socket = data.socket;
                 cancel.socket = socket;
 
                 if (ex != null) {
@@ -179,8 +177,7 @@ public class AsyncHttpClient {
                                 middleware.onHeadersReceived(data);
                             }
                             mHeaders = data.headers;
-                            RawHeaders headers = mHeaders.getHeaders();
-                            
+
                             // drop through, and setDataEmitter will be called for the body decoder.
                             // headers will be further massaged in there.
                         }
@@ -238,7 +235,7 @@ public class AsyncHttpClient {
             if (null != (cancel.socketCancelable = middleware.getSocket(data)))
                 return;
         }
-        Assert.fail();
+        assert false;
     }
     
     public Cancellable execute(URI uri, final HttpConnectCallback callback) {

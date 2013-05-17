@@ -1,7 +1,5 @@
 package com.koushikdutta.async.http.filter;
 
-import junit.framework.Assert;
-
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
@@ -79,10 +77,10 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
                         break;
                     ByteBufferList chunk = bb.get(reading);
                     int newRemaining = bb.remaining();
-                    Assert.assertEquals(remaining, chunk.remaining() + bb.remaining());
-                    Assert.assertEquals(reading, chunk.remaining());
+                    assert remaining == chunk.remaining() + bb.remaining();
+                    assert reading == chunk.remaining();
                     Util.emitAllData(this, chunk);
-                    Assert.assertEquals(newRemaining, bb.remaining());
+                    assert newRemaining == bb.remaining();
                     break;
                 case CHUNK_CR:
                     if (!checkCR(bb.getByteChar()))
@@ -103,7 +101,7 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
                     mChunkLength = 0;
                     break;
                 case COMPLETE:
-                    Assert.fail();
+                    assert false;
 //                    Exception fail = new Exception("Continued receiving data after chunk complete");
 //                    report(fail);
                     return;

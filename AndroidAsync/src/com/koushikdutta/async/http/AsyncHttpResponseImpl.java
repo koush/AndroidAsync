@@ -1,23 +1,14 @@
 package com.koushikdutta.async.http;
 
-import java.nio.ByteBuffer;
-
-import junit.framework.Assert;
-
-import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataSink;
-import com.koushikdutta.async.FilteredDataEmitter;
-import com.koushikdutta.async.LineEmitter;
+import com.koushikdutta.async.*;
 import com.koushikdutta.async.LineEmitter.StringCallback;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
+
+import java.nio.ByteBuffer;
 
 abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncHttpResponse {
     private AsyncHttpRequestBody mWriter;
@@ -150,8 +141,8 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         if (!mFirstWrite)
             return;
         mFirstWrite = false;
-        Assert.assertNotNull(mRequest.getHeaders().getHeaders().get("Content-Type"));
-        Assert.assertTrue(mRequest.getHeaders().getHeaders().get("Transfer-Encoding") != null || mRequest.getHeaders().getContentLength() != -1); 
+        assert null != mRequest.getHeaders().getHeaders().get("Content-Type");
+        assert mRequest.getHeaders().getHeaders().get("Transfer-Encoding") != null || mRequest.getHeaders().getContentLength() != -1;
     }
 
     DataSink mSink;
