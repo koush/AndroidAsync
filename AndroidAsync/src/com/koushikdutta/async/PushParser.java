@@ -80,7 +80,8 @@ public class PushParser {
         UntilWaiter waiter = new UntilWaiter();
         waiter.value = b;
         waiter.callback = callback;
-        mWaiting.add(b);
+        mWaiting.add(waiter);
+        mNeeded++;
         return this;
     }
     
@@ -160,30 +161,33 @@ public class PushParser {
                         }
                         else if (waiting instanceof UntilWaiter) {
                             UntilWaiter uw = (UntilWaiter)waiting;
-                            boolean found = false;
+                            boolean different = true;
                             ByteBufferList cb = new ByteBufferList();
-                            ByteBuffer lastBuffer = null;
-                            do {
-                                if (lastBuffer != bb.peek()) {
-                                    lastBuffer.mark();
-                                    if (lastBuffer != null) {
-                                        lastBuffer.reset();
-                                        cb.add(lastBuffer);
-                                    }
-                                    lastBuffer = bb.peek();
+                            while (bb.size() > 0) {
+                                ByteBuffer b = bb.remove();
+                                b.mark();
+                                int index = 0;
+                                while (b.remaining() > 0 && (different = (b.get() != uw.value))) {
+                                    index++;
+                                }
+                                b.reset();
+                                if (!different) {
+                                    bb.add(0, b);
+                                    bb.get(cb, index);
+                                    break;
+                                }
+                                else {
+                                    cb.add(b);
                                 }
                             }
-                            while (bb.remaining() > 0 && (found = (bb.get() != uw.value)));
 
-                            int mark = lastBuffer.position();
-                            lastBuffer.reset();
-                            ByteBuffer add = ByteBuffer.wrap(lastBuffer.array(), lastBuffer.arrayOffset() + lastBuffer.position(), mark - lastBuffer.position());
-                            cb.add(add);
-                            lastBuffer.position(mark);
-                            
-                            if (!found) {
-                                if (uw.callback != null)
-                                    uw.callback.onDataAvailable(emitter, cb);
+                            if (uw.callback != null)
+                                uw.callback.onDataAvailable(emitter, cb);
+
+                            if (!different) {
+                                mNeeded--;
+                            }
+                            else {
                                 throw new Exception();
                             }
                         }

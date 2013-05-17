@@ -39,7 +39,34 @@ public class HttpClientTests extends TestCase {
         Future<String> ret = client.get("http://google.com", (StringCallback)null);
         assertNotNull(ret.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
-    
+
+    public void testClockworkMod() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
+        final Md5 md5 = Md5.createInstance();
+        client.execute("http://www.clockworkmod.com", new HttpConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
+                // make sure gzip decoding works, as that is generally what github sends.
+                Assert.assertEquals("gzip", response.getHeaders().getContentEncoding());
+                response.setDataCallback(new DataCallback() {
+                    @Override
+                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                        md5.update(bb);
+                    }
+                });
+
+                response.setEndCallback(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        semaphore.release();
+                    }
+                });
+            }
+        });
+
+        assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
+
     // this testdata file was generated using /dev/random. filename is also the md5 of the file.
     final static String dataNameAndHash = "6691924d7d24237d3b3679310157d640";
     final static String githubPath = "github.com/koush/AndroidAsync/raw/master/AndroidAsyncTest/testdata/";

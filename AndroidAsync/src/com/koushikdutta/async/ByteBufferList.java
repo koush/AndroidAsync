@@ -7,7 +7,7 @@ import java.nio.ByteOrder;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-public class ByteBufferList {
+public class ByteBufferList implements Iterable<ByteBuffer> {
     LinkedList<ByteBuffer> mBuffers = new LinkedList<ByteBuffer>();
     
     ByteOrder order = ByteOrder.BIG_ENDIAN;
@@ -19,8 +19,9 @@ public class ByteBufferList {
         this.order = order;
         return this;
     }
-    
-    ByteBuffer peek() {
+
+    public ByteBuffer peek() {
+        remaining = -1;
         return mBuffers.peek();
     }
 
@@ -31,27 +32,30 @@ public class ByteBufferList {
         for (ByteBuffer bb: b)
             add(bb);
     }
-    
+
     public ByteBufferList(byte[] buf) {
         super();
         ByteBuffer b = ByteBuffer.wrap(buf);
         add(b);
     }
-    
+
     public ByteBuffer[] toArray() {
+        remaining = -1;
         ByteBuffer[] ret = new ByteBuffer[mBuffers.size()];
         ret = mBuffers.toArray(ret);
         return ret;
     }
 
-    int remaining = 0;
+    int remaining = -1;
     public int remaining() {
+        if (remaining >= 0) {
+            return remaining;
+        }
+        remaining = 0;
+        for (ByteBuffer bb: mBuffers) {
+            remaining += bb.remaining();
+        }
         return remaining;
-//        int ret = 0;
-//        for (ByteBuffer bb: mBuffers) {
-//            ret += bb.remaining();
-//        }
-//        return ret;
     }
     
     public int getInt() {
@@ -90,7 +94,8 @@ public class ByteBufferList {
     }
 
     public void get(ByteBufferList into, int length) {
-        assert remaining() >= length;
+        if (remaining() < length)
+            throw new IllegalArgumentException("length");
         int offset = 0;
         for (ByteBuffer b: mBuffers) {
             int remaining = b.remaining();
@@ -115,6 +120,8 @@ public class ByteBufferList {
 
             offset += remaining;
         }
+
+        remaining -= length;
     }
 
     public ByteBufferList get(int length) {
@@ -123,9 +130,15 @@ public class ByteBufferList {
         return ret.order(order);
     }
 
+    public ByteBuffer getAll() {
+        read(remaining());
+        return remove();
+    }
+
     private ByteBuffer read(int count) {
-        assert count <= remaining();
-        
+        if (remaining() < count)
+            throw new IllegalArgumentException("count");
+
         ByteBuffer first = mBuffers.peek();
         while (first != null && first.position() == first.limit()) {
             mBuffers.remove();
@@ -169,20 +182,25 @@ public class ByteBufferList {
     public void add(ByteBuffer b) {
         if (b.remaining() <= 0)
             return;
-        remaining += b.remaining();
+        addRemaining(b.remaining());
         mBuffers.add(b);
         trim();
     }
     
     public void add(int location, ByteBuffer b) {
-        remaining += b.remaining();
+        addRemaining(b.remaining());
         mBuffers.add(location, b);
+    }
+
+    private void addRemaining(int remaining) {
+        if (this.remaining() >= 0)
+            this.remaining += remaining;
     }
     
     public void add(ByteBufferList b) {
         if (b.remaining() <= 0)
             return;
-        remaining += b.remaining();
+        addRemaining(b.remaining());
         mBuffers.addAll(b.mBuffers);
         trim();
     }
@@ -202,11 +220,12 @@ public class ByteBufferList {
         return mBuffers.size();
     }
 
-//    @Override
-//    public Iterator<ByteBuffer> iterator() {
-//        return mBuffers.iterator();
-//    }
-    
+    @Override
+    public Iterator<ByteBuffer> iterator() {
+        remaining = -1;
+        return mBuffers.iterator();
+    }
+
     public void spewString() {
         System.out.println(peekString());
     }
@@ -218,5 +237,11 @@ public class ByteBufferList {
             builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
         }
         return builder.toString();
+    }
+
+    public String readString() {
+        String ret = peekString();
+        clear();
+        return ret;
     }
 }

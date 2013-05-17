@@ -65,12 +65,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                     mReadTmp.position(0);
                     mReadTmp.limit(mReadTmp.capacity());
                     ByteBuffer b;
-                    if (bb.size() > 1) {
-                        b = ByteBuffer.allocate(bb.remaining());
-                        bb.get(b.array());
-                    }
-                    else if (bb.size() == 1) {
-                        b = bb.remove();
+                    if (bb.size() > 0) {
+                        b = bb.getAll();
                     }
                     else {
                         b = ByteBuffer.allocate(0);
