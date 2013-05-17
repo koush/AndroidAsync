@@ -387,8 +387,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 if (cacheRequest != null) {
                     OutputStream outputStream = cacheRequest.getBody();
                     if (outputStream != null) {
-                        for (ByteBuffer b: bb) {
+                        int count = bb.size();
+                        for (int i = 0; i < count; i++) {
+                            ByteBuffer b = bb.remove();
                             outputStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                            bb.add(b);
                         }
                     }
                     else {

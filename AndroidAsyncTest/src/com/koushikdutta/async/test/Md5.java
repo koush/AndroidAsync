@@ -19,8 +19,10 @@ public class Md5 {
         
     }
     public void update(ByteBufferList bb) {
-        for (ByteBuffer b: bb)
+        while (bb.size() > 0) {
+            ByteBuffer b = bb.remove();
             digest.update(b);
+        }
     }
     
     public String digest() {

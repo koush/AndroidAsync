@@ -18,7 +18,8 @@ public class OutputStreamDataCallback implements DataCallback, CompletedCallback
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         try {
-            for (ByteBuffer b: bb) {
+            while (bb.size() > 0) {
+                ByteBuffer b = bb.remove();
                 mOutput.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
             }
         }

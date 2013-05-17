@@ -1,13 +1,13 @@
 package com.koushikdutta.async;
 
+import junit.framework.Assert;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import junit.framework.Assert;
-
-public class ByteBufferList implements Iterable<ByteBuffer> {
+public class ByteBufferList {
     LinkedList<ByteBuffer> mBuffers = new LinkedList<ByteBuffer>();
     
     ByteOrder order = ByteOrder.BIG_ENDIAN;
@@ -20,7 +20,7 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         return this;
     }
     
-    public ByteBuffer peek() {
+    ByteBuffer peek() {
         return mBuffers.peek();
     }
 
@@ -43,42 +43,54 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         ret = mBuffers.toArray(ret);
         return ret;
     }
-    
+
+    int remaining = 0;
     public int remaining() {
-        int ret = 0;
-        for (ByteBuffer bb: mBuffers) {
-            ret += bb.remaining();
-        }
-        return ret;
+        return remaining;
+//        int ret = 0;
+//        for (ByteBuffer bb: mBuffers) {
+//            ret += bb.remaining();
+//        }
+//        return ret;
     }
     
     public int getInt() {
-        return read(4).getInt();
+        int ret = read(4).getInt();
+        remaining -= 4;
+        return ret;
     }
     
     public char getByteChar() {
-        return (char)read(1).get();
+        char ret = (char)read(1).get();
+        remaining--;
+        return ret;
     }
     
     public int getShort() {
-        return read(2).getShort();
+        int ret = read(2).getShort();
+        remaining -= 2;
+        return ret;
     }
     
     public byte get() {
-        return read(1).get();
+        byte ret = read(1).get();
+        remaining--;
+        return ret;
     }
     
     public long getLong() {
-        return read(8).getLong();
+        long ret = read(8).getLong();
+        remaining -= 8;
+        return ret;
     }
     
     public void get(byte[] bytes) {
         read(bytes.length).get(bytes);
+        remaining -= bytes.length;
     }
 
-
     public void get(ByteBufferList into, int length) {
-        Assert.assertTrue(remaining() >= length);
+        assert remaining() >= length;
         int offset = 0;
         for (ByteBuffer b: mBuffers) {
             int remaining = b.remaining();
@@ -111,8 +123,8 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         return ret.order(order);
     }
 
-    public ByteBuffer read(int count) {
-        Assert.assertTrue(count <= remaining());
+    private ByteBuffer read(int count) {
+        assert count <= remaining();
         
         ByteBuffer first = mBuffers.peek();
         while (first != null && first.position() == first.limit()) {
@@ -152,44 +164,48 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
     public void trim() {
         // this clears out buffers that are empty in the beginning of the list
         read(0);
-        if (remaining() == 0)
-            mBuffers = new LinkedList<ByteBuffer>();
     }
     
     public void add(ByteBuffer b) {
         if (b.remaining() <= 0)
             return;
+        remaining += b.remaining();
         mBuffers.add(b);
         trim();
     }
     
     public void add(int location, ByteBuffer b) {
+        remaining += b.remaining();
         mBuffers.add(location, b);
     }
     
     public void add(ByteBufferList b) {
         if (b.remaining() <= 0)
             return;
+        remaining += b.remaining();
         mBuffers.addAll(b.mBuffers);
         trim();
     }
     
     public void clear() {
         mBuffers.clear();
+        remaining = 0;
     }
     
     public ByteBuffer remove() {
-        return mBuffers.remove();
+        ByteBuffer ret = mBuffers.remove();
+        remaining -= ret.remaining();
+        return ret;
     }
     
     public int size() {
         return mBuffers.size();
     }
 
-    @Override
-    public Iterator<ByteBuffer> iterator() {
-        return mBuffers.iterator();
-    }
+//    @Override
+//    public Iterator<ByteBuffer> iterator() {
+//        return mBuffers.iterator();
+//    }
     
     public void spewString() {
         System.out.println(peekString());
@@ -198,7 +214,7 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
     // not doing toString as this is really nasty in the debugger...
     public String peekString() {
         StringBuilder builder = new StringBuilder();
-        for (ByteBuffer bb: this) {
+        for (ByteBuffer bb: mBuffers) {
             builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
         }
         return builder.toString();

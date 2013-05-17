@@ -70,21 +70,21 @@ public class HttpClientTests extends TestCase {
         });
         
         assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
-        assertTrue("md5", md5.digest().equals(dataNameAndHash));
+        assertEquals(md5.digest(), dataNameAndHash);
     }
     
     public void testGithubRandomDataWithFuture() throws Exception {
         final Md5 md5 = Md5.createInstance();
         Future<ByteBufferList> bb = client.get(github, (DownloadCallback)null);
         md5.update(bb.get(TIMEOUT, TimeUnit.MILLISECONDS));
-        assertTrue(md5.digest().equals(dataNameAndHash));
+        assertEquals(md5.digest(), dataNameAndHash);
     }
 
     public void testInsecureGithubRandomDataWithFuture() throws Exception {
         final Md5 md5 = Md5.createInstance();
         Future<ByteBufferList> bb = client.get(githubInsecure, (DownloadCallback)null);
         md5.update(bb.get(TIMEOUT, TimeUnit.MILLISECONDS));
-        assertTrue(md5.digest().equals(dataNameAndHash));
+        assertEquals(md5.digest(), dataNameAndHash);
     }
     
     public void testGithubHelloWithFuture() throws Exception {

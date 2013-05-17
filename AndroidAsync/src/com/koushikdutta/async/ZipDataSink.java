@@ -48,13 +48,15 @@ public class ZipDataSink extends FilteredDataSink {
     public ByteBufferList filter(ByteBufferList bb) {
         try {
             if (bb != null) {
-                for (ByteBuffer b: bb) {
+                while (bb.size() > 0) {
+                    ByteBuffer b = bb.remove();
                     zop.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
                 }
             }
             ByteBufferList ret = new ByteBufferList(bout.toByteArray());
             bout.reset();
-            bb.clear();
+            if (bb != null)
+                bb.clear();
             return ret;
         }
         catch (IOException e) {

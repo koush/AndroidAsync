@@ -35,8 +35,9 @@ public class OutputStreamDataSink implements DataSink {
     @Override
     public void write(ByteBufferList bb) {
         try {
-            for (ByteBuffer b: bb) {
-                mStream.write(b.array(), b.arrayOffset() + b.position(), bb.remaining());
+            while (bb.size() > 0) {
+                ByteBuffer b = bb.remove();
+                mStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
             }
         }
         catch (IOException e) {

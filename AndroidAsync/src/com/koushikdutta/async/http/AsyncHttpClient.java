@@ -288,11 +288,9 @@ public class AsyncHttpClient {
         return execute(req, callback, new ResultConvert<String>() {
             @Override
             public String convert(ByteBufferList bb) {
-                StringBuilder builder = new StringBuilder();
-                for (ByteBuffer b: bb) {
-                    builder.append(new String(b.array(), b.arrayOffset() + b.position(), b.remaining()));
-                }
-                return builder.toString();
+                String ret = bb.peekString();
+                bb.clear();
+                return ret;
             }
         });
     }
@@ -305,11 +303,9 @@ public class AsyncHttpClient {
         return execute(req, callback, new ResultConvert<JSONObject>() {
             @Override
             public JSONObject convert(ByteBufferList bb) throws JSONException {
-                StringBuilder builder = new StringBuilder();
-                for (ByteBuffer b: bb) {
-                    builder.append(new String(b.array(), b.arrayOffset() + b.position(), b.remaining()));
-                }
-                return new JSONObject(builder.toString());
+                String ret = bb.peekString();
+                bb.clear();
+                return new JSONObject(ret);
             }
         });
     }
