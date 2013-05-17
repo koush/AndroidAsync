@@ -75,10 +75,10 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
     public void get(byte[] bytes) {
         read(bytes.length).get(bytes);
     }
-    
-    public ByteBufferList get(int length) {
+
+
+    public void get(ByteBufferList into, int length) {
         Assert.assertTrue(remaining() >= length);
-        ByteBufferList ret = new ByteBufferList();
         int offset = 0;
         for (ByteBuffer b: mBuffers) {
             int remaining = b.remaining();
@@ -88,22 +88,26 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
             // done
             if (offset > length)
                 break;
-            
+
             if (offset + remaining > length) {
                 int need = length - offset;
                 // this is shared between both
-                ret.add(ByteBuffer.wrap(b.array(), b.arrayOffset() + b.position(), need));
+                into.add(ByteBuffer.wrap(b.array(), b.arrayOffset() + b.position(), need));
                 b.position(b.position() + need);
             }
             else {
                 // this belongs to the new list
-                ret.add(ByteBuffer.wrap(b.array(), b.arrayOffset() + b.position(), remaining));
+                into.add(ByteBuffer.wrap(b.array(), b.arrayOffset() + b.position(), remaining));
                 b.position(b.limit());
             }
-            
+
             offset += remaining;
         }
-        
+    }
+
+    public ByteBufferList get(int length) {
+        ByteBufferList ret = new ByteBufferList();
+        get(ret, length);
         return ret.order(order);
     }
 

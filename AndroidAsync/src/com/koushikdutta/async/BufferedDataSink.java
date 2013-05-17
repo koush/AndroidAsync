@@ -76,7 +76,7 @@ public class BufferedDataSink implements DataSink {
             if (toRead > 0) {
                 if (mPendingWrites == null)
                     mPendingWrites = new ByteBufferList();
-                mPendingWrites.add(bb.get(toRead));
+                bb.get(mPendingWrites, toRead);
             }
         }
     }

@@ -35,7 +35,7 @@ public class DataEmitterReader implements com.koushikdutta.async.callback.DataCa
         assert(mPendingRead != null);
         do {
             int need = Math.min(bb.remaining(), mPendingReadLength - mPendingData.remaining());
-            mPendingData.add(bb.get(need));
+            bb.get(mPendingData, need);
         }
         while (handlePendingData(emitter) && mPendingRead != null);        
     }
