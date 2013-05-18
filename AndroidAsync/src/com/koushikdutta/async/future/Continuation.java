@@ -1,11 +1,9 @@
 package com.koushikdutta.async.future;
 
-import java.util.LinkedList;
-
-import junit.framework.Assert;
-
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
+
+import java.util.LinkedList;
 
 public class Continuation extends SimpleCancelable implements ContinuationCallback, Runnable, Cancellable {
     CompletedCallback callback;
@@ -58,7 +56,7 @@ public class Continuation extends SimpleCancelable implements ContinuationCallba
                 if (mThisCompleted)
                     return;
                 mThisCompleted = true;
-                Assert.assertTrue(waiting);
+                assert waiting;
                 waiting = false;
                 if (ex == null) {
                     next();
@@ -149,7 +147,8 @@ public class Continuation extends SimpleCancelable implements ContinuationCallba
     
     boolean started;
     public Continuation start() {
-        Assert.assertTrue(!started);
+        if (started)
+            throw new IllegalStateException("already started");
         started = true;
         next();
         return this;

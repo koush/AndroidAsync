@@ -30,18 +30,16 @@
 
 package com.koushikdutta.async.http;
 
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataEmitterReader;
+import com.koushikdutta.async.callback.DataCallback;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
-
-import junit.framework.Assert;
-
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataEmitterReader;
-import com.koushikdutta.async.callback.DataCallback;
 
 abstract class HybiParser {
     private static final String TAG = "HybiParser";

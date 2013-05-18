@@ -22,8 +22,6 @@ public class FilteredDataEmitter implements DataEmitter, DataCallback, DataEmitt
         }
         mEmitter = emitter;
         mEmitter.setDataCallback(this);
-//        mEndCallback = mEmitter.getEndCallback();
-//        Assert.assertNull(mEndCallback);
         mEmitter.setEndCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {

@@ -1,7 +1,5 @@
 package com.koushikdutta.async.http.server;
 
-import junit.framework.Assert;
-
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
@@ -14,7 +12,7 @@ public class UnknownRequestBody extends NullDataCallback implements AsyncHttpReq
 
     @Override
     public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
-        Assert.fail();
+        assert false;
     }
 
     private String mContentType;

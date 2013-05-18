@@ -106,9 +106,6 @@ public class AsyncHttpServer {
                     }
 
                     if (!getBody().readFullyOnRequest()) {
-//                        Assert.assertTrue(getBody() instanceof CompletedEmitter);
-//                        CompletedEmitter completed = (CompletedEmitter)getBody();
-//                        completed.setCompletedCallback(this);
                         match.callback.onRequest(this, res);
                     }
                     else if (requestComplete) {

@@ -39,11 +39,9 @@ public class BoundaryEmitter extends FilteredDataEmitter {
     // -2 matching - (end of boundary end)
     // -3 matching \r after boundary
     // -4 matching \n after boundary
-    // defunct: -5 matching start - MUST match the start of the first boundary
-    
+
     // the state starts out having already matched \r\n
-    
-    
+
     /*
         Content-Type: multipart/form-data; boundary=----------------------------bc3c801ac760
         
@@ -143,16 +141,6 @@ public class BoundaryEmitter extends FilteredDataEmitter {
                     report(new Exception("Invalid multipart/form-data. Expected \n"));
                 }
             }
-//            else if (state == -5) {
-//                Assert.assertEquals(i, 0);
-//                if (buf[i] == boundary[i]) {
-//                    state = 1;
-//                }
-//                else {
-//                    report(new Exception("Invalid multipart/form-data. Expected boundary start: '" + (char)boundary[i] + "'"));
-//                    return;
-//                }
-//            }
             else {
                 assert false;
                 report(new Exception("Invalid multipart/form-data. Unknown state?"));
