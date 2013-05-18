@@ -43,15 +43,7 @@ public class ByteBufferList {
     }
 
     public boolean isEmpty() {
-        if (remaining == 0)
-            return true;
-        if (remaining != -1)
-            return false;
-        for (ByteBuffer bb: mBuffers) {
-            if (bb.remaining() > 0)
-                return false;
-        }
-        return true;
+        return remaining == 0;
     }
 
     int remaining = 0;
