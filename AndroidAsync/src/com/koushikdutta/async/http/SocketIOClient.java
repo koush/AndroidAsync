@@ -224,7 +224,7 @@ public class SocketIOClient {
         ret.setParent(cancel);
     }
     
-    public Future<SocketIOClient> reconnect(final SocketIOConnectCallback callback) {
+    private Future<SocketIOClient> reconnect(final SocketIOConnectCallback callback) {
         FutureImpl ret = new FutureImpl();
         reconnect(callback, ret);
         return ret;
@@ -418,8 +418,7 @@ public class SocketIOClient {
                         break;
                     case 7:
                         // error
-//                        throw new Exception(message);
-                        break;
+                        throw new Exception(message);
                     case 8:
                         // noop
                         break;
