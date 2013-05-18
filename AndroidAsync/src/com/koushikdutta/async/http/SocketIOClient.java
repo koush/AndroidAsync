@@ -224,7 +224,7 @@ public class SocketIOClient {
         ret.setParent(cancel);
     }
     
-    private Future<SocketIOClient> reconnect(final SocketIOConnectCallback callback) {
+    public Future<SocketIOClient> reconnect(final SocketIOConnectCallback callback) {
         FutureImpl ret = new FutureImpl();
         reconnect(callback, ret);
         return ret;
@@ -253,6 +253,7 @@ public class SocketIOClient {
         webSocket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(final Exception ex) {
+                final boolean wasDiconnected = disconnected;
                 disconnected = true;
                 webSocket = null;
                 Runnable runner = new Runnable() {
@@ -262,7 +263,7 @@ public class SocketIOClient {
                             // closed connection before open...
                             callback.onConnectCompleted(ex == null ? new Exception("connection failed") : ex, null);
                         }
-                        else if (!disconnected) {
+                        else if (!wasDiconnected) {
                             if (closedCallback != null)
                                 closedCallback.onCompleted(ex == null ? new Exception("connection failed") : ex);
                         }
@@ -417,7 +418,8 @@ public class SocketIOClient {
                         break;
                     case 7:
                         // error
-                        throw new Exception(message);
+//                        throw new Exception(message);
+                        break;
                     case 8:
                         // noop
                         break;
