@@ -1,11 +1,5 @@
 package com.koushikdutta.async.http;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.UUID;
-
-import junit.framework.Assert;
-
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.LineEmitter;
@@ -17,6 +11,10 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.BoundaryEmitter;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.UUID;
 
 public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpRequestBody {
     LineEmitter liner;
@@ -177,7 +175,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                 com.koushikdutta.async.Util.writeAll(sink, bytes, next);
                 written += bytes.length;
                 
-                Assert.assertEquals(written, totalToWrite);
+                assert written == totalToWrite;
             }
         });
         c.start();

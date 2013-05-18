@@ -1,26 +1,17 @@
 package com.koushikdutta.async.http;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-
-import junit.framework.Assert;
-
-import org.apache.http.Header;
-import org.apache.http.HeaderIterator;
-import org.apache.http.HttpRequest;
-import org.apache.http.ProtocolVersion;
-import org.apache.http.RequestLine;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.params.HttpParams;
-
 import android.os.Handler;
 import android.os.Looper;
-
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
+import org.apache.http.*;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.params.HttpParams;
+
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
 
 public class AsyncHttpRequest implements HttpRequest {
     public RequestLine getRequestLine() {
@@ -66,7 +57,7 @@ public class AsyncHttpRequest implements HttpRequest {
     }
 
     public AsyncHttpRequest(URI uri, String method) {
-        Assert.assertNotNull(uri);
+        assert uri != null;
         mMethod = method;
         mHeaders = new RequestHeaders(uri, mRawHeaders);
         mRawHeaders.setStatusLine(getRequestLine().toString());
@@ -187,13 +178,13 @@ public class AsyncHttpRequest implements HttpRequest {
 
     @Override
     public HeaderIterator headerIterator() {
-        Assert.fail();
+        assert false;
         return null;
     }
 
     @Override
     public HeaderIterator headerIterator(String name) {
-        Assert.fail();
+        assert false;
         return null;
     }
 

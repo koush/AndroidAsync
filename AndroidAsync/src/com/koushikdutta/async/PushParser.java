@@ -1,15 +1,13 @@
 package com.koushikdutta.async;
 
+import com.koushikdutta.async.callback.DataCallback;
+
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedList;
-
-import junit.framework.Assert;
-
-import com.koushikdutta.async.callback.DataCallback;
 
 public class PushParser {
     private LinkedList<Object> mWaiting = new LinkedList<Object>();
@@ -120,9 +118,9 @@ public class PushParser {
     }
     
     public void tap(TapCallback callback) {
-        Assert.assertNull(mCallback);
-        Assert.assertTrue(mWaiting.size() > 0);
-        
+        assert mCallback == null;
+        assert mWaiting.size() > 0;
+
         mCallback = callback;
         
         new DataCallback() {
@@ -219,14 +217,14 @@ public class PushParser {
                                 mArgs.add(bytes);
                         }
                         else {
-                            Assert.fail();
+                            assert false;
                         }
 //                        System.out.println("Parsed: " + mArgs.get(0));
                         mWaiting.remove();
                     }
                 }
                 catch (Exception ex) {
-                    Assert.assertTrue(mNeeded != 0);
+                    assert mNeeded != 0;
 //                    ex.printStackTrace();
                     mReader.read(mNeeded, this);
                     return;
@@ -263,7 +261,8 @@ public class PushParser {
         "    *;\n" +
         "}\n";
 
-        Assert.fail("AndroidAsync: tap callback could not be found. Proguard? Use this in your proguard config:\n" + fail);
+        //null != "AndroidAsync: tap callback could not be found. Proguard? Use this in your proguard config:\n" + fail;
+        assert false;
         return null;
     }
 }

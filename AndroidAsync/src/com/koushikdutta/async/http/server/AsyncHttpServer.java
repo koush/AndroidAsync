@@ -1,35 +1,24 @@
 package com.koushikdutta.async.http.server;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import junit.framework.Assert;
 import android.content.Context;
-
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
-import com.koushikdutta.async.http.AsyncHttpGet;
-import com.koushikdutta.async.http.AsyncHttpPost;
-import com.koushikdutta.async.http.UrlEncodedFormBody;
-import com.koushikdutta.async.http.WebSocket;
-import com.koushikdutta.async.http.WebSocketImpl;
+import com.koushikdutta.async.http.*;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class AsyncHttpServer {
     ArrayList<AsyncServerSocket> mListeners = new ArrayList<AsyncServerSocket>();
@@ -331,7 +320,7 @@ public class AsyncHttpServer {
     }
     
     public void directory(String regex, final File directory, final boolean list) {
-        Assert.assertTrue(directory.isDirectory());
+        assert directory.isDirectory();
         addAction("GET", regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {

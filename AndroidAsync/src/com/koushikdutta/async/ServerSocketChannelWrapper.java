@@ -7,8 +7,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 
-import junit.framework.Assert;
-
 class ServerSocketChannelWrapper extends ChannelWrapper {
     ServerSocketChannel mChannel;
 
@@ -25,20 +23,20 @@ class ServerSocketChannelWrapper extends ChannelWrapper {
     @Override
     public int read(ByteBuffer buffer) throws IOException {
         final String msg = "Can't read ServerSocketChannel";
-        Assert.fail(msg);
+        assert false;
         throw new IOException(msg);
     }
 
     @Override
     public boolean isConnected() {
-        Assert.fail("ServerSocketChannel is never connected");
+        assert false;
         return false;
     }
 
     @Override
     public int write(ByteBuffer src) throws IOException {
         final String msg = "Can't write ServerSocketChannel";
-        Assert.fail(msg);
+        assert false;
         throw new IOException(msg);
 
     }
@@ -51,7 +49,7 @@ class ServerSocketChannelWrapper extends ChannelWrapper {
     @Override
     public int write(ByteBuffer[] src) throws IOException {
         final String msg = "Can't write ServerSocketChannel";
-        Assert.fail(msg);
+        assert false;
         throw new IOException(msg);
     }
 }

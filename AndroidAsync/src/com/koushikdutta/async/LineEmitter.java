@@ -1,7 +1,5 @@
 package com.koushikdutta.async;
 
-import junit.framework.Assert;
-
 import com.koushikdutta.async.callback.DataCallback;
 
 public class LineEmitter implements DataCallback {
@@ -25,7 +23,7 @@ public class LineEmitter implements DataCallback {
         while (bb.remaining() > 0) {
             byte b = bb.get();
             if (b == '\n') {
-                Assert.assertNotNull(mLineCallback);
+                assert mLineCallback != null;
                 mLineCallback.onStringAvailable(data.toString());
                 data = new StringBuilder();
                 return;

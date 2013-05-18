@@ -2,8 +2,6 @@ package com.koushikdutta.async;
 
 import java.nio.ByteBuffer;
 
-import junit.framework.Assert;
-
 public class FilteredDataSink extends BufferedDataSink {
     public FilteredDataSink(DataSink sink) {
         super(sink);
@@ -23,7 +21,7 @@ public class FilteredDataSink extends BufferedDataSink {
         ByteBufferList list = new ByteBufferList();
         byte[] bytes = new byte[bb.remaining()];
         bb.get(bytes);
-        Assert.assertTrue(bb.remaining() == 0);
+        assert bb.remaining() == 0;
         list.add(ByteBuffer.wrap(bytes));
         ByteBufferList filtered = filter(list);
         super.write(filtered, true);
@@ -36,7 +34,7 @@ public class FilteredDataSink extends BufferedDataSink {
         if (isBuffering() && getMaxBuffer() != Integer.MAX_VALUE)
             return;
         ByteBufferList filtered = filter(bb);
-        Assert.assertTrue(bb == null || filtered == bb || bb.remaining() == 0);
+        assert bb == null || filtered == bb || bb.isEmpty();
         super.write(filtered, true);
         if (bb != null)
             bb.clear();

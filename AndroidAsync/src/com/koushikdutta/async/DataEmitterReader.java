@@ -1,7 +1,5 @@
 package com.koushikdutta.async;
 
-import junit.framework.Assert;
-
 import com.koushikdutta.async.callback.DataCallback;
 
 public class DataEmitterReader implements com.koushikdutta.async.callback.DataCallback {
@@ -10,7 +8,7 @@ public class DataEmitterReader implements com.koushikdutta.async.callback.DataCa
     ByteBufferList mPendingData = new ByteBufferList();
 
     public void read(int count, DataCallback callback) {
-        Assert.assertNull(mPendingRead);    
+        assert mPendingRead == null;
         mPendingReadLength = count;
         mPendingRead = callback;
         mPendingData = new ByteBufferList();
@@ -32,7 +30,7 @@ public class DataEmitterReader implements com.koushikdutta.async.callback.DataCa
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         // if we're registered for data, we must be waiting for a read
-        assert(mPendingRead != null);
+        assert mPendingRead != null;
         do {
             int need = Math.min(bb.remaining(), mPendingReadLength - mPendingData.remaining());
             bb.get(mPendingData, need);

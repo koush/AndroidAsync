@@ -1,25 +1,18 @@
 package com.koushikdutta.async.http.server;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-
-import junit.framework.Assert;
-
-import org.json.JSONObject;
-
-import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.BufferedDataSink;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.Util;
+import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
@@ -63,8 +56,8 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         if (mHasWritten)
             return;
 
-        Assert.assertTrue(mContentLength < 0);
-        Assert.assertNotNull(mRawHeaders.getStatusLine());
+        assert mContentLength < 0;
+        assert null != mRawHeaders.getStatusLine();
         mRawHeaders.set("Transfer-Encoding", "Chunked");
         writeHead();
         mSink.setMaxBuffer(0);
@@ -73,7 +66,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     private void writeInternal(ByteBufferList bb) {
-        Assert.assertTrue(!mEnded);
+        assert !mEnded;
         initFirstWrite();
         mChunker.write(bb);
     }
@@ -115,14 +108,14 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private boolean mHeadWritten = false;
     @Override
     public void writeHead() {
-        Assert.assertFalse(mHeadWritten);
+        assert !mHeadWritten;
         mHeadWritten = true;
         mSink.write(ByteBuffer.wrap(mRawHeaders.toHeaderString().getBytes()));
     }
 
     @Override
     public void setContentType(String contentType) {
-        Assert.assertFalse(mHeadWritten);
+        assert !mHeadWritten;
         mRawHeaders.set("Content-Type", contentType);
     }
     
@@ -130,7 +123,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         try {
             if (mRawHeaders.getStatusLine() == null)
                 responseCode(200);
-            Assert.assertTrue(mContentLength < 0);
+            assert mContentLength < 0;
             byte[] bytes = string.getBytes("UTF-8");
             mContentLength = bytes.length;
             mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
@@ -141,7 +134,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             onEnd();
         }
         catch (UnsupportedEncodingException e) {
-            Assert.fail();
+            assert false;
         }
     }
     

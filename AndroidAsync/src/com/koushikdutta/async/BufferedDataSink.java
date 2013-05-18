@@ -1,11 +1,9 @@
 package com.koushikdutta.async;
 
-import java.nio.ByteBuffer;
-
-import junit.framework.Assert;
-
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+
+import java.nio.ByteBuffer;
 
 public class BufferedDataSink implements DataSink {
     DataSink mDataSink;
@@ -104,7 +102,7 @@ public class BufferedDataSink implements DataSink {
     }
     
     public void setMaxBuffer(int maxBuffer) {
-        Assert.assertTrue(maxBuffer >= 0);
+        assert maxBuffer >= 0;
         mMaxBuffer = maxBuffer;
     }
 

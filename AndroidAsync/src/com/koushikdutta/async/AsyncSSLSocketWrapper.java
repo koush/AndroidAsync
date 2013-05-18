@@ -1,29 +1,18 @@
 package com.koushikdutta.async;
 
-import java.nio.ByteBuffer;
-import java.security.KeyStore;
-import java.security.cert.X509Certificate;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
-import javax.net.ssl.SSLEngineResult.Status;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-
-import junit.framework.Assert;
-
-import org.apache.http.conn.ssl.StrictHostnameVerifier;
-
 import android.os.Build;
-
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
+import org.apache.http.conn.ssl.StrictHostnameVerifier;
+
+import javax.net.ssl.*;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.SSLEngineResult.Status;
+import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import java.security.cert.X509Certificate;
 
 public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket {
     AsyncSocket mSocket;
@@ -206,7 +195,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                     if (!e.getIgnore())
                         throw e;
                 }
-                Assert.assertNotNull(mWriteableCallback);
+                assert mWriteableCallback != null;
                 mWriteableCallback.onWriteable();
                 mEmitter.onDataAvailable();
             }

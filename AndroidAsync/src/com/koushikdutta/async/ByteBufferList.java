@@ -1,7 +1,5 @@
 package com.koushikdutta.async;
 
-import junit.framework.Assert;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Iterator;
@@ -44,6 +42,18 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         ByteBuffer[] ret = new ByteBuffer[mBuffers.size()];
         ret = mBuffers.toArray(ret);
         return ret;
+    }
+
+    public boolean isEmpty() {
+        if (remaining == 0)
+            return true;
+        if (remaining != -1)
+            return false;
+        for (ByteBuffer bb: mBuffers) {
+            if (bb.remaining() > 0)
+                return false;
+        }
+        return true;
     }
 
     int remaining = -1;
@@ -163,7 +173,7 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
                 bb.get(bytes, offset, toRead);
                 offset += toRead;
             }
-            Assert.assertNotNull(bb);
+            assert bb != null;
             // if there was still data left in the last buffer we popped
             // toss it back into the head
             if (bb.position() < bb.limit())

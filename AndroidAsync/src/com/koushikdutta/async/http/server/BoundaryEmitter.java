@@ -1,12 +1,10 @@
 package com.koushikdutta.async.http.server;
 
-import java.nio.ByteBuffer;
-
-import junit.framework.Assert;
-
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
+
+import java.nio.ByteBuffer;
 
 public class BoundaryEmitter extends FilteredDataEmitter {
     private byte[] boundary;
@@ -21,12 +19,12 @@ public class BoundaryEmitter extends FilteredDataEmitter {
     }
     
     public String getBoundaryStart() {
-        Assert.assertNotNull(boundary);
+        assert boundary != null;
         return new String(boundary, 2, boundary.length - 2);
     }
     
     public String getBoundaryEnd() {
-        Assert.assertNotNull(boundary);
+        assert boundary != null;
         return getBoundaryStart() + "--\r\n";
     }
     
@@ -156,7 +154,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
 //                }
 //            }
             else {
-                Assert.fail();
+                assert false;
                 report(new Exception("Invalid multipart/form-data. Unknown state?"));
             }
         }

@@ -1,17 +1,14 @@
 package com.koushikdutta.async;
 
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.WritableCallback;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-
-import junit.framework.Assert;
-import android.util.Log;
-
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.callback.WritableCallback;
 
 public class AsyncNetworkSocket implements AsyncSocket {
     AsyncNetworkSocket() {
@@ -38,7 +35,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
     
     public void onDataWritable() {
-        Assert.assertNotNull(mWriteableHandler);
+        assert mWriteableHandler != null;
         mWriteableHandler.onWriteable();
     }
     
@@ -63,7 +60,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
             return;
         }
         if (!mChannel.isConnected()) {
-            Assert.assertFalse(mChannel.isChunked());
+            assert !mChannel.isChunked();
             return;
         }
 
@@ -81,7 +78,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
     private void handleRemaining(int remaining) {
         if (remaining > 0) {
             // chunked channels should not fail
-            Assert.assertFalse(mChannel.isChunked());
+            assert !mChannel.isChunked();
             // register for a write notification if a write fails
             mKey.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
         }
@@ -103,7 +100,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
         }
         try {
             if (!mChannel.isConnected()) {
-                Assert.assertFalse(mChannel.isChunked());
+                assert !mChannel.isChunked();
                 return;
             }
 
@@ -153,7 +150,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
                 ByteBufferList list = new ByteBufferList(b);
                 Util.emitAllData(this, list);
                 if (b.remaining() != 0) {
-                    Assert.assertTrue(pending == null);
+                    assert pending == null;
                     pending = list;
                 }
             }

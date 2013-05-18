@@ -1,16 +1,20 @@
 package com.koushikdutta.async;
 
+import android.os.Build;
+import android.os.Handler;
+import android.util.Log;
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.SimpleCancelable;
+import com.koushikdutta.async.future.SimpleFuture;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.ClosedSelectorException;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -18,18 +22,6 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import junit.framework.Assert;
-import android.os.Build;
-import android.os.Handler;
-import android.util.Log;
-
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.ListenCallback;
-import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.SimpleCancelable;
-import com.koushikdutta.async.future.SimpleFuture;
 
 public class AsyncServer {
     public static final String LOGTAG = "NIO";
@@ -572,7 +564,7 @@ public class AsyncServer {
         synchronized (this) {
             if (mSelector != null) {
                 Log.i(LOGTAG, "Reentrant call");
-                Assert.assertEquals(Thread.currentThread(), mAffinity);
+                assert Thread.currentThread() == mAffinity;
                 // this is reentrant
                 reentrant = true;
                 selector = mSelector;
@@ -811,7 +803,7 @@ public class AsyncServer {
                 }
                 else {
                     Log.i(LOGTAG, "wtf");
-                    Assert.fail();
+                    assert false;
                 }
             }
             catch (Exception ex) {
