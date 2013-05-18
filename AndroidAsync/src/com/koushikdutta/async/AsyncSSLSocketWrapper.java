@@ -278,7 +278,9 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             mWriteTmp.position(0);
             mWriteTmp.limit(mWriteTmp.capacity());
             try {
-                res = engine.wrap(bb.toArray(), mWriteTmp);
+                ByteBuffer[] arr = bb.getAllArray();
+                res = engine.wrap(arr, mWriteTmp);
+                bb.addAll(arr);
                 if (!checkWrapResult(res))
                     remaining = -1;
                 writeTmp();

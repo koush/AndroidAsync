@@ -65,7 +65,9 @@ public class AsyncNetworkSocket implements AsyncSocket {
         }
 
         try {
-            mChannel.write(list.toArray());
+            ByteBuffer[] arr = list.getAllArray();
+            mChannel.write(arr);
+            list.addAll(arr);
             handleRemaining(list.remaining());
         }
         catch (IOException e) {

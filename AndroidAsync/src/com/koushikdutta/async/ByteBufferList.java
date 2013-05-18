@@ -2,10 +2,9 @@ package com.koushikdutta.async;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Iterator;
 import java.util.LinkedList;
 
-public class ByteBufferList implements Iterable<ByteBuffer> {
+public class ByteBufferList {
     LinkedList<ByteBuffer> mBuffers = new LinkedList<ByteBuffer>();
     
     ByteOrder order = ByteOrder.BIG_ENDIAN;
@@ -18,17 +17,11 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         return this;
     }
 
-    public ByteBuffer peek() {
-        remaining = -1;
-        return mBuffers.peek();
-    }
-
     public ByteBufferList() {
     }
 
     public ByteBufferList(ByteBuffer... b) {
-        for (ByteBuffer bb: b)
-            add(bb);
+        addAll(b);
     }
 
     public ByteBufferList(byte[] buf) {
@@ -37,10 +30,15 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         add(b);
     }
 
-    public ByteBuffer[] toArray() {
-        remaining = -1;
+    public void addAll(ByteBuffer... bb) {
+        for (ByteBuffer b: bb)
+            add(b);
+    }
+
+    public ByteBuffer[] getAllArray() {
         ByteBuffer[] ret = new ByteBuffer[mBuffers.size()];
         ret = mBuffers.toArray(ret);
+        clear();
         return ret;
     }
 
@@ -56,15 +54,8 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
         return true;
     }
 
-    int remaining = -1;
+    int remaining = 0;
     public int remaining() {
-        if (remaining >= 0) {
-            return remaining;
-        }
-        remaining = 0;
-        for (ByteBuffer bb: mBuffers) {
-            remaining += bb.remaining();
-        }
         return remaining;
     }
     
@@ -228,12 +219,6 @@ public class ByteBufferList implements Iterable<ByteBuffer> {
     
     public int size() {
         return mBuffers.size();
-    }
-
-    @Override
-    public Iterator<ByteBuffer> iterator() {
-        remaining = -1;
-        return mBuffers.iterator();
     }
 
     public void spewString() {
