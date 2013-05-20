@@ -19,7 +19,6 @@ import org.json.JSONObject;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
@@ -47,10 +46,6 @@ public class AsyncHttpClient {
         mServer = server;
         insertMiddleware(new AsyncSocketMiddleware(this));
         insertMiddleware(new AsyncSSLSocketMiddleware(this));
-    }
-
-    private static abstract class InternalConnectCallback implements ConnectCallback {
-        boolean reused = false;
     }
 
     public Cancellable execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
@@ -100,7 +95,7 @@ public class AsyncHttpClient {
         final OnRequestCompleteData data = new OnRequestCompleteData();
         data.request = request;
 
-        final InternalConnectCallback socketConnected = new InternalConnectCallback() {
+        data.connectCallback = new ConnectCallback() {
             Object scheduled = null;
             {
                 if (request.getTimeout() > 0) {
@@ -229,7 +224,6 @@ public class AsyncHttpClient {
                 ret.setSocket(socket);
             }
         };
-        data.connectCallback = socketConnected;
 
         for (AsyncHttpClientMiddleware middleware: mMiddleware) {
             if (null != (cancel.socketCancelable = middleware.getSocket(data)))
@@ -309,7 +303,8 @@ public class AsyncHttpClient {
             }
         });
     }
-    
+
+    @SuppressWarnings("unchecked")
     private void invoke(Handler handler, final RequestCallback callback, final AsyncHttpResponse response, final Exception e, final Object result) {
         if (callback == null)
             return;
