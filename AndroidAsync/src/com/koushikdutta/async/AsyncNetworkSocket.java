@@ -1,10 +1,13 @@
 package com.koushikdutta.async;
 
+import android.util.Log;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -17,8 +20,10 @@ public class AsyncNetworkSocket implements AsyncSocket {
     public boolean isChunked() {
         return mChannel.isChunked();
     }
-    
-    void attach(SocketChannel channel) throws IOException {
+
+    InetSocketAddress socketAddress;
+    void attach(SocketChannel channel, InetSocketAddress socketAddress) throws IOException {
+        this.socketAddress = socketAddress;
         maxAlloc = 256 * 1024; // 256K
         mChannel = new SocketChannelWrapper(channel);
     }
@@ -236,8 +241,9 @@ public class AsyncNetworkSocket implements AsyncSocket {
         mEndReported = true;
         if (mCompletedCallback != null)
             mCompletedCallback.onCompleted(e);
-        else if (e != null)
-            e.printStackTrace();
+        else if (e != null) {
+            Log.e("NIO", "Unhandled exception", e);
+        }
     }
     boolean mEndReported;
     Exception mPendingEndException;
@@ -330,6 +336,11 @@ public class AsyncNetworkSocket implements AsyncSocket {
     @Override
     public AsyncServer getServer() {
         return mServer;
+    }
+
+
+    public InetSocketAddress getRemoteAddress() {
+        return socketAddress;
     }
     
     public int getLocalPort() {

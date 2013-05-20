@@ -399,7 +399,7 @@ public class AsyncServer {
             });
             return true;
         }
-        
+
         SocketChannel socket;
         ConnectCallback callback;
     }
@@ -411,14 +411,14 @@ public class AsyncServer {
         return cancelable;
     }
     
-    public Cancellable connectSocket(final SocketAddress remote, final ConnectCallback handler) {
+    public Cancellable connectSocket(final InetSocketAddress remote, final ConnectCallback handler) {
         try {
             final SocketChannel socket = SocketChannel.open();
             final ConnectFuture cancel = prepareConnectSocketCancelable(socket, handler);
             post(new Runnable() {
                 @Override
                 public void run() {
-                    connectSocketInternal(socket, remote, cancel);
+                    connectSocketInternal(socket, new InetSocketAddress(remote.getHostName(), remote.getPort()), cancel);
                 }
             });
             return cancel;
@@ -767,7 +767,7 @@ public class AsyncServer {
                     SelectionKey ckey = sc.register(selector, SelectionKey.OP_READ);
                     ListenCallback serverHandler = (ListenCallback) key.attachment();
                     AsyncNetworkSocket handler = new AsyncNetworkSocket();
-                    handler.attach(sc);
+                    handler.attach(sc, (InetSocketAddress)sc.socket().getRemoteSocketAddress());
                     handler.setup(server, ckey);
                     ckey.attach(handler);
                     serverHandler.onAccepted(handler);
@@ -789,7 +789,7 @@ public class AsyncServer {
                         sc.finishConnect();
                         AsyncNetworkSocket newHandler = new AsyncNetworkSocket();
                         newHandler.setup(server, key);
-                        newHandler.attach(sc);
+                        newHandler.attach(sc, (InetSocketAddress)sc.socket().getRemoteSocketAddress());
                         key.attach(newHandler);
                         if (cancel.setComplete(newHandler))
                             cancel.callback.onConnectCompleted(null, newHandler);

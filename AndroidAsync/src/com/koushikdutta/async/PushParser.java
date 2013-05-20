@@ -239,6 +239,7 @@ public class PushParser {
                     method.invoke(callback, args);
                 }
                 catch (Exception ex) {
+                    assert false;
                     ex.printStackTrace();
                 }
             }

@@ -1,6 +1,9 @@
 package com.koushikdutta.async;
 
+import android.util.Log;
+
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -15,9 +18,9 @@ class DatagramChannelWrapper extends ChannelWrapper {
     public int getLocalPort() {
         return mChannel.socket().getLocalPort();
     }
-    
-    SocketAddress address;
-    public SocketAddress getRemoteAddress() {
+
+    InetSocketAddress address;
+    public InetSocketAddress getRemoteAddress() {
         return address;
     }
     
@@ -33,7 +36,7 @@ class DatagramChannelWrapper extends ChannelWrapper {
     public int read(ByteBuffer buffer) throws IOException {
         if (!isConnected()) {
             int position = buffer.position();
-            address = mChannel.receive(buffer);
+            address = (InetSocketAddress)mChannel.receive(buffer);
             if (address == null)
                 return -1;
             return buffer.position() - position;
