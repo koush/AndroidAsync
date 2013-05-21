@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.koushikdutta.async.callback.ResultCallback;
 import junit.framework.TestCase;
 import android.os.Handler;
 import android.os.Looper;
@@ -39,6 +40,19 @@ public class FutureTests extends TestCase {
             
             return ret;
         }
+    }
+
+    public void testFutureCallback() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
+        final IntegerFuture future = IntegerFuture.create(20, 2000);
+        future.setResultCallback(new ResultCallback<Integer>() {
+            @Override
+            public void onCompleted(Exception e, Integer result) {
+                semaphore.release();
+            }
+        });
+
+        assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
     }
     
     public void testFutureCancel() throws Exception {
