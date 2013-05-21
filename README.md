@@ -185,7 +185,7 @@ Futures can also have callbacks...
 
 ```java
 Future<String> string = client.getString("http://foo.com/hello.txt");
-string.setResultCallback(new FutureCallback<String>() {
+string.setCallback(new FutureCallback<String>() {
     @Override
     public void onCompleted(Exception e, String result) {
         System.out.println(result);
@@ -197,7 +197,7 @@ For brevity...
 
 ```java
 client.getString("http://foo.com/hello.txt")
-.setResultCallback(new FutureCallback<String>() {
+.setCallback(new FutureCallback<String>() {
     @Override
     public void onCompleted(Exception e, String result) {
         System.out.println(result);

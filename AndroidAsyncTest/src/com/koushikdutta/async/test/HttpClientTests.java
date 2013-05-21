@@ -118,7 +118,7 @@ public class HttpClientTests extends TestCase {
     public void testInsecureGithubRandomDataWithFutureCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Md5 md5 = Md5.createInstance();
-        client.getByteBufferList(githubInsecure).setResultCallback(new FutureCallback<ByteBufferList>() {
+        client.getByteBufferList(githubInsecure).setCallback(new FutureCallback<ByteBufferList>() {
             @Override
             public void onCompleted(Exception e, ByteBufferList bb) {
                 md5.update(bb);
@@ -137,7 +137,7 @@ public class HttpClientTests extends TestCase {
     public void testGithubHelloWithFutureCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         client.getString("https://" + githubPath + "hello.txt")
-        .setResultCallback(new FutureCallback<String>() {
+        .setCallback(new FutureCallback<String>() {
             @Override
             public void onCompleted(Exception e, String result) {
                 assertEquals(result, "hello world");

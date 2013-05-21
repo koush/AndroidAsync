@@ -41,7 +41,7 @@ public class FutureTests extends TestCase {
         final Semaphore semaphore = new Semaphore(0);
         final IntegerFuture future = IntegerFuture.create(20, 1000);
         final Thread mainThread = Thread.currentThread();
-        future.setResultCallback(new FutureCallback<Integer>() {
+        future.setCallback(new FutureCallback<Integer>() {
             @Override
             public void onCompleted(Exception e, Integer result) {
                 assertNotSame(Thread.currentThread(), mainThread);
@@ -57,7 +57,7 @@ public class FutureTests extends TestCase {
         final IntegerFuture future = IntegerFuture.create(20, 1);
         Thread.sleep(1000);
         final Thread mainThread = Thread.currentThread();
-        future.setResultCallback(new FutureCallback<Integer>() {
+        future.setCallback(new FutureCallback<Integer>() {
             @Override
             public void onCompleted(Exception e, Integer result) {
                 assertEquals(Thread.currentThread(), mainThread);

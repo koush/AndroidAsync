@@ -109,12 +109,12 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
 
     FutureCallback<T> callback;
     @Override
-    public FutureCallback<T> getResultCallback() {
+    public FutureCallback<T> getCallback() {
         return callback;
     }
 
     @Override
-    public Future<T> setResultCallback(FutureCallback<T> callback) {
+    public Future<T> setCallback(FutureCallback<T> callback) {
         // callback can only be changed or read/used inside a sync block
         boolean runCallback;
         synchronized (this) {
