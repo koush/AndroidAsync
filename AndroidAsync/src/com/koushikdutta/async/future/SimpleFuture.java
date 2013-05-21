@@ -72,7 +72,7 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
 
     Exception exception;
     public boolean setComplete(Exception e) {
-        ResultCallback<T> callback;
+        FutureCallback<T> callback;
         synchronized (this) {
             if (!super.setComplete())
                 return false;
@@ -88,7 +88,7 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
 
     T result;
     public boolean setComplete(T value) {
-        ResultCallback<T> callback;
+        FutureCallback<T> callback;
         synchronized (this) {
             if (!super.setComplete())
                 return false;
@@ -107,14 +107,14 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
         return true;
     }
 
-    ResultCallback<T> callback;
+    FutureCallback<T> callback;
     @Override
-    public ResultCallback<T> getResultCallback() {
+    public FutureCallback<T> getResultCallback() {
         return callback;
     }
 
     @Override
-    public void setResultCallback(ResultCallback<T> callback) {
+    public void setResultCallback(FutureCallback<T> callback) {
         // callback can only be changed or read/used inside a sync block
         boolean runCallback;
         synchronized (this) {

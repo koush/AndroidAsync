@@ -1,22 +1,17 @@
 package com.koushikdutta.async.test;
 
-import java.util.ArrayList;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import com.koushikdutta.async.callback.ResultCallback;
-import junit.framework.TestCase;
 import android.os.Handler;
 import android.os.Looper;
-
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
 import com.koushikdutta.async.future.Continuation;
+import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
+import junit.framework.TestCase;
+
+import java.util.ArrayList;
+import java.util.concurrent.*;
 
 public class FutureTests extends TestCase {
     private static class IntegerFuture extends SimpleFuture<Integer> {
@@ -44,17 +39,35 @@ public class FutureTests extends TestCase {
 
     public void testFutureCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
-        final IntegerFuture future = IntegerFuture.create(20, 2000);
-        future.setResultCallback(new ResultCallback<Integer>() {
+        final IntegerFuture future = IntegerFuture.create(20, 1000);
+        final Thread mainThread = Thread.currentThread();
+        future.setResultCallback(new FutureCallback<Integer>() {
             @Override
             public void onCompleted(Exception e, Integer result) {
+                assertNotSame(Thread.currentThread(), mainThread);
                 semaphore.release();
             }
         });
 
         assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
     }
-    
+
+    public void testFutureFinishedCallback() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
+        final IntegerFuture future = IntegerFuture.create(20, 1);
+        Thread.sleep(1000);
+        final Thread mainThread = Thread.currentThread();
+        future.setResultCallback(new FutureCallback<Integer>() {
+            @Override
+            public void onCompleted(Exception e, Integer result) {
+                assertEquals(Thread.currentThread(), mainThread);
+                semaphore.release();
+            }
+        });
+
+        assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
+    }
+
     public void testFutureCancel() throws Exception {
         // test a future being cancelled while waiting
         final IntegerFuture future = IntegerFuture.create(20, 2000);
