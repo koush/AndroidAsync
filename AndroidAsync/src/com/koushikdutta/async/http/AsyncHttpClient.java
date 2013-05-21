@@ -54,7 +54,6 @@ public class AsyncHttpClient {
     
     private static final String LOGTAG = "AsyncHttp";
     private static class CancelableImpl extends SimpleFuture<AsyncHttpResponse> {
-        public Cancellable socketCancelable;
         public AsyncSocket socket;
         
         @Override
@@ -62,10 +61,6 @@ public class AsyncHttpClient {
             if (!super.cancel())
                 return false;
             
-            if (socketCancelable != null) {
-                socketCancelable.cancel();
-            }
-
             if (socket != null)
                 socket.close();
             
@@ -232,8 +227,11 @@ public class AsyncHttpClient {
         };
 
         for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-            if (null != (cancel.socketCancelable = middleware.getSocket(data)))
+            Cancellable socketCancellable = middleware.getSocket(data);
+            if (socketCancellable != null) {
+                cancel.setParent(socketCancellable);
                 return;
+            }
         }
         assert false;
     }
