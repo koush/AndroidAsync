@@ -106,7 +106,7 @@ public class SocketIOClient {
         // initiate a session
         Cancellable cancel = client.execute(request, new AsyncHttpClient.StringCallback() {
             @Override
-            public void onCompleted(final Exception e, String result) {
+            public void onCompleted(final Exception e, AsyncHttpResponse response, String result) {
                 if (e != null) {
                     reportError(ret, handler, callback, e);
                     return;
