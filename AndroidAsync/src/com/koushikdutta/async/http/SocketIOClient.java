@@ -104,7 +104,7 @@ public class SocketIOClient {
         // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
         request.setHandler(null);
         // initiate a session
-        Cancellable cancel = client.execute(request, new AsyncHttpClient.StringCallback() {
+        Cancellable cancel = client.executeString(request, new AsyncHttpClient.StringCallback() {
             @Override
             public void onCompleted(final Exception e, AsyncHttpResponse response, String result) {
                 if (e != null) {

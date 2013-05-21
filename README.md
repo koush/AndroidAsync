@@ -14,7 +14,7 @@ NIO is extremely efficient.
 AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.StringCallback() {
     // Callback is invoked with any exceptions/errors, and the result, if available.
     @Override
-    public void onCompleted(Exception e, String result) {
+    public void onCompleted(Exception e, AsyncHttpResponse response, String result) {
         if (e != null) {
             e.printStackTrace();
             return;
@@ -33,7 +33,7 @@ AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.StringCallback
 AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.JSONObjectCallback() {
     // Callback is invoked with any exceptions/errors, and the result, if available.
     @Override
-    public void onCompleted(Exception e, JSONObject result) {
+    public void onCompleted(Exception e, AsyncHttpResponse response, JSONObject result) {
         if (e != null) {
             e.printStackTrace();
             return;
@@ -51,7 +51,7 @@ AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.JSONObjectCall
 ```java
 AsyncHttpClient.getDefaultInstance().get(url, filename, new AsyncHttpClient.FileCallback() {
     @Override
-    public void onCompleted(Exception e, File result) {
+    public void onCompleted(Exception e, AsyncHttpResponse response, File result) {
         if (e != null) {
             e.printStackTrace();
             return;
@@ -170,3 +170,38 @@ server.get("/", new HttpServerRequestCallback() {
 server.listen(5000);
 // browsing http://localhost:5000 will return Hello!!!
 ```
+
+### Futures
+
+All the API calls return [Futures](http://en.wikipedia.org/wiki/Futures_and_promises).
+
+```java
+Future<String> string = client.getString("https://" + githubPath + "hello.txt");
+// this may throw!
+String value = string.get();
+```
+
+Futures can also have callbacks...
+
+```
+Future<String> string = client.getString("https://" + githubPath + "hello.txt");
+string.setResultCallback(new FutureCallback<String>() {
+    @Override
+    public void onCompleted(Exception e, String result) {
+        System.out.println(result);
+    }
+});
+```
+
+For brevity...
+
+```
+client.getString("https://" + githubPath + "hello.txt")
+.setResultCallback(new FutureCallback<String>() {
+    @Override
+    public void onCompleted(Exception e, String result) {
+        System.out.println(result);
+    }
+});
+```
+
