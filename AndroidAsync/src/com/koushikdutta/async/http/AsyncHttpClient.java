@@ -179,7 +179,7 @@ public class AsyncHttpClient {
                         catch (Exception ex) {
                             reportConnectedCompleted(cancel, ex, null, callback);
                         }
-                    };
+                    }
                     
                     @Override
                     protected void report(Exception ex) {
@@ -304,15 +304,25 @@ public class AsyncHttpClient {
         });
     }
 
-    @SuppressWarnings("unchecked")
-    private void invoke(Handler handler, final RequestCallback callback, final AsyncHttpResponse response, final Exception e, final Object result) {
+    private <T> void invokeWithAffinity(final RequestCallback<T> callback, SimpleFuture<T> future, final AsyncHttpResponse response, final Exception e, final T result) {
+        boolean complete;
+        if (e != null)
+            complete = future.setComplete(e);
+        else
+            complete = future.setComplete(result);
+        if (!complete)
+            return;
+        callback.onCompleted(e, response, result);
+    }
+
+    private <T> void invoke(Handler handler, final RequestCallback<T> callback, final SimpleFuture<T> future, final AsyncHttpResponse response, final Exception e, final T result) {
         if (callback == null)
             return;
         if (handler == null) {
             mServer.post(new Runnable() {
                 @Override
                 public void run() {
-                    callback.onCompleted(e, response, result);
+                    invokeWithAffinity(callback, future, response, e, result);
                 }
             });
             return;
@@ -320,7 +330,7 @@ public class AsyncHttpClient {
         AsyncServer.post(handler, new Runnable() {
             @Override
             public void run() {
-                callback.onCompleted(e, response, result);
+                invokeWithAffinity(callback, future, response, e, result);
             }
         });
     }
@@ -374,7 +384,7 @@ public class AsyncHttpClient {
         }
         catch (FileNotFoundException e) {
             if (ret.setComplete(e))
-                invoke(handler, callback, null, e, null);
+                invoke(handler, callback, ret, null, e, null);
             return ret;
         }
         execute(req, new HttpConnectCallback() {
@@ -389,7 +399,7 @@ public class AsyncHttpClient {
                     }
                     file.delete();
                     if (ret.setComplete(ex))
-                        invoke(handler, callback, response, ex, null);
+                        invoke(handler, callback, ret, response, ex, null);
                     return;
                 }
                 invokeConnect(callback, response);
@@ -416,10 +426,10 @@ public class AsyncHttpClient {
                         if (ex != null) {
                             file.delete();
                             if (ret.setComplete(ex))
-                                invoke(handler, callback, response, ex, null);
+                                invoke(handler, callback, ret, response, ex, null);
                         }
                         else if (ret.setComplete(file)) {
-                            invoke(handler, callback, response, null, file);
+                            invoke(handler, callback, ret, response, null, file);
                         }
                     }
                 });
@@ -428,7 +438,7 @@ public class AsyncHttpClient {
         return ret;
     }
     
-    private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final RequestCallback callback, final ResultConvert<T> convert) {
+    private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final RequestCallback<T> callback, final ResultConvert<T> convert) {
         final SimpleFuture<T> ret = new SimpleFuture<T>();
         final Handler handler = req.getHandler();
         final CancelableImpl cancel = new CancelableImpl();
@@ -439,7 +449,7 @@ public class AsyncHttpClient {
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
                     if (ret.setComplete(ex))
-                        invoke(handler, callback, response, ex, null);
+                        invoke(handler, callback, ret, response, ex, null);
                     return;
                 }
                 invokeConnect(callback, response);
@@ -462,7 +472,7 @@ public class AsyncHttpClient {
                             try {
                                 T value = convert.convert(buffer);
                                 if (ret.setComplete(value))
-                                    invoke(handler, callback, response, null, value);
+                                    invoke(handler, callback, ret, response, null, value);
                                 return;
                             }
                             catch (Exception e) {
@@ -470,7 +480,7 @@ public class AsyncHttpClient {
                             }
                         }
                         if (ret.setComplete(ex))
-                            invoke(handler, callback, response, ex, null);
+                            invoke(handler, callback, ret, response, ex, null);
                     }
                 });
             }
@@ -479,7 +489,7 @@ public class AsyncHttpClient {
         return ret;
     }
 
-    private <T> Future<T> get(String uri, final RequestCallback callback, final ResultConvert<T> convert) {
+    private <T> Future<T> get(String uri, final RequestCallback<T> callback, final ResultConvert<T> convert) {
         return execute(new AsyncHttpGet(URI.create(uri)), callback, convert);
     }
 
@@ -508,7 +518,8 @@ public class AsyncHttpClient {
                     if (!ret.setComplete(ws))
                         return;
                 }
-                callback.onCompleted(ex, ws);
+                if (callback != null)
+                    callback.onCompleted(ex, ws);
             }
         });
         
@@ -521,7 +532,7 @@ public class AsyncHttpClient {
         return websocket(get, protocol, callback);
     }
     
-    AsyncServer getServer() {
+    public AsyncServer getServer() {
         return mServer;
     }
 }
