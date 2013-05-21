@@ -312,7 +312,7 @@ public class AsyncHttpClient {
             mServer.post(new Runnable() {
                 @Override
                 public void run() {
-                    callback.onCompleted(e, response, result);
+                    callback.onCompleted(e, result);
                 }
             });
             return;
@@ -320,7 +320,7 @@ public class AsyncHttpClient {
         AsyncServer.post(handler, new Runnable() {
             @Override
             public void run() {
-                callback.onCompleted(e, response, result);
+                callback.onCompleted(e, result);
             }
         });
     }
