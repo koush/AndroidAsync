@@ -183,7 +183,7 @@ String value = string.get();
 
 Futures can also have callbacks...
 
-```
+```java
 Future<String> string = client.getString("https://" + githubPath + "hello.txt");
 string.setResultCallback(new FutureCallback<String>() {
     @Override
@@ -195,7 +195,7 @@ string.setResultCallback(new FutureCallback<String>() {
 
 For brevity...
 
-```
+```java
 client.getString("https://" + githubPath + "hello.txt")
 .setResultCallback(new FutureCallback<String>() {
     @Override
