@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.koushikdutta.async.future.FutureCallback;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 import android.os.Environment;
@@ -113,7 +114,21 @@ public class HttpClientTests extends TestCase {
         md5.update(bb.get(TIMEOUT, TimeUnit.MILLISECONDS));
         assertEquals(md5.digest(), dataNameAndHash);
     }
-    
+
+    public void testInsecureGithubRandomDataWithFutureCallback() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
+        final Md5 md5 = Md5.createInstance();
+        client.get(githubInsecure, (DownloadCallback)null).setResultCallback(new FutureCallback<ByteBufferList>() {
+            @Override
+            public void onCompleted(Exception e, ByteBufferList bb) {
+                md5.update(bb);
+                semaphore.release();
+            }
+        });
+        assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertEquals(md5.digest(), dataNameAndHash);
+    }
+
     public void testGithubHelloWithFuture() throws Exception {
         Future<String> string = client.get("https://" + githubPath + "hello.txt", (StringCallback)null);
         assertEquals(string.get(TIMEOUT, TimeUnit.MILLISECONDS), "hello world");
