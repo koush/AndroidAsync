@@ -177,7 +177,7 @@ All the API calls return [Futures](http://en.wikipedia.org/wiki/Futures_and_prom
 
 ```java
 Future<String> string = client.getString("http://foo.com/hello.txt");
-// this may throw!
+// this will block, and may also throw if there was an error!
 String value = string.get();
 ```
 
