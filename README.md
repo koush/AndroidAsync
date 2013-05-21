@@ -11,7 +11,7 @@ NIO is extremely efficient.
 ```java
 // url is the URL to download. The callback will be invoked on the UI thread
 // once the download is complete.
-AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.StringCallback() {
+AsyncHttpClient.getDefaultInstance().getString(url, new AsyncHttpClient.StringCallback() {
     // Callback is invoked with any exceptions/errors, and the result, if available.
     @Override
     public void onCompleted(Exception e, AsyncHttpResponse response, String result) {
@@ -30,7 +30,7 @@ AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.StringCallback
 ```java
 // url is the URL to download. The callback will be invoked on the UI thread
 // once the download is complete.
-AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.JSONObjectCallback() {
+AsyncHttpClient.getDefaultInstance().getJSONObject(url, new AsyncHttpClient.JSONObjectCallback() {
     // Callback is invoked with any exceptions/errors, and the result, if available.
     @Override
     public void onCompleted(Exception e, AsyncHttpResponse response, JSONObject result) {
@@ -49,7 +49,7 @@ AsyncHttpClient.getDefaultInstance().get(url, new AsyncHttpClient.JSONObjectCall
 ### Download a url to a file
 
 ```java
-AsyncHttpClient.getDefaultInstance().get(url, filename, new AsyncHttpClient.FileCallback() {
+AsyncHttpClient.getDefaultInstance().getFile(url, filename, new AsyncHttpClient.FileCallback() {
     @Override
     public void onCompleted(Exception e, AsyncHttpResponse response, File result) {
         if (e != null) {
@@ -176,7 +176,7 @@ server.listen(5000);
 All the API calls return [Futures](http://en.wikipedia.org/wiki/Futures_and_promises).
 
 ```java
-Future<String> string = client.getString("https://" + githubPath + "hello.txt");
+Future<String> string = client.getString("http://foo.com/hello.txt");
 // this may throw!
 String value = string.get();
 ```
@@ -184,7 +184,7 @@ String value = string.get();
 Futures can also have callbacks...
 
 ```java
-Future<String> string = client.getString("https://" + githubPath + "hello.txt");
+Future<String> string = client.getString("http://foo.com/hello.txt");
 string.setResultCallback(new FutureCallback<String>() {
     @Override
     public void onCompleted(Exception e, String result) {
@@ -196,7 +196,7 @@ string.setResultCallback(new FutureCallback<String>() {
 For brevity...
 
 ```java
-client.getString("https://" + githubPath + "hello.txt")
+client.getString("http://foo.com/hello.txt")
 .setResultCallback(new FutureCallback<String>() {
     @Override
     public void onCompleted(Exception e, String result) {
