@@ -120,15 +120,14 @@ class StreamUtility {
     }
     
     public static void writeFile(File file, String string) throws IOException {
-        writeFile(file.getAbsolutePath(), string);
+        file.getParentFile().mkdirs();
+        DataOutputStream dout = new DataOutputStream(new FileOutputStream(file));
+        dout.write(string.getBytes());
+        dout.close();
     }
     
     public static void writeFile(String file, String string) throws IOException {
-        File f = new File(file);
-        f.getParentFile().mkdirs();
-        DataOutputStream dout = new DataOutputStream(new FileOutputStream(f));
-        dout.write(string.getBytes());
-        dout.close();
+        writeFile(new File(file), string);
     }
 }
 
