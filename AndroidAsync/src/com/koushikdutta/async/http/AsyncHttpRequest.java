@@ -78,8 +78,9 @@ public class AsyncHttpRequest {
     public Handler getHandler() {
         return mHandler;
     }
-    public void setHandler(Handler handler) {
+    public AsyncHttpRequest setHandler(Handler handler) {
         mHandler = handler;
+        return this;
     }
 
     public RequestHeaders getHeaders() {
@@ -94,8 +95,9 @@ public class AsyncHttpRequest {
     public boolean getFollowRedirect() {
         return mFollowRedirect;
     }
-    public void setFollowRedirect(boolean follow) {
+    public AsyncHttpRequest setFollowRedirect(boolean follow) {
         mFollowRedirect = follow;
+        return this;
     }
     
     private AsyncHttpRequestBody mBody;
@@ -115,8 +117,9 @@ public class AsyncHttpRequest {
         return mTimeout;
     }
     
-    public void setTimeout(int timeout) {
+    public AsyncHttpRequest setTimeout(int timeout) {
         mTimeout = timeout;
+        return this;
     }
     
     public static AsyncHttpRequest create(HttpRequest request) {
