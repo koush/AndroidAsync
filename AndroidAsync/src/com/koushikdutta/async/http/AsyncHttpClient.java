@@ -356,21 +356,16 @@ public class AsyncHttpClient {
     }
 
     private <T> void invoke(Handler handler, final RequestCallback<T> callback, final SimpleFuture<T> future, final AsyncHttpResponse response, final Exception e, final T result) {
-        if (handler == null) {
-            mServer.post(new Runnable() {
-                @Override
-                public void run() {
-                    invokeWithAffinity(callback, future, response, e, result);
-                }
-            });
-            return;
-        }
-        AsyncServer.post(handler, new Runnable() {
+        Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 invokeWithAffinity(callback, future, response, e, result);
             }
-        });
+        };
+        if (handler == null)
+            mServer.post(runnable);
+        else
+            AsyncServer.post(handler, runnable);
     }
 
     private void invokeProgress(final RequestCallback callback, final AsyncHttpResponse response, final int downloaded, final int total) {
