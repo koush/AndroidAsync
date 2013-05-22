@@ -21,7 +21,6 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Map<String, List
     
     public UrlEncodedFormBody(Iterable<NameValuePair> parameters) {
         mParameters = parameters;
-        buildData();
     }
     
     private void buildData() {
@@ -45,6 +44,8 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Map<String, List
     
     @Override
     public void write(AsyncHttpRequest request, final AsyncHttpResponse response) {
+        if (mBodyBytes == null)
+            buildData();
         Util.writeAll(response, mBodyBytes, new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
@@ -113,6 +114,8 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Map<String, List
 
     @Override
     public int length() {
+        if (mBodyBytes == null)
+            buildData();
         return mBodyBytes.length;
     }
 
