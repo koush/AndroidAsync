@@ -125,4 +125,10 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
             callback.onCompleted(exception, result);
         return this;
     }
+
+    @Override
+    public SimpleFuture<T> setParent(Cancellable parent) {
+        super.setParent(parent);
+        return this;
+    }
 }

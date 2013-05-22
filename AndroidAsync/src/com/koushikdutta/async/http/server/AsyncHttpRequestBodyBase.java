@@ -5,7 +5,7 @@ import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 
-public class AsyncHttpRequestBodyBase extends FilteredDataEmitter implements AsyncHttpRequestBody {
+public abstract class AsyncHttpRequestBodyBase<T> extends FilteredDataEmitter implements AsyncHttpRequestBody<T> {
     public AsyncHttpRequestBodyBase(String contentType) {
         mContentType = contentType;
     }

@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import android.util.Log;
 import com.koushikdutta.async.future.FutureCallback;
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -79,6 +80,7 @@ public class HttpClientTests extends TestCase {
         client.execute(github, new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
+                assertNull(ex);
                 // make sure gzip decoding works, as that is generally what github sends.
                 Assert.assertEquals("gzip", response.getHeaders().getContentEncoding());
                 response.setDataCallback(new DataCallback() {

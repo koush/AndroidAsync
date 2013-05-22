@@ -79,9 +79,11 @@ public class AsyncHttpClient {
             return;
         }
 
-        // the request was cancelled, so close up shop, and eat any pending data
-        response.setDataCallback(new NullDataCallback());
-        response.close();
+        if (response != null) {
+            // the request was cancelled, so close up shop, and eat any pending data
+            response.setDataCallback(new NullDataCallback());
+            response.close();
+        }
     }
 
     private void execute(final AsyncHttpRequest request, final int redirectCount, final CancelableImpl cancel, final HttpConnectCallback callback) {
@@ -100,8 +102,7 @@ public class AsyncHttpClient {
                     scheduled = mServer.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            if (cancel.cancel())
-                                reportConnectedCompleted(cancel, new TimeoutException(), null, callback);
+                            reportConnectedCompleted(cancel, new TimeoutException(), null, callback);
                         }
                     }, request.getTimeout());
                 }
@@ -459,10 +460,9 @@ public class AsyncHttpClient {
                         }
                         if (ex != null) {
                             file.delete();
-                            if (ret.setComplete(ex))
-                                invoke(handler, callback, ret, response, ex, null);
+                            invoke(handler, callback, ret, response, ex, null);
                         }
-                        else if (ret.setComplete(file)) {
+                        else {
                             invoke(handler, callback, ret, response, null, file);
                         }
                     }

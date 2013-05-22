@@ -5,7 +5,7 @@ import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 
-public class UnknownRequestBody extends NullDataCallback implements AsyncHttpRequestBody {
+public class UnknownRequestBody extends NullDataCallback implements AsyncHttpRequestBody<Void> {
     public UnknownRequestBody(String contentType) {
         mContentType = contentType;
     }
@@ -29,5 +29,10 @@ public class UnknownRequestBody extends NullDataCallback implements AsyncHttpReq
     @Override
     public int length() {
         return -1;
+    }
+
+    @Override
+    public Void getBody() {
+        return null;
     }
 }

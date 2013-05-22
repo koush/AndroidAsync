@@ -14,9 +14,11 @@ import com.koushikdutta.async.http.server.BoundaryEmitter;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpRequestBody {
+public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpRequestBody<Map<String, List<String>>> {
     LineEmitter liner;
     RawHeaders formData;
     ByteBufferList last;
@@ -228,5 +230,10 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         if (mParts == null)
             mParts = new ArrayList<Part>();
         mParts.add(part);
+    }
+
+    @Override
+    public Map<String, List<String>> getBody() {
+        return formData.toMultimap();
     }
 }

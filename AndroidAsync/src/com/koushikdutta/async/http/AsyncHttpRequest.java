@@ -55,6 +55,14 @@ public class AsyncHttpRequest {
        return mMethod; 
     }
 
+    public AsyncHttpRequest setMethod(String method) {
+        if (getClass() != AsyncHttpRequest.class)
+            throw new UnsupportedOperationException("can't change method on a subclass of AsyncHttpRequest");
+        mMethod = method;
+        mRawHeaders.setStatusLine(getRequestLine().toString());
+        return this;
+    }
+
     public AsyncHttpRequest(URI uri, String method) {
         assert uri != null;
         mMethod = method;
@@ -73,11 +81,14 @@ public class AsyncHttpRequest {
     
     private RawHeaders mRawHeaders = new RawHeaders();
     private RequestHeaders mHeaders;
+
+    @Deprecated
     private Handler mHandler = Looper.myLooper() == null ? null : new Handler();
-    
+    @Deprecated
     public Handler getHandler() {
         return mHandler;
     }
+    @Deprecated
     public AsyncHttpRequest setHandler(Handler handler) {
         mHandler = handler;
         return this;

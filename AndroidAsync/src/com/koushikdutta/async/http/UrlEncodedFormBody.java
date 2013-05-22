@@ -3,10 +3,7 @@ package com.koushikdutta.async.http;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
@@ -18,7 +15,7 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 
-public class UrlEncodedFormBody implements AsyncHttpRequestBody {
+public class UrlEncodedFormBody implements AsyncHttpRequestBody<Map<String, List<String>>> {
     private Iterable<NameValuePair> mParameters;
     private byte[] mBodyBytes;
     
@@ -105,15 +102,6 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
         }
         return mParameters;
     }
-    
-    public Map<String, String> getParameterMap() {
-        HashMap<String, String> map = new HashMap<String, String>();
-        for (NameValuePair pair: getParameters()) {
-            if (!map.containsKey(pair.getName()))
-                map.put(pair.getName(), pair.getValue());
-        }
-        return Collections.unmodifiableMap(map);
-    }
 
     public UrlEncodedFormBody() {
     }
@@ -126,5 +114,17 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody {
     @Override
     public int length() {
         return mBodyBytes.length;
+    }
+
+    @Override
+    public Map<String, List<String>> getBody() {
+        HashMap<String, List<String>> map = new HashMap<String, List<String>>();
+        for (NameValuePair pair: getParameters()) {
+            List<String> list = map.get(pair.getName());
+            if (list == null)
+                list = map.put(pair.getName(), new ArrayList<String>());
+            list.add(pair.getValue());
+        }
+        return map;
     }
 }

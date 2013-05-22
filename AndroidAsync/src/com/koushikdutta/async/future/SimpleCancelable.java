@@ -38,8 +38,9 @@ public class SimpleCancelable implements DependentCancellable {
     }
     
     @Override
-    public void setParent(Cancellable parent) {
+    public SimpleCancelable setParent(Cancellable parent) {
         this.parent = parent;
+        return this;
     }
 
     @Override

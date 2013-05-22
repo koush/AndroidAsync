@@ -688,9 +688,9 @@ public class AsyncServer {
         }
     }
     
-    private static final long DEFAULT_WAIT = 100;
+    private static final long QUEUE_EMPTY = Long.MAX_VALUE;
     private static long lockAndRunQueue(AsyncServer server, LinkedList<Scheduled> queue) {
-        long wait = DEFAULT_WAIT;
+        long wait = QUEUE_EMPTY;
         
         // find the first item we can actually run
         while (true) {
@@ -739,7 +739,7 @@ public class AsyncServer {
             if (readyNow == 0) {
                 // if there is nothing to select now, make sure we don't have an empty key set
                 // which means it would be time to turn this thread off.
-                if (selector.keys().size() == 0 && !keepRunning) {
+                if (selector.keys().size() == 0 && !keepRunning && wait == QUEUE_EMPTY) {
 //                    Log.i(LOGTAG, "Shutting down. keys: " + selector.keys().size() + " keepRunning: " + keepRunning);
                     return;
                 }
@@ -747,9 +747,11 @@ public class AsyncServer {
             else {
                 needsSelect = false;
             }
-        }        
+        }
 
         if (needsSelect) {
+            if (wait == QUEUE_EMPTY)
+                wait = 100;
             // nothing to select immediately but there so let's block and wait.
             selector.select(wait);
         }
