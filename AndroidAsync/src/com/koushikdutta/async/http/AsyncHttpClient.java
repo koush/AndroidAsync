@@ -6,9 +6,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.RequestCallback;
-import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.future.*;
 import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
@@ -45,14 +43,18 @@ public class AsyncHttpClient {
         insertMiddleware(new AsyncSSLSocketMiddleware(this));
     }
 
-    public SimpleFuture<AsyncHttpResponse> execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
-        CancelableImpl ret;
-        execute(request, 0, ret = new CancelableImpl(), callback);
+    public Future<AsyncHttpResponse>execute(final AsyncHttpRequest request) {
+        return execute(request, (HttpConnectCallback)null);
+    }
+
+    public Future<AsyncHttpResponse>execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
+        FutureAsyncHttpResponse ret;
+        execute(request, 0, ret = new FutureAsyncHttpResponse(), callback);
         return ret;
     }
 
     private static final String LOGTAG = "AsyncHttp";
-    private static class CancelableImpl extends SimpleFuture<AsyncHttpResponse> {
+    private static class FutureAsyncHttpResponse extends SimpleFuture<AsyncHttpResponse> {
         public AsyncSocket socket;
 
         @Override
@@ -67,7 +69,7 @@ public class AsyncHttpClient {
         }
     }
 
-    private void reportConnectedCompleted(CancelableImpl cancel, Exception ex, AsyncHttpResponseImpl response, final HttpConnectCallback callback) {
+    private void reportConnectedCompleted(FutureAsyncHttpResponse cancel, Exception ex, AsyncHttpResponseImpl response, final HttpConnectCallback callback) {
         boolean complete;
         if (ex != null)
             complete = cancel.setComplete(ex);
@@ -86,7 +88,7 @@ public class AsyncHttpClient {
         }
     }
 
-    private void execute(final AsyncHttpRequest request, final int redirectCount, final CancelableImpl cancel, final HttpConnectCallback callback) {
+    private void execute(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
         if (redirectCount > 5) {
             reportConnectedCompleted(cancel, new Exception("too many redirects"), null, callback);
             return;
@@ -401,7 +403,7 @@ public class AsyncHttpClient {
     public Future<File> executeFile(AsyncHttpRequest req, final String filename, final FileCallback callback) {
         final Handler handler = req.getHandler();
         final File file = new File(filename);
-        CancelableImpl cancel = new CancelableImpl();
+        FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
         final SimpleFuture<File> ret = new SimpleFuture<File>() {
             @Override
             public boolean cancel() {
@@ -475,7 +477,7 @@ public class AsyncHttpClient {
     private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final ResultConvert<T> convert, final RequestCallback<T> callback) {
         final SimpleFuture<T> ret = new SimpleFuture<T>();
         final Handler handler = req.getHandler();
-        final CancelableImpl cancel = new CancelableImpl();
+        final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
         execute(req, 0, cancel, new HttpConnectCallback() {
             int mDownloaded = 0;
             ByteBufferList buffer = new ByteBufferList();

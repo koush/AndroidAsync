@@ -32,7 +32,7 @@ public class UnknownRequestBody extends NullDataCallback implements AsyncHttpReq
     }
 
     @Override
-    public Void getBody() {
+    public Void get() {
         return null;
     }
 }

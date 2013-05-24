@@ -60,7 +60,7 @@ public class StringBody implements AsyncHttpRequestBody<String> {
     }
 
     @Override
-    public String getBody() {
+    public String get() {
         return toString();
     }
 }

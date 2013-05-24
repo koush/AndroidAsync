@@ -120,7 +120,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Map<String, List
     }
 
     @Override
-    public Map<String, List<String>> getBody() {
+    public Map<String, List<String>> get() {
         HashMap<String, List<String>> map = new HashMap<String, List<String>>();
         for (NameValuePair pair: getParameters()) {
             List<String> list = map.get(pair.getName());

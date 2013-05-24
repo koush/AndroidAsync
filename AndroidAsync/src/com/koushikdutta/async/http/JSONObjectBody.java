@@ -53,7 +53,7 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
     }
 
     @Override
-    public JSONObject getBody() {
+    public JSONObject get() {
         try {
             if (json == null && data != null) {
                 json = new JSONObject(data.readString());

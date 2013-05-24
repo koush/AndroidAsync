@@ -15,6 +15,10 @@ public class OutputStreamDataCallback implements DataCallback, CompletedCallback
         mOutput = os;
     }
 
+    public OutputStream getOutputStream() {
+        return mOutput;
+    }
+
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         try {

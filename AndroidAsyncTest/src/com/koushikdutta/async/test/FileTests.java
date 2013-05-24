@@ -1,11 +1,8 @@
 package com.koushikdutta.async.test;
 
 import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FileDataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.StringBody;
 import junit.framework.TestCase;
 
@@ -18,9 +15,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class FileTests extends TestCase {
     public static final long TIMEOUT = 1000L;
-    int total;
     public void testFileDataEmitter() throws Exception {
-        total = 0;
         final Semaphore semaphore = new Semaphore(0);
         File f = new File("/sdcard/test.txt");
         StreamUtility.writeFile(f, "hello world");
@@ -36,6 +31,6 @@ public class FileTests extends TestCase {
         });
 
         assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
-        assertEquals("hello world", stringBody.getBody());
+        assertEquals("hello world", stringBody.get());
     }
 }

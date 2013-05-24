@@ -1,22 +1,27 @@
-package com.koushikdutta.async;
+package com.koushikdutta.async.stream;
 
+import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 /**
  * Created by koush on 5/22/13.
  */
-public class FileDataEmitter implements DataEmitter {
+public class InputStreamDataEmitter implements DataEmitter {
     AsyncServer server;
-    File file;
-    public FileDataEmitter(AsyncServer server, File file) {
+    InputStream inputStream;
+    public InputStreamDataEmitter(AsyncServer server, InputStream inputStream) {
         this.server = server;
-        this.file = file;
+        this.inputStream = inputStream;
         doResume();
     }
 
@@ -49,7 +54,7 @@ public class FileDataEmitter implements DataEmitter {
 
     private void report(Exception e) {
         try {
-            channel.close();
+            inputStream.close();
         }
         catch (Exception ex) {
             e = ex;
@@ -59,28 +64,26 @@ public class FileDataEmitter implements DataEmitter {
     }
 
     ByteBufferList pending = new ByteBufferList();
-    FileChannel channel;
     Runnable pumper = new Runnable() {
         @Override
         public void run() {
             try {
-                if (channel == null)
-                    channel = new FileInputStream(file).getChannel();
                 if (!pending.isEmpty()) {
-                    Util.emitAllData(FileDataEmitter.this, pending);
+                    Util.emitAllData(InputStreamDataEmitter.this, pending);
                     if (!pending.isEmpty())
                         return;
                 }
                 ByteBuffer b;
                 do {
                     b = ByteBuffer.allocate(8192);
-                    if (-1 == channel.read(b)) {
+                    int read;
+                    if (-1 == (read = inputStream.read(b.array()))) {
                         report(null);
                         return;
                     }
-                    b.flip();
+                    b.limit(read);
                     pending.add(b);
-                    Util.emitAllData(FileDataEmitter.this, pending);
+                    Util.emitAllData(InputStreamDataEmitter.this, pending);
                 }
                 while (pending.remaining() == 0 && !isPaused());
             }

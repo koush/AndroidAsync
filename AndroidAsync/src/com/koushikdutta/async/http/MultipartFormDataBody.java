@@ -233,7 +233,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     }
 
     @Override
-    public Map<String, List<String>> getBody() {
+    public Map<String, List<String>> get() {
         return formData.toMultimap();
     }
 }
