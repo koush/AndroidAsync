@@ -556,7 +556,7 @@ public class AsyncHttpClient {
                         return;
                 }
                 if (callback != null)
-                    callback.onCompleted(ex, null);
+                    callback.onCompleted(ex, ws);
             }
         });
 
