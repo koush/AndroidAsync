@@ -43,18 +43,18 @@ public class AsyncHttpClient {
         insertMiddleware(new AsyncSSLSocketMiddleware(this));
     }
 
-    public Future<AsyncHttpResponse>execute(final AsyncHttpRequest request) {
+    public Future<AsyncHttpResponse> execute(final AsyncHttpRequest request) {
         return execute(request, (HttpConnectCallback)null);
     }
 
-    public Future<AsyncHttpResponse>execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
+    public Future<AsyncHttpResponse> execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
         FutureAsyncHttpResponse ret;
         execute(request, 0, ret = new FutureAsyncHttpResponse(), callback);
         return ret;
     }
 
     private static final String LOGTAG = "AsyncHttp";
-    private static class FutureAsyncHttpResponse extends SimpleFuture<AsyncHttpResponse> {
+    public static class FutureAsyncHttpResponse extends SimpleFuture<AsyncHttpResponse> {
         public AsyncSocket socket;
 
         @Override
