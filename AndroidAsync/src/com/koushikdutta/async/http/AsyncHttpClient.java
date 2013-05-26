@@ -270,15 +270,19 @@ public class AsyncHttpClient {
     }
 
     @Deprecated
-    public Future<ByteBufferList> get(String uri, final DownloadCallback callback) {
+    public Future<ByteBufferList> get(String uri, DownloadCallback callback) {
         return getByteBufferList(uri, callback);
     }
 
     public Future<ByteBufferList> getByteBufferList(String uri) {
         return getByteBufferList(uri, null);
     }
-    public Future<ByteBufferList> getByteBufferList(String uri, final DownloadCallback callback) {
-        return get(uri, new ResultConvert<ByteBufferList>() {
+    public Future<ByteBufferList> getByteBufferList(String uri, DownloadCallback callback) {
+        return executeByteBufferList(new AsyncHttpGet(uri), callback);
+    }
+
+    public Future<ByteBufferList> executeByteBufferList(AsyncHttpRequest request, DownloadCallback callback) {
+        return execute(request, new ResultConvert<ByteBufferList>() {
             @Override
             public ByteBufferList convert(ByteBufferList b) {
                 return b;
@@ -391,7 +395,7 @@ public class AsyncHttpClient {
     }
 
     public Future<File> getFile(String uri, final String filename) {
-        return getFile(uri, null);
+        return getFile(uri, filename, null);
     }
     public Future<File> getFile(String uri, final String filename, final FileCallback callback) {
         return executeFile(new AsyncHttpGet(uri), filename, callback);
@@ -403,27 +407,29 @@ public class AsyncHttpClient {
     public Future<File> executeFile(AsyncHttpRequest req, final String filename, final FileCallback callback) {
         final Handler handler = req.getHandler();
         final File file = new File(filename);
-        FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
-        final SimpleFuture<File> ret = new SimpleFuture<File>() {
-            @Override
-            public boolean cancel() {
-                if (!super.cancel())
-                    return false;
-                file.delete();
-                return true;
-            }
-        };
-        ret.setParent(cancel);
         file.getParentFile().mkdirs();
         final OutputStream fout;
         try {
             fout = new BufferedOutputStream(new FileOutputStream(file), 8192);
         }
         catch (FileNotFoundException e) {
-            if (ret.setComplete(e))
-                invoke(handler, callback, ret, null, e, null);
+            SimpleFuture<File> ret = new SimpleFuture<File>();
+            ret.setComplete(e);
             return ret;
         }
+        FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
+        final SimpleFuture<File> ret = new SimpleFuture<File>() {
+            @Override
+            public void cancelCleanup() {
+                try {
+                    fout.close();
+                }
+                catch (Exception e) {
+                }
+                file.delete();
+            }
+        };
+        ret.setParent(cancel);
         execute(req, 0, cancel, new HttpConnectCallback() {
             int mDownloaded = 0;
             @Override
@@ -435,8 +441,7 @@ public class AsyncHttpClient {
                     catch (IOException e) {
                     }
                     file.delete();
-                    if (ret.setComplete(ex))
-                        invoke(handler, callback, ret, response, ex, null);
+                    invoke(handler, callback, ret, response, ex, null);
                     return;
                 }
                 invokeConnect(callback, response);
@@ -484,8 +489,7 @@ public class AsyncHttpClient {
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
-                    if (ret.setComplete(ex))
-                        invoke(handler, callback, ret, response, ex, null);
+                    invoke(handler, callback, ret, response, ex, null);
                     return;
                 }
                 invokeConnect(callback, response);
@@ -507,16 +511,14 @@ public class AsyncHttpClient {
                         if (ex == null) {
                             try {
                                 T value = convert.convert(buffer);
-                                if (ret.setComplete(value))
-                                    invoke(handler, callback, ret, response, null, value);
+                                invoke(handler, callback, ret, response, null, value);
                                 return;
                             }
                             catch (Exception e) {
                                 ex = e;
                             }
                         }
-                        if (ret.setComplete(ex))
-                            invoke(handler, callback, ret, response, ex, null);
+                        invoke(handler, callback, ret, response, ex, null);
                     }
                 });
             }

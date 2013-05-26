@@ -13,12 +13,16 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
     public boolean cancel(boolean mayInterruptIfRunning) {
         return cancel();
     }
+
+    protected void cancelCleanup() {
+    }
     
     @Override
     public boolean cancel() {
         if (super.cancel()) {
             synchronized (this) {
                 exception = new CancellationException();
+                cancelCleanup();
                 if (waiter != null)
                     waiter.release();
             }
@@ -32,9 +36,7 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
     @Override
     public T get() throws InterruptedException, ExecutionException {
         synchronized (this) {
-            if (isCancelled())
-                return null;
-            if (isDone())
+            if (isCancelled() || isDone())
                 return getResult();
             if (waiter == null)
                 waiter = new AsyncSemaphore();
@@ -52,9 +54,7 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
     @Override
     public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         synchronized (this) {
-            if (isCancelled())
-                throw new ExecutionException(new CancellationException());
-            if (isDone())
+            if (isCancelled() || isDone())
                 return getResult();
             if (waiter == null)
                 waiter = new AsyncSemaphore();

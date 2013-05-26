@@ -9,6 +9,7 @@ import java.util.concurrent.TimeoutException;
 
 import android.util.Log;
 import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.http.*;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 import android.os.Environment;
@@ -19,12 +20,8 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpClient.DownloadCallback;
 import com.koushikdutta.async.http.AsyncHttpClient.StringCallback;
-import com.koushikdutta.async.http.AsyncHttpResponse;
-import com.koushikdutta.async.http.HttpConnectCallback;
-import com.koushikdutta.async.http.ResponseCacheMiddleware;
 
 public class HttpClientTests extends TestCase {
     AsyncHttpClient client;
@@ -120,7 +117,7 @@ public class HttpClientTests extends TestCase {
     public void testInsecureGithubRandomDataWithFutureCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Md5 md5 = Md5.createInstance();
-        client.getByteBufferList(githubInsecure).setCallback(new FutureCallback<ByteBufferList>() {
+        client.executeByteBufferList(new AsyncHttpGet(githubInsecure).setHandler(null), null).setCallback(new FutureCallback<ByteBufferList>() {
             @Override
             public void onCompleted(Exception e, ByteBufferList bb) {
                 md5.update(bb);
@@ -138,7 +135,7 @@ public class HttpClientTests extends TestCase {
 
     public void testGithubHelloWithFutureCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
-        client.getString("https://" + githubPath + "hello.txt")
+        client.executeString(new AsyncHttpGet("https://" + githubPath + "hello.txt").setHandler(null))
         .setCallback(new FutureCallback<String>() {
             @Override
             public void onCompleted(Exception e, String result) {
@@ -192,5 +189,41 @@ public class HttpClientTests extends TestCase {
         finally {
             client.getMiddleware().remove(cache);
         }
+    }
+
+    Future<File> fileFuture;
+    public void testFileCancel() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
+        fileFuture = client.getFile(github, "/sdcard/hello.txt", new AsyncHttpClient.FileCallback() {
+            @Override
+            public void onCompleted(Exception e, AsyncHttpResponse source, File result) {
+                fail();
+            }
+
+            @Override
+            public void onProgress(AsyncHttpResponse response, int downloaded, int total) {
+                response.pause();
+                semaphore.release();
+            }
+        })
+        .setCallback(new FutureCallback<File>() {
+            @Override
+            public void onCompleted(Exception e, File result) {
+                fail();
+            }
+        });
+
+        try {
+            assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
+            assertTrue(fileFuture.cancel());
+            fileFuture.get();
+            fail();
+        }
+        catch (ExecutionException ex) {
+            assertTrue(ex.getCause() instanceof CancellationException);
+        }
+//        Thread.sleep(1000);
+//        assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertFalse(new File("/sdcard/hello.txt").exists());
     }
 }
