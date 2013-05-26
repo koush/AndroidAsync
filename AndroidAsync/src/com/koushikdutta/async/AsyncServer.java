@@ -146,30 +146,41 @@ public class AsyncServer {
             }
         }
     }
-    private static WeakHashMap<Thread, ThreadQueue> mThreadQueues = new WeakHashMap<Thread, ThreadQueue>();
-    public static void post(final Handler handler, final Runnable runnable) {
-        ThreadQueue queue = getOrCreateThreadQueue(handler.getLooper().getThread());
 
-        final ThreadQueue threadQueue = queue;
-        Runnable wrapper = new Runnable() {
-            boolean hasRun;
-            @Override
-            public void run() {
-                synchronized (this) {
-                    if (hasRun)
-                        return;
-                    hasRun = true;
-                }
-                try {
-                    runnable.run();
-                }
-                finally {
-                    threadQueue.remove(this);
-                    handler.removeCallbacks(this);
-                }
+    private static class RunnableWrapper implements Runnable {
+        boolean hasRun;
+        Runnable runnable;
+        ThreadQueue threadQueue;
+        Handler handler;
+        @Override
+        public void run() {
+            synchronized (this) {
+                if (hasRun)
+                    return;
+                hasRun = true;
             }
-        };
-        
+            try {
+                runnable.run();
+            }
+            finally {
+                // garbage collection
+                threadQueue.remove(this);
+                handler.removeCallbacks(this);
+
+                threadQueue = null;
+                handler = null;
+                runnable = null;
+            }
+        }
+    }
+    private static WeakHashMap<Thread, ThreadQueue> mThreadQueues = new WeakHashMap<Thread, ThreadQueue>();
+    public static void post(Handler handler, Runnable runnable) {
+        RunnableWrapper wrapper = new RunnableWrapper();
+        ThreadQueue threadQueue = getOrCreateThreadQueue(handler.getLooper().getThread());
+        wrapper.threadQueue = threadQueue;
+        wrapper.handler = handler;
+        wrapper.runnable = runnable;
+
         threadQueue.add(wrapper);
         handler.post(wrapper);
 

@@ -12,18 +12,23 @@ public class SimpleCancelable implements DependentCancellable {
             if (canceled)
                 return false;
             complete = true;
+            parent = null;
         }
         return true;
     }
 
     @Override
     public boolean cancel() {
+        Cancellable parent;
         synchronized (this) {
             if (complete)
                 return false;
             if (canceled)
                 return true;
             canceled = true;
+            parent = this.parent;
+            // null out the parent to allow garbage collection
+            this.parent = null;
         }
         if (parent != null)
             parent.cancel();
@@ -31,15 +36,13 @@ public class SimpleCancelable implements DependentCancellable {
     }
     boolean canceled;
 
-    Cancellable parent;
-    @Override
-    public Cancellable getParent() {
-        return parent;
-    }
-    
+    private Cancellable parent;
     @Override
     public SimpleCancelable setParent(Cancellable parent) {
-        this.parent = parent;
+        synchronized (this) {
+            if (!isDone())
+                this.parent = parent;
+        }
         return this;
     }
 

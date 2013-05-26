@@ -54,8 +54,11 @@ public class FileDataEmitter implements DataEmitter {
         catch (Exception ex) {
             e = ex;
         }
-        if (endCallback != null)
+        callback = null;
+        if (endCallback != null) {
             endCallback.onCompleted(e);
+            endCallback = null;
+        }
     }
 
     ByteBufferList pending = new ByteBufferList();

@@ -69,6 +69,22 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
         return setComplete((T)null);
     }
 
+    private FutureCallback<T> handleCompleteLocked() {
+        // don't execute the callback inside the sync block... possible hangup
+        // read the callback value, and then call it outside the block.
+        // can't simply call this.callback.onCompleted directly outside the block,
+        // because that may result in a race condition where the callback changes once leaving
+        // the block.
+        FutureCallback<T> callback = this.callback;
+        // null out members to allow garbage collection
+        this.callback = null;
+        return callback;
+    }
+
+    private void handleCallbackUnlocked(FutureCallback<T> callback) {
+        if (callback != null)
+            callback.onCompleted(exception, result);
+    }
 
     Exception exception;
     public boolean setComplete(Exception e) {
@@ -79,10 +95,9 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
             if (waiter != null)
                 waiter.release();
             exception = e;
-            callback = this.callback;
+            callback = handleCompleteLocked();
         }
-        if (callback != null)
-            callback.onCompleted(exception, result);
+        handleCallbackUnlocked(callback);
         return true;
     }
 
@@ -95,34 +110,25 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
             result = value;
             if (waiter != null)
                 waiter.release();
-            // don't execute the callback inside the sync block... possible hangup
-            // read the callback value, and then call it outside the block.
-            // can't simply call this.callback.onCompleted directly outside the block,
-            // because that may result in a race condition where the callback changes once leaving
-            // the block.
-            callback = this.callback;
+            callback = handleCompleteLocked();
         }
-        if (callback != null)
-            callback.onCompleted(exception, result);
+        handleCallbackUnlocked(callback);
         return true;
     }
 
     FutureCallback<T> callback;
-    @Override
-    public FutureCallback<T> getCallback() {
-        return callback;
-    }
 
     @Override
-    public Future<T> setCallback(FutureCallback<T> callback) {
+    public SimpleFuture<T> setCallback(FutureCallback<T> callback) {
         // callback can only be changed or read/used inside a sync block
-        boolean runCallback;
         synchronized (this) {
             this.callback = callback;
-            runCallback = isDone();
+            if (isDone())
+                callback = handleCompleteLocked();
+            else
+                callback = null;
         }
-        if (runCallback)
-            callback.onCompleted(exception, result);
+        handleCallbackUnlocked(callback);
         return this;
     }
 
