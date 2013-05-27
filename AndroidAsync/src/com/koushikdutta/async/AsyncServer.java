@@ -163,7 +163,6 @@ public class AsyncServer {
                 runnable.run();
             }
             finally {
-                // garbage collection
                 threadQueue.remove(this);
                 handler.removeCallbacks(this);
 

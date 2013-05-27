@@ -35,7 +35,7 @@ public class WebSocketImpl implements WebSocket {
     final static String MAGIC = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     
     private LinkedList<ByteBufferList> pending;
-    
+
     private void addAndEmit(ByteBufferList bb) {
         if (pending == null) {
             Util.emitAllData(this, bb);

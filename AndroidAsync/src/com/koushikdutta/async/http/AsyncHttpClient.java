@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http;
 
 import android.os.Handler;
+import android.util.Log;
 import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
@@ -43,10 +44,6 @@ public class AsyncHttpClient {
         insertMiddleware(new AsyncSSLSocketMiddleware(this));
     }
 
-    public Future<AsyncHttpResponse> execute(final AsyncHttpRequest request) {
-        return execute(request, (HttpConnectCallback)null);
-    }
-
     public Future<AsyncHttpResponse> execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {
         FutureAsyncHttpResponse ret;
         execute(request, 0, ret = new FutureAsyncHttpResponse(), callback);
@@ -70,6 +67,7 @@ public class AsyncHttpClient {
     }
 
     private void reportConnectedCompleted(FutureAsyncHttpResponse cancel, Exception ex, AsyncHttpResponseImpl response, final HttpConnectCallback callback) {
+        assert callback != null;
         boolean complete;
         if (ex != null)
             complete = cancel.setComplete(ex);
@@ -78,6 +76,7 @@ public class AsyncHttpClient {
         if (complete) {
             if (callback != null)
                 callback.onConnectCompleted(ex, response);
+            assert ex != null || response.getDataCallback() != null;
             return;
         }
 
