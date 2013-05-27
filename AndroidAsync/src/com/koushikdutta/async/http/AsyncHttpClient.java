@@ -417,10 +417,16 @@ public class AsyncHttpClient {
             ret.setComplete(e);
             return ret;
         }
-        FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
+        final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
         final SimpleFuture<File> ret = new SimpleFuture<File>() {
             @Override
             public void cancelCleanup() {
+                try {
+                    cancel.get().setDataCallback(new NullDataCallback());
+                    cancel.get().close();
+                }
+                catch (Exception e) {
+                }
                 try {
                     fout.close();
                 }
@@ -480,9 +486,19 @@ public class AsyncHttpClient {
     }
 
     private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final ResultConvert<T> convert, final RequestCallback<T> callback) {
-        final SimpleFuture<T> ret = new SimpleFuture<T>();
-        final Handler handler = req.getHandler();
         final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
+        final SimpleFuture<T> ret = new SimpleFuture<T>() {
+            @Override
+            protected void cancelCleanup() {
+                try {
+                    cancel.get().setDataCallback(new NullDataCallback());
+                    cancel.get().close();
+                }
+                catch (Exception e) {
+                }
+            }
+        };
+        final Handler handler = req.getHandler();
         execute(req, 0, cancel, new HttpConnectCallback() {
             int mDownloaded = 0;
             ByteBufferList buffer = new ByteBufferList();

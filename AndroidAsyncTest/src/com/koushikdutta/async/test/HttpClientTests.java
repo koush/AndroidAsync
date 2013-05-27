@@ -202,7 +202,6 @@ public class HttpClientTests extends TestCase {
 
             @Override
             public void onProgress(AsyncHttpResponse response, int downloaded, int total) {
-                response.pause();
                 semaphore.release();
             }
         })
