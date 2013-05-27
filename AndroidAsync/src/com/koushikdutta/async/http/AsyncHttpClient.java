@@ -10,6 +10,7 @@ import com.koushikdutta.async.callback.RequestCallback;
 import com.koushikdutta.async.future.*;
 import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.parser.*;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -264,10 +265,6 @@ public class AsyncHttpClient {
     public static abstract class FileCallback extends RequestCallbackBase<File> {
     }
 
-    private interface ResultConvert<T> {
-        public T convert(ByteBufferList bb) throws Exception;
-    }
-
     @Deprecated
     public Future<ByteBufferList> get(String uri, DownloadCallback callback) {
         return getByteBufferList(uri, callback);
@@ -281,12 +278,7 @@ public class AsyncHttpClient {
     }
 
     public Future<ByteBufferList> executeByteBufferList(AsyncHttpRequest request, DownloadCallback callback) {
-        return execute(request, new ResultConvert<ByteBufferList>() {
-            @Override
-            public ByteBufferList convert(ByteBufferList b) {
-                return b;
-            }
-        }, callback);
+        return execute(request, new ByteBufferListParser(), callback);
     }
 
     @Deprecated
@@ -309,14 +301,7 @@ public class AsyncHttpClient {
         return executeString(req, null);
     }
     public Future<String> executeString(AsyncHttpRequest req, final StringCallback callback) {
-        return execute(req, new ResultConvert<String>() {
-            @Override
-            public String convert(ByteBufferList bb) {
-                String ret = bb.peekString();
-                bb.clear();
-                return ret;
-            }
-        }, callback);
+        return execute(req, new StringParser(), callback);
     }
 
     @Deprecated
@@ -339,14 +324,7 @@ public class AsyncHttpClient {
         return executeJSONObject(req, null);
     }
     public Future<JSONObject> executeJSONObject(AsyncHttpRequest req, final JSONObjectCallback callback) {
-        return execute(req, new ResultConvert<JSONObject>() {
-            @Override
-            public JSONObject convert(ByteBufferList bb) throws JSONException {
-                String ret = bb.peekString();
-                bb.clear();
-                return new JSONObject(ret);
-            }
-        }, callback);
+        return execute(req, new JSONObjectParser(), callback);
     }
 
     private <T> void invokeWithAffinity(final RequestCallback<T> callback, SimpleFuture<T> future, final AsyncHttpResponse response, final Exception e, final T result) {
@@ -437,6 +415,7 @@ public class AsyncHttpClient {
         ret.setParent(cancel);
         execute(req, 0, cancel, new HttpConnectCallback() {
             int mDownloaded = 0;
+
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
@@ -484,7 +463,7 @@ public class AsyncHttpClient {
         return ret;
     }
 
-    private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final ResultConvert<T> convert, final RequestCallback<T> callback) {
+    private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final AsyncParser<T> parser, final RequestCallback<T> callback) {
         final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
         final SimpleFuture<T> ret = new SimpleFuture<T>() {
             @Override
@@ -499,8 +478,6 @@ public class AsyncHttpClient {
         };
         final Handler handler = req.getHandler();
         execute(req, 0, cancel, new HttpConnectCallback() {
-            int mDownloaded = 0;
-            ByteBufferList buffer = new ByteBufferList();
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
@@ -511,39 +488,22 @@ public class AsyncHttpClient {
 
                 final int contentLength = response.getHeaders().getContentLength();
 
-                response.setDataCallback(new DataCallback() {
+                parser.parse(response, new ParserCallback() {
                     @Override
-                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                        mDownloaded += bb.remaining();
-                        buffer.add(bb);
-                        bb.clear();
-                        invokeProgress(callback, response, mDownloaded, contentLength);
+                    public void onProgress(int bytesParsed) {
+                        invokeProgress(callback, response, bytesParsed, contentLength);
                     }
-                });
-                response.setEndCallback(new CompletedCallback() {
+                })
+                .setCallback(new FutureCallback<T>() {
                     @Override
-                    public void onCompleted(Exception ex) {
-                        if (ex == null) {
-                            try {
-                                T value = convert.convert(buffer);
-                                invoke(handler, callback, ret, response, null, value);
-                                return;
-                            }
-                            catch (Exception e) {
-                                ex = e;
-                            }
-                        }
-                        invoke(handler, callback, ret, response, ex, null);
+                    public void onCompleted(Exception e, T result) {
+                        invoke(handler, callback, ret, response, e, result);
                     }
                 });
             }
         });
         ret.setParent(cancel);
         return ret;
-    }
-
-    private <T> Future<T> get(String uri, final ResultConvert<T> convert, final RequestCallback<T> callback) {
-        return execute(new AsyncHttpGet(URI.create(uri)), convert, callback);
     }
 
     public static interface WebSocketConnectCallback {

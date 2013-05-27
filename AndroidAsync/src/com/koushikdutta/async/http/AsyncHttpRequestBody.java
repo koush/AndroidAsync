@@ -1,6 +1,5 @@
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.DataParser;
 
 public interface AsyncHttpRequestBody<T> extends DataParser<T> {
