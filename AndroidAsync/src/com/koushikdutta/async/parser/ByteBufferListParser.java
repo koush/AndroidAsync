@@ -2,8 +2,6 @@ package com.koushikdutta.async.parser;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataSink;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Future;
@@ -19,10 +17,7 @@ public class ByteBufferListParser implements AsyncParser<ByteBufferList> {
         final SimpleFuture<ByteBufferList> ret = new SimpleFuture<ByteBufferList>() {
             @Override
             protected void cancelCleanup() {
-                emitter.pause();
-                emitter.setDataCallback(new NullDataCallback());
-                if (emitter instanceof DataSink)
-                    ((DataSink)emitter).close();
+                emitter.close();
             }
         };
         emitter.setDataCallback(new DataCallback() {
