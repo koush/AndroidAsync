@@ -10,7 +10,7 @@ import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.Util;
+import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
@@ -55,9 +55,9 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                     mRawHeaders.addLine(s);
                 }
                 else {
-                    DataEmitter emitter = Util.getBodyDecoder(mSocket, mRawHeaders, true, mReporter);
+                    DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, mRawHeaders, true);
                     emitter.setEndCallback(mReporter);
-                    mBody = Util.getBody(emitter, mReporter, mRawHeaders);
+                    mBody = HttpUtil.getBody(emitter, mReporter, mRawHeaders);
                     mHeaders = new RequestHeaders(null, mRawHeaders);
                     onHeadersReceived();
                 }

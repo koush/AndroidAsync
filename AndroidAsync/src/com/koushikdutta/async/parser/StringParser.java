@@ -2,6 +2,9 @@ package com.koushikdutta.async.parser;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.ProgressCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.TransformFuture;
 
@@ -10,13 +13,18 @@ import com.koushikdutta.async.future.TransformFuture;
  */
 public class StringParser implements AsyncParser<String> {
     @Override
-    public Future<String> parse(DataEmitter emitter, ParserCallback callback) {
+    public Future<String> parse(DataEmitter emitter) {
         return new TransformFuture<String, ByteBufferList>() {
             @Override
             protected void transform(ByteBufferList result) throws Exception {
                 setComplete(result.readString());
             }
         }
-        .from(new ByteBufferListParser().parse(emitter, callback));
+        .from(new ByteBufferListParser().parse(emitter));
+    }
+
+    @Override
+    public void write(DataSink sink, String value, CompletedCallback completed) {
+        new ByteBufferListParser().write(sink, new ByteBufferList(value.getBytes()), completed);
     }
 }

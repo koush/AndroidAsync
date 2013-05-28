@@ -11,7 +11,7 @@ import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.UnknownRequestBody;
 
-public class Util {
+public class HttpUtil {
     public static AsyncHttpRequestBody getBody(DataEmitter emitter, CompletedCallback reporter, RawHeaders headers) {
         String contentType = headers.get("Content-Type");
         if (contentType != null) {
@@ -21,7 +21,7 @@ public class Util {
             }
             for (String ct: values) {
                 if (UrlEncodedFormBody.CONTENT_TYPE.equals(ct)) {
-                    UrlEncodedFormBody ret = new UrlEncodedFormBody(); 
+                    UrlEncodedFormBody ret = new UrlEncodedFormBody();
                     emitter.setDataCallback(ret);
                     return ret;
                 }
@@ -57,7 +57,7 @@ public class Util {
         }
     }
     
-    public static DataEmitter getBodyDecoder(DataEmitter emitter, RawHeaders headers, boolean server, final CompletedCallback reporter) {
+    public static DataEmitter getBodyDecoder(DataEmitter emitter, RawHeaders headers, boolean server) {
         int _contentLength;
         try {
             _contentLength = Integer.parseInt(headers.get("Content-Length"));

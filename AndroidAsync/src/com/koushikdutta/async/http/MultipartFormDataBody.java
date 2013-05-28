@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import android.util.Log;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.LineEmitter;
@@ -57,6 +58,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
             @Override
             public void onStringAvailable(String s) {
                 if (!"\r".equals(s)){
+                    Log.i("HEADER---", s);
                     headers.addLine(s);
                 }
                 else {
@@ -67,8 +69,10 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                     Part part = new Part(headers);
                     if (mCallback != null)
                         mCallback.onPart(part);
+                    Log.w("MULTIPART---", part.getName());
                     if (getDataCallback() == null) {
                         if (part.isFile()) {
+                            Log.w("MULTIPART", "UNHANDLED!");
                             setDataCallback(new NullDataCallback());
                             return;
                         }

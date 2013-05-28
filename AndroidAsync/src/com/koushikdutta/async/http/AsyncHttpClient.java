@@ -1,18 +1,16 @@
 package com.koushikdutta.async.http;
 
 import android.os.Handler;
-import android.util.Log;
 import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.ProgressCallback;
 import com.koushikdutta.async.callback.RequestCallback;
 import com.koushikdutta.async.future.*;
 import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.parser.*;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -478,12 +476,7 @@ public class AsyncHttpClient {
 
                 final int contentLength = response.getHeaders().getContentLength();
 
-                Future<T> parsed = parser.parse(response, new ParserCallback() {
-                    @Override
-                    public void onProgress(int bytesParsed) {
-                        invokeProgress(callback, response, bytesParsed, contentLength);
-                    }
-                })
+                Future<T> parsed = parser.parse(response)
                 .setCallback(new FutureCallback<T>() {
                     @Override
                     public void onCompleted(Exception e, T result) {

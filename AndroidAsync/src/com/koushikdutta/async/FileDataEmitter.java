@@ -17,7 +17,9 @@ public class FileDataEmitter implements DataEmitter {
     public FileDataEmitter(AsyncServer server, File file) {
         this.server = server;
         this.file = file;
-        doResume();
+        paused = !server.isAffinityThread();
+        if (!paused)
+            doResume();
     }
 
     DataCallback callback;
@@ -45,6 +47,7 @@ public class FileDataEmitter implements DataEmitter {
     @Override
     public void resume() {
         paused = false;
+        doResume();
     }
 
     private void report(Exception e) {

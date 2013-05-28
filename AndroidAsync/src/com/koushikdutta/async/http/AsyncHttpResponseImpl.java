@@ -92,7 +92,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
                     // socket may get detached after headers (websocket)
                     if (mSocket == null)
                         return;
-                    DataEmitter emitter = Util.getBodyDecoder(mSocket, mRawHeaders, false, mReporter);
+                    DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, mRawHeaders, false);
                     setDataEmitter(emitter);
                 }
             }

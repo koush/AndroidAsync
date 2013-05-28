@@ -1,6 +1,7 @@
 package com.koushikdutta.async.test;
 
 import android.os.Environment;
+import android.util.Log;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
@@ -47,6 +48,7 @@ public class MultipartTests extends TestCase {
                 body.setMultipartCallback(new MultipartCallback() {
                     @Override
                     public void onPart(Part part) {
+                        Log.i("MULTIPART", part.getName());
                         if (part.isFile()) {
                             body.setDataCallback(new DataCallback() {
                                 @Override
@@ -62,6 +64,12 @@ public class MultipartTests extends TestCase {
                 request.setEndCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
+                        try {
+                            throw new Exception();
+                        }
+                        catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         response.send(body.getField("baz") + gotten + body.getField("foo"));
                     }
                 });

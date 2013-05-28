@@ -141,11 +141,11 @@ public class AsyncHttpServer {
                 }
 
                 @Override
-                public Map<String, String> getQuery() {
+                public Multimap getQuery() {
                     String[] parts = fullPath.split("\\?", 2);
                     if (parts.length < 2)
-                        return new Hashtable<String, String>();
-                    return UrlEncodedFormBody.parse(parts[1]);
+                        return new Multimap();
+                    return Multimap.parseQuery(parts[1]);
                 }
             };
             req.setSocket(socket);

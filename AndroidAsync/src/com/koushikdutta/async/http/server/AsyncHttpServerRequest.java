@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
+import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
 public interface AsyncHttpServerRequest extends DataEmitter {
@@ -14,5 +15,5 @@ public interface AsyncHttpServerRequest extends DataEmitter {
     public AsyncHttpRequestBody getBody();
     public AsyncSocket getSocket();
     public String getPath();
-    public Map<String, String> getQuery();
+    public Multimap getQuery();
 }

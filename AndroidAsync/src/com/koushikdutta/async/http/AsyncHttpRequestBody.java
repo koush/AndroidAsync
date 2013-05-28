@@ -7,7 +7,5 @@ public interface AsyncHttpRequestBody<T> extends DataCallback {
     public String getContentType();
     public boolean readFullyOnRequest();
     public int length();
-
-    @Deprecated
     public T get();
 }

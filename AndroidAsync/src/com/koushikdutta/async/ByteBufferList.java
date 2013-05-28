@@ -52,7 +52,7 @@ public class ByteBufferList {
         return remaining == 0;
     }
 
-    int remaining = 0;
+    private int remaining = 0;
     public int remaining() {
         return remaining;
     }

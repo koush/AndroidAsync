@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http.server;
 
+import android.util.Log;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
@@ -57,6 +58,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
     int state = 2;
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+        Log.d("BOUNDARY", "" + state);
 //        System.out.println(bb.getString());
 //        System.out.println("chunk: " + bb.remaining());
         
@@ -148,7 +150,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
         }
 
         if (last < buf.length) {
-//            System.out.println("amount left at boundary: " + (buf.length - last));
+            System.out.println("amount left at boundary: " + (buf.length - last));
 //            System.out.println(state);
             int keep = Math.max(state, 0);
             ByteBuffer b = ByteBuffer.wrap(buf, last, buf.length - last - keep);

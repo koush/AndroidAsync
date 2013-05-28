@@ -2,6 +2,7 @@ package com.koushikdutta.async;
 
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.ProgressCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;
@@ -151,19 +152,24 @@ public class Util {
     }
 
     public static void writeAll(final DataSink sink, final ByteBufferList bb, final CompletedCallback callback) {
-        sink.setWriteableCallback(new WritableCallback() {
+        writeAll(sink, bb, null, callback);
+    }
+
+    public static void writeAll(final DataSink sink, final ByteBufferList bb, final ProgressCallback progress, final CompletedCallback callback) {
+        WritableCallback wc;
+        final int total = bb.remaining();
+        sink.setWriteableCallback(wc = new WritableCallback() {
             @Override
             public void onWriteable() {
-                if (bb.remaining() == 0)
-                    return;
-                sink.write(bb);
+                if (bb.remaining() > 0)
+                    sink.write(bb);
+                if (progress != null)
+                    progress.onProgress(total - bb.remaining(), total);
                 if (bb.remaining() == 0 && callback != null)
                     callback.onCompleted(null);
             }
         });
-        sink.write(bb);
-        if (bb.remaining() == 0 && callback != null)
-            callback.onCompleted(null);
+        wc.onWriteable();
     }
     public static void writeAll(DataSink sink, byte[] bytes, CompletedCallback callback) {
         ByteBuffer bb = ByteBuffer.wrap(bytes);

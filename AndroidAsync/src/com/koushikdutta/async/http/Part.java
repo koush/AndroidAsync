@@ -13,14 +13,14 @@ public class Part {
     public static final String CONTENT_DISPOSITION = "Content-Disposition";
     
     RawHeaders mHeaders;
-    Map<String, String> mContentDisposition;
+    Multimap mContentDisposition;
     public Part(RawHeaders headers) {
         mHeaders = headers;
-        mContentDisposition = HeaderMap.parse(mHeaders, CONTENT_DISPOSITION);
+        mContentDisposition = Multimap.parseHeader(mHeaders, CONTENT_DISPOSITION);
     }
     
     public String getName() {
-        return mContentDisposition.get("name");
+        return mContentDisposition.getString("name");
     }
     
     private int length = -1;
@@ -34,7 +34,7 @@ public class Part {
             }
         }
         mHeaders.set(CONTENT_DISPOSITION, builder.toString());
-        mContentDisposition = HeaderMap.parse(mHeaders, CONTENT_DISPOSITION);
+        mContentDisposition = Multimap.parseHeader(mHeaders, CONTENT_DISPOSITION);
     }
 
     public RawHeaders getRawHeaders() {
@@ -46,7 +46,7 @@ public class Part {
     }
 
     public String getFilename() {
-        String file = mContentDisposition.get("filename");
+        String file = mContentDisposition.getString("filename");
         if (file == null)
             return null;
         return new File(file).getName();
