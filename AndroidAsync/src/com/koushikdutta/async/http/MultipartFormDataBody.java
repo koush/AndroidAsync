@@ -58,7 +58,6 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
             @Override
             public void onStringAvailable(String s) {
                 if (!"\r".equals(s)){
-                    Log.i("HEADER---", s);
                     headers.addLine(s);
                 }
                 else {
@@ -69,10 +68,8 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                     Part part = new Part(headers);
                     if (mCallback != null)
                         mCallback.onPart(part);
-                    Log.w("MULTIPART---", part.getName());
                     if (getDataCallback() == null) {
                         if (part.isFile()) {
-                            Log.w("MULTIPART", "UNHANDLED!");
                             setDataCallback(new NullDataCallback());
                             return;
                         }
@@ -93,15 +90,6 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         setDataCallback(liner);
     }
 
-    @Override
-    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        if (liner != null) {
-            liner.onDataAvailable(emitter, bb);
-            return;
-        }
-        super.onDataAvailable(emitter, bb);
-    }
-    
     public static final String CONTENT_TYPE = "multipart/form-data";
     public MultipartFormDataBody(String contentType, String[] values) {
         for (String value: values) {

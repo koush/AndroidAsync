@@ -48,7 +48,6 @@ public class MultipartTests extends TestCase {
                 body.setMultipartCallback(new MultipartCallback() {
                     @Override
                     public void onPart(Part part) {
-                        Log.i("MULTIPART", part.getName());
                         if (part.isFile()) {
                             body.setDataCallback(new DataCallback() {
                                 @Override
@@ -64,12 +63,6 @@ public class MultipartTests extends TestCase {
                 request.setEndCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
-                        try {
-                            throw new Exception();
-                        }
-                        catch (Exception e) {
-                            e.printStackTrace();
-                        }
                         response.send(body.getField("baz") + gotten + body.getField("foo"));
                     }
                 });
@@ -111,6 +104,6 @@ public class MultipartTests extends TestCase {
         });
         
         String data = ret.get(500000, TimeUnit.MILLISECONDS);
-        assertEquals(data, FIELD_VAL + 1000000 + FIELD_VAL);
+        assertEquals(data, FIELD_VAL + (zeroes.length * 10) + FIELD_VAL);
     }
 }
