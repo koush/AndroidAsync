@@ -13,13 +13,10 @@ public class BufferedDataSink implements DataSink {
             @Override
             public void onWriteable() {
                 writePending();
-                if (closePending) {
-                    mDataSink.close();
-                }
             }
         });
     }
-    
+
     public boolean isBuffering() {
         return mPendingWrites != null;
     }
@@ -32,8 +29,13 @@ public class BufferedDataSink implements DataSink {
 //        Log.i("NIO", "Writing to buffer...");
         if (mPendingWrites != null) {
             mDataSink.write(mPendingWrites);
-            if (mPendingWrites.remaining() == 0)
+            if (mPendingWrites.remaining() == 0) {
                 mPendingWrites = null;
+                if (endPending)
+                    mDataSink.end();
+                if (closePending)
+                    mDataSink.close();
+            }
         }
         if (mPendingWrites == null && mWritable != null)
             mWritable.onWriteable();
