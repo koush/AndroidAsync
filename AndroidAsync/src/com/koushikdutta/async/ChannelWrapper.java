@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
@@ -14,6 +15,9 @@ abstract class ChannelWrapper implements ReadableByteChannel {
         channel.configureBlocking(false);
         mChannel = channel;
     }
+
+    public abstract void shutdownInput();
+    public abstract void shutdownOutput();
     
     public abstract boolean isConnected();
     

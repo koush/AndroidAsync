@@ -19,7 +19,12 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
             }
         });
     }
-    
+
+    @Override
+    public void close() {
+        mEmitter.close();
+    }
+
     boolean mEnded = false;
     Exception mEndException;
     

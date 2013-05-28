@@ -16,7 +16,12 @@ import java.nio.channels.SocketChannel;
 public class AsyncNetworkSocket implements AsyncSocket {
     AsyncNetworkSocket() {
     }
-    
+
+    @Override
+    public void end() {
+        mChannel.shutdownOutput();
+    }
+
     public boolean isChunked() {
         return mChannel.isChunked();
     }

@@ -90,11 +90,6 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     }
 
     @Override
-    protected void report(Exception e) {
-        super.report(e);
-    }
-
-    @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         if (liner != null) {
             liner.onDataAvailable(emitter, bb);

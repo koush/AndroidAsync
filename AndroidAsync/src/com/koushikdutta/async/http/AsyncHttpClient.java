@@ -465,17 +465,7 @@ public class AsyncHttpClient {
 
     private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final AsyncParser<T> parser, final RequestCallback<T> callback) {
         final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
-        final SimpleFuture<T> ret = new SimpleFuture<T>() {
-            @Override
-            protected void cancelCleanup() {
-                try {
-                    cancel.get().setDataCallback(new NullDataCallback());
-                    cancel.get().close();
-                }
-                catch (Exception e) {
-                }
-            }
-        };
+        final SimpleFuture<T> ret = new SimpleFuture<T>();
         final Handler handler = req.getHandler();
         execute(req, 0, cancel, new HttpConnectCallback() {
             @Override
@@ -488,7 +478,7 @@ public class AsyncHttpClient {
 
                 final int contentLength = response.getHeaders().getContentLength();
 
-                parser.parse(response, new ParserCallback() {
+                Future<T> parsed = parser.parse(response, new ParserCallback() {
                     @Override
                     public void onProgress(int bytesParsed) {
                         invokeProgress(callback, response, bytesParsed, contentLength);
@@ -500,6 +490,9 @@ public class AsyncHttpClient {
                         invoke(handler, callback, ret, response, e, result);
                     }
                 });
+
+                // reparent to the new parser future
+                ret.setParent(parsed);
             }
         });
         ret.setParent(cancel);

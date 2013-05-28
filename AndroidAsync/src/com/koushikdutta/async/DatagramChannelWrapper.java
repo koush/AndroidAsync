@@ -68,4 +68,12 @@ class DatagramChannelWrapper extends ChannelWrapper {
     public SelectionKey register(Selector sel) throws ClosedChannelException {
         return register(sel, SelectionKey.OP_READ);
     }
+
+    @Override
+    public void shutdownOutput() {
+    }
+
+    @Override
+    public void shutdownInput() {
+    }
 }

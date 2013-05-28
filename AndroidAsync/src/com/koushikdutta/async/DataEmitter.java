@@ -9,6 +9,7 @@ public interface DataEmitter {
     public boolean isChunked();
     public void pause();
     public void resume();
+    public void close();
     public boolean isPaused();
     public void setEndCallback(CompletedCallback callback);
     public CompletedCallback getEndCallback();

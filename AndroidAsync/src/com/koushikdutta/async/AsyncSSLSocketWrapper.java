@@ -21,6 +21,11 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     ByteBuffer mReadTmp = ByteBuffer.allocate(8192);
     boolean mUnwrapping = false;
 
+    @Override
+    public void end() {
+        mSocket.end();
+    }
+
     public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port) {
         mSocket = socket;
 

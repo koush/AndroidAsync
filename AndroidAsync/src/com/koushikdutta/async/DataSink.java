@@ -13,6 +13,7 @@ public interface DataSink {
     
     public boolean isOpen();
     public void close();
+    public void end();
     public void setClosedCallback(CompletedCallback handler);
     public CompletedCallback getClosedCallback();
     public AsyncServer getServer();

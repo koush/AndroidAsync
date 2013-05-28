@@ -11,6 +11,14 @@ class ServerSocketChannelWrapper extends ChannelWrapper {
     ServerSocketChannel mChannel;
 
     @Override
+    public void shutdownOutput() {
+    }
+
+    @Override
+    public void shutdownInput() {
+    }
+
+    @Override
     public int getLocalPort() {
         return mChannel.socket().getLocalPort();
     }

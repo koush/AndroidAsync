@@ -117,4 +117,13 @@ public class FileDataEmitter implements DataEmitter {
     public AsyncServer getServer() {
         return server;
     }
+
+    @Override
+    public void close() {
+        try {
+            channel.close();
+        }
+        catch (Exception e) {
+        }
+    }
 }

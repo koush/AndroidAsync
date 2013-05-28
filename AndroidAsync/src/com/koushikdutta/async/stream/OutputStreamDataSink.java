@@ -11,6 +11,18 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
 public class OutputStreamDataSink implements DataSink {
+    public OutputStreamDataSink() {
+    }
+
+    @Override
+    public void end() {
+        close();
+    }
+
+    public OutputStreamDataSink(OutputStream stream) {
+        setOutputStream(stream);
+    }
+
     OutputStream mStream;
     public void setOutputStream(OutputStream stream) {
         mStream = stream;

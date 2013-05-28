@@ -121,6 +121,16 @@ public class BufferedDataSink implements DataSink {
         mDataSink.close();
     }
 
+    boolean endPending;
+    @Override
+    public void end() {
+        if (mPendingWrites != null) {
+            endPending = true;
+            return;
+        }
+        mDataSink.end();
+    }
+
     @Override
     public void setClosedCallback(CompletedCallback handler) {
         mDataSink.setClosedCallback(handler);

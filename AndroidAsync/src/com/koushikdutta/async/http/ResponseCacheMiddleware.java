@@ -34,12 +34,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Base64;
 
-import com.koushikdutta.async.AsyncSSLSocket;
-import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.FilteredDataEmitter;
+import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -114,10 +109,14 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
 
     
-    private class CachedSocket implements AsyncSocket {
+    private class CachedSocket extends DataEmitterBase implements AsyncSocket {
         CacheResponse cacheResponse;
         public CachedSocket(CacheResponse cacheResponse) {
             this.cacheResponse = cacheResponse;
+        }
+
+        @Override
+        public void end() {
         }
 
         @Override
@@ -141,15 +140,18 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         public void pause() {
             paused = true;
         }
-        
-        void report(Exception e) {
-            open = false;
-            if (endCallback != null)
-                endCallback.onCompleted(e);
+
+        boolean closed;
+        @Override
+        protected void report(Exception e) {
+            super.report(e);
+            if (closed)
+                return;
+            closed = true;
             if (closedCallback != null)
                 closedCallback.onCompleted(e);
         }
-        
+
         void spewInternal() {
             if (pending.remaining() > 0) {
                 com.koushikdutta.async.Util.emitAllData(CachedSocket.this, pending);
@@ -195,17 +197,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         @Override
         public boolean isPaused() {
             return paused;
-        }
-
-        @Override
-        public void setEndCallback(CompletedCallback callback) {
-            endCallback = callback;
-        }
-
-        CompletedCallback endCallback;
-        @Override
-        public CompletedCallback getEndCallback() {
-            return endCallback;
         }
 
         @Override

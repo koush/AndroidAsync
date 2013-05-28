@@ -20,6 +20,11 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 
 public class WebSocketImpl implements WebSocket {
+    @Override
+    public void end() {
+        mSocket.end();
+    }
+
     private static String SHA1(String text) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-1");

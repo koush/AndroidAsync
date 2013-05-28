@@ -35,6 +35,12 @@ public class ByteBufferList {
             add(b);
     }
 
+    public byte[] getAllByteArray() {
+        byte[] ret = new byte[remaining()];
+        get(ret);
+        return ret;
+    }
+
     public ByteBuffer[] getAllArray() {
         ByteBuffer[] ret = new ByteBuffer[mBuffers.size()];
         ret = mBuffers.toArray(ret);

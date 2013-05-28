@@ -116,6 +116,21 @@ public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture
         return true;
     }
 
+    public boolean setComplete(Exception e, T value) {
+        if (e != null)
+            return setComplete(e);
+        return setComplete(value);
+    }
+
+    public FutureCallback<T> getCompletionCallback() {
+        return new FutureCallback<T>() {
+            @Override
+            public void onCompleted(Exception e, T result) {
+                setComplete(e, result);
+            }
+        };
+    }
+
     FutureCallback<T> callback;
 
     @Override

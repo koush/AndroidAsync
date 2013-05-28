@@ -110,4 +110,9 @@ public class SimpleWrapperSocket implements AsyncSocketWrapper {
     public DataEmitter getDataEmitter() {
         return socket;
     }
+
+    @Override
+    public void end() {
+        socket.end();
+    }
 }

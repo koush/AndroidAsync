@@ -39,4 +39,22 @@ class SocketChannelWrapper extends ChannelWrapper {
     public SelectionKey register(Selector sel) throws ClosedChannelException {
         return register(sel, SelectionKey.OP_CONNECT);
     }
+
+    @Override
+    public void shutdownOutput() {
+        try {
+            mChannel.socket().shutdownOutput();
+        }
+        catch (Exception e) {
+        }
+    }
+
+    @Override
+    public void shutdownInput() {
+        try {
+            mChannel.socket().shutdownInput();
+        }
+        catch (Exception e) {
+        }
+    }
 }

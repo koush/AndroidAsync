@@ -117,4 +117,14 @@ public class InputStreamDataEmitter implements DataEmitter {
     public AsyncServer getServer() {
         return server;
     }
+
+    @Override
+    public void close() {
+        report(null);
+        try {
+            inputStream.close();
+        }
+        catch (Exception e) {
+        }
+    }
 }

@@ -4,16 +4,11 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;
 
-public class FilteredDataEmitter implements DataEmitter, DataCallback, DataEmitterWrapper {
+public class FilteredDataEmitter extends DataEmitterBase implements DataEmitter, DataCallback, DataEmitterWrapper {
     DataEmitter mEmitter;
     @Override
     public DataEmitter getDataEmitter() {
         return mEmitter;
-    }
-    
-    protected void report(Exception e) {
-        if (getEndCallback() != null)
-            getEndCallback().onCompleted(e);
     }
 
     public void setDataEmitter(DataEmitter emitter) {
@@ -68,19 +63,13 @@ public class FilteredDataEmitter implements DataEmitter, DataCallback, DataEmitt
         return mEmitter.isPaused();
     }
 
-    CompletedCallback mEndCallback;
-    @Override
-    public void setEndCallback(CompletedCallback callback) {
-        mEndCallback = callback;
-    }
-
-    @Override
-    public CompletedCallback getEndCallback() {
-        return mEndCallback;
-    }
-
     @Override
     public AsyncServer getServer() {
         return mEmitter.getServer();
+    }
+
+    @Override
+    public void close() {
+        mEmitter.close();
     }
 }
