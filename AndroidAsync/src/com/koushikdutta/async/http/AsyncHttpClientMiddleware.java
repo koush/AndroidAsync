@@ -10,25 +10,25 @@ import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
 public interface AsyncHttpClientMiddleware {
     public static class GetSocketData {
-        Bundle state = new Bundle();
-        AsyncHttpRequest request;
-        ConnectCallback connectCallback;
+        public Bundle state = new Bundle();
+        public AsyncHttpRequest request;
+        public ConnectCallback connectCallback;
     }
     
     public static class OnSocketData extends GetSocketData {
-        AsyncSocket socket;
+        public AsyncSocket socket;
     }
     
     public static class OnHeadersReceivedData extends OnSocketData {
-        ResponseHeaders headers;
+        public ResponseHeaders headers;
     }
     
     public static class OnBodyData extends OnHeadersReceivedData {
-        DataEmitter bodyEmitter;
+        public DataEmitter bodyEmitter;
     }
     
     public static class OnRequestCompleteData extends OnBodyData {
-        Exception exception;
+        public Exception exception;
     }
     
     public Cancellable getSocket(GetSocketData data);

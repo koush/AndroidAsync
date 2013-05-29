@@ -13,19 +13,19 @@ import java.util.List;
 /**
  * Created by koush on 5/27/13.
  */
-public class Multimap extends Hashtable<String, ArrayList<String>> implements Iterable<NameValuePair> {
+public class Multimap extends Hashtable<String, List<String>> implements Iterable<NameValuePair> {
     public Multimap() {
     }
 
     public String getString(String name) {
-        ArrayList<String> ret = get(name);
+        List<String> ret = get(name);
         if (ret == null || ret.size() == 0)
             return null;
         return ret.get(0);
     }
 
     public void add(String name, String value) {
-        ArrayList<String> ret = get(name);
+        List<String> ret = get(name);
         if (ret == null) {
             ret = new ArrayList<String>();
             put(name, ret);
@@ -88,7 +88,7 @@ public class Multimap extends Hashtable<String, ArrayList<String>> implements It
     public Iterator<NameValuePair> iterator() {
         ArrayList<NameValuePair> ret = new ArrayList<NameValuePair>();
         for (String name: keySet()) {
-            ArrayList<String> values = get(name);
+            List<String> values = get(name);
             for (String value: values) {
                 ret.add(new BasicNameValuePair(name, value));
             }
