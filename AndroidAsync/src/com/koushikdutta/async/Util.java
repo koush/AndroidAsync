@@ -49,6 +49,17 @@ public class Util {
     }
 
     public static void pump(final InputStream is, final DataSink ds, final CompletedCallback callback) {
+        final CompletedCallback wrapper = new CompletedCallback() {
+            boolean reported;
+            @Override
+            public void onCompleted(Exception ex) {
+                if (reported)
+                    return;
+                reported = true;
+                callback.onCompleted(ex);
+            }
+        };
+
         final WritableCallback cb = new WritableCallback() {
             private void close() {
                 try {
@@ -74,7 +85,7 @@ public class Util {
                             int read = is.read(buffer);
                             if (read == -1) {
                                 close();
-                                callback.onCompleted(null);
+                                wrapper.onCompleted(null);
                                 return;
                             }
                             pending.position(0);
@@ -88,14 +99,13 @@ public class Util {
                 }
                 catch (Exception e) {
                     close();
-                    callback.onCompleted(e);
-                    return;
+                    wrapper.onCompleted(e);
                 }
             }
         };
         ds.setWriteableCallback(cb);
 
-        ds.setClosedCallback(callback);
+        ds.setClosedCallback(wrapper);
         
         cb.onWriteable();
     }
@@ -115,9 +125,20 @@ public class Util {
                 emitter.resume();
             }
         });
-        
-        emitter.setEndCallback(callback);
-        sink.setClosedCallback(callback);
+
+        CompletedCallback wrapper = new CompletedCallback() {
+            boolean reported;
+            @Override
+            public void onCompleted(Exception ex) {
+                if (reported)
+                    return;
+                reported = true;
+                callback.onCompleted(ex);
+            }
+        };
+
+        emitter.setEndCallback(wrapper);
+        sink.setClosedCallback(wrapper);
     }
     
     public static void stream(AsyncSocket s1, AsyncSocket s2, CompletedCallback callback) {

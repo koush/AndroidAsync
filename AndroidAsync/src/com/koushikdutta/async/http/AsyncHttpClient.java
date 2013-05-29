@@ -85,7 +85,7 @@ public class AsyncHttpClient {
         }
         if (complete) {
             callback.onConnectCompleted(ex, response);
-            assert ex != null || response.getDataCallback() != null;
+            assert ex != null || response.getSocket() == null || response.getDataCallback() != null;
             return;
         }
 
@@ -551,6 +551,7 @@ public class AsyncHttpClient {
     }
 
     public Future<WebSocket> websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
+        assert callback != null;
         final AsyncHttpGet get = new AsyncHttpGet(uri);
         return websocket(get, protocol, callback);
     }

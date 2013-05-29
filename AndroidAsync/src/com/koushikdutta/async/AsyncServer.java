@@ -7,7 +7,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.SimpleCancelable;
+import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.SimpleFuture;
 
 import java.io.IOException;
@@ -439,7 +439,7 @@ public class AsyncServer {
                     handler.onConnectCompleted(e, null);
                 }
             });
-            return SimpleCancelable.COMPLETED;
+            return SimpleCancellable.COMPLETED;
         }
     }
     
@@ -474,7 +474,7 @@ public class AsyncServer {
                     handler.onConnectCompleted(e, null);
                 }
             });
-            return SimpleCancelable.COMPLETED;
+            return SimpleCancellable.COMPLETED;
         }
     }
 

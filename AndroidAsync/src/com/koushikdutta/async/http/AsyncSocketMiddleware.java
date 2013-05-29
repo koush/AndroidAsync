@@ -4,7 +4,7 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.SimpleCancelable;
+import com.koushikdutta.async.future.SimpleCancellable;
 
 import java.net.URI;
 import java.util.HashSet;
@@ -67,7 +67,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                             }
                         });
                         // just a noop/dummy, as this can't actually be cancelled.
-                        return new SimpleCancelable();
+                        return new SimpleCancellable();
                     }
                 }
             }

@@ -1,19 +1,35 @@
 package com.koushikdutta.async.future;
 
-public class SimpleCancelable implements DependentCancellable {
+public class SimpleCancellable implements DependentCancellable {
     boolean complete;
     @Override
     public boolean isDone() {
         return complete;
     }
-    
+
+    protected void cancelCleanup() {
+    }
+
+    protected void cleanup() {
+    }
+
+    protected void completeCleanup() {
+    }
+
     public boolean setComplete() {
         synchronized (this) {
             if (canceled)
                 return false;
+            if (complete) {
+                // don't allow a Cancellable to complete twice...
+                assert false;
+                return true;
+            }
             complete = true;
             parent = null;
         }
+        completeCleanup();
+        cleanup();
         return true;
     }
 
@@ -32,13 +48,15 @@ public class SimpleCancelable implements DependentCancellable {
         }
         if (parent != null)
             parent.cancel();
+        cancelCleanup();
+        cleanup();
         return true;
     }
     boolean canceled;
 
     private Cancellable parent;
     @Override
-    public SimpleCancelable setParent(Cancellable parent) {
+    public SimpleCancellable setParent(Cancellable parent) {
         synchronized (this) {
             if (!isDone())
                 this.parent = parent;
@@ -51,7 +69,7 @@ public class SimpleCancelable implements DependentCancellable {
         return canceled || (parent != null && parent.isCancelled());
     }
 
-    public static final Cancellable COMPLETED = new SimpleCancelable() {
+    public static final Cancellable COMPLETED = new SimpleCancellable() {
         {
             setComplete();
         }

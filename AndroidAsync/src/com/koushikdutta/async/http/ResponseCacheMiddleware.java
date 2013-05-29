@@ -39,7 +39,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.SimpleCancelable;
+import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.http.libcore.Charsets;
 import com.koushikdutta.async.http.libcore.DiskLruCache;
 import com.koushikdutta.async.http.libcore.RawHeaders;
@@ -357,7 +357,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return null;
         }
         
-        return new SimpleCancelable();
+        return new SimpleCancellable();
     }
 
     private static class BodyCacher extends FilteredDataEmitter implements Parcelable {

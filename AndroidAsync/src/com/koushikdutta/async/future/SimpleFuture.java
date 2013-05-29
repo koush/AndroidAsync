@@ -6,23 +6,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.koushikdutta.async.AsyncServer.AsyncSemaphore;
-import com.koushikdutta.async.callback.ResultCallback;
 
-public class SimpleFuture<T> extends SimpleCancelable implements DependentFuture<T> {
+public class SimpleFuture<T> extends SimpleCancellable implements DependentFuture<T> {
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return cancel();
     }
 
-    protected void cancelCleanup() {
-    }
-    
     @Override
     public boolean cancel() {
         if (super.cancel()) {
             synchronized (this) {
                 exception = new CancellationException();
-                cancelCleanup();
                 if (waiter != null)
                     waiter.release();
             }

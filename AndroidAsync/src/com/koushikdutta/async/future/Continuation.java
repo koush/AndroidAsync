@@ -5,7 +5,7 @@ import com.koushikdutta.async.callback.ContinuationCallback;
 
 import java.util.LinkedList;
 
-public class Continuation extends SimpleCancelable implements ContinuationCallback, Runnable, Cancellable {
+public class Continuation extends SimpleCancellable implements ContinuationCallback, Runnable, Cancellable {
     CompletedCallback callback;
     Runnable cancelCallback;
     

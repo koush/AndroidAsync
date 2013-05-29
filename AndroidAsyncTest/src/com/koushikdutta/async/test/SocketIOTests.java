@@ -2,6 +2,8 @@ package com.koushikdutta.async.test;
 
 import java.util.concurrent.TimeUnit;
 
+import android.util.Log;
+import com.koushikdutta.async.http.AsyncHttpGet;
 import junit.framework.TestCase;
 
 import org.json.JSONArray;
@@ -50,7 +52,9 @@ public class SocketIOTests extends TestCase {
         final TriggerFuture trigger2 = new TriggerFuture();
         final TriggerFuture trigger3 = new TriggerFuture();
 
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080", new SocketIOConnectCallback() {
+        SocketIOClient.SocketIORequest req = new SocketIOClient.SocketIORequest("http://koush.clockworkmod.com:8080");
+        req.setLogging("Socket.IO", Log.VERBOSE);
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), req, new SocketIOConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, SocketIOClient client) {
                 assertNull(ex);
