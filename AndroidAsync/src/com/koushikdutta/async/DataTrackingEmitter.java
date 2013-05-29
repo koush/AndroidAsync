@@ -10,4 +10,5 @@ public interface DataTrackingEmitter extends DataEmitter {
     void setDataTracker(DataTracker tracker);
     DataTracker getDataTracker();
     int getBytesRead();
+    void setDataEmitter(DataEmitter emitter);
 }

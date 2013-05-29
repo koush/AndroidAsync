@@ -218,6 +218,10 @@ public class AsyncServer {
 
     private Selector mSelector;
 
+    public boolean isRunning() {
+        return mSelector != null;
+    }
+
     public AsyncServer() {
     }
 
@@ -319,16 +323,6 @@ public class AsyncServer {
             mSelector = null;
             mAffinity = null;
         }
-//        final Selector currentSelector = mSelector;
-//        run(new Runnable() {
-//            @Override
-//            public void run() {
-//                synchronized (AsyncServer.this) {
-//                    if (currentSelector == mSelector)
-//                        shutdownEverything(currentSelector);
-//                }
-//            }
-//        });
     }
     
     protected void onDataTransmitted(int transmitted) {
@@ -820,6 +814,23 @@ public class AsyncServer {
             }
         }
         readyKeys.clear();
+    }
+
+    public void dump() {
+        post(new Runnable() {
+            @Override
+            public void run() {
+                if (mSelector == null) {
+                    Log.i(LOGTAG, "Server dump not possible. No selector?");
+                    return;
+                }
+                Log.i(LOGTAG, "Key Count: " + mSelector.keys().size());
+
+                for (SelectionKey key: mSelector.keys()) {
+                    Log.i(LOGTAG, "Key: " + key);
+                }
+            }
+        });
     }
     
     public Thread getAffinity() {

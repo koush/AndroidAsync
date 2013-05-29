@@ -57,8 +57,9 @@ public class AsyncHttpClient {
     }
 
     private static final String LOGTAG = "AsyncHttp";
-    public static class FutureAsyncHttpResponse extends SimpleFuture<AsyncHttpResponse> {
+    private class FutureAsyncHttpResponse extends SimpleFuture<AsyncHttpResponse> {
         public AsyncSocket socket;
+        public Object scheduled;
 
         @Override
         public boolean cancel() {
@@ -67,6 +68,9 @@ public class AsyncHttpClient {
 
             if (socket != null)
                 socket.close();
+
+            if (scheduled != null)
+                mServer.removeAllCallbacks(scheduled);
 
             return true;
         }
@@ -112,7 +116,7 @@ public class AsyncHttpClient {
             Object scheduled = null;
             {
                 if (request.getTimeout() > 0) {
-                    scheduled = mServer.postDelayed(new Runnable() {
+                    cancel.scheduled = scheduled = mServer.postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             reportConnectedCompleted(cancel, new TimeoutException(), null, request, callback);

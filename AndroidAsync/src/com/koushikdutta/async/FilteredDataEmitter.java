@@ -11,6 +11,7 @@ public class FilteredDataEmitter extends DataEmitterBase implements DataEmitter,
         return mEmitter;
     }
 
+    @Override
     public void setDataEmitter(DataEmitter emitter) {
         if (mEmitter != null) {
             mEmitter.setDataCallback(null);
