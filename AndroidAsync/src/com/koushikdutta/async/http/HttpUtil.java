@@ -26,6 +26,9 @@ public class HttpUtil {
                 if (JSONObjectBody.CONTENT_TYPE.equals(ct)) {
                     return new JSONObjectBody();
                 }
+                if (StringBody.CONTENT_TYPE.equals(ct)) {
+                    return new StringBody();
+                }
                 if (MultipartFormDataBody.CONTENT_TYPE.equals(ct)) {
                     return new MultipartFormDataBody(contentType, values);
                 }

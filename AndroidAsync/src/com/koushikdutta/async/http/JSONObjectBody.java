@@ -1,6 +1,8 @@
 package com.koushikdutta.async.http;
 
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.parser.JSONObjectParser;
 import org.json.JSONObject;
 
 import com.koushikdutta.async.ByteBufferList;
@@ -21,39 +23,18 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
 
     @Override
     public void parse(DataEmitter emitter, final CompletedCallback completed) {
-        final ByteBufferList data = new ByteBufferList();
-        emitter.setEndCallback(new CompletedCallback() {
+        new JSONObjectParser().parse(emitter).setCallback(new FutureCallback<JSONObject>() {
             @Override
-            public void onCompleted(Exception ex) {
-                if (ex != null) {
-                    completed.onCompleted(ex);
-                    return;
-                }
-                try {
-                    json = new JSONObject(data.readString());
-                    completed.onCompleted(null);
-                }
-                catch (Exception e) {
-                    completed.onCompleted(e);
-                }
-            }
-        });
-        emitter.setDataCallback(new DataCallback() {
-            @Override
-            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                data.add(bb);
-                bb.clear();
+            public void onCompleted(Exception e, JSONObject result) {
+                json = result;
+                completed.onCompleted(e);
             }
         });
     }
 
     @Override
     public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
-        Util.writeAll(sink, mBodyBytes, new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-            }
-        });
+        Util.writeAll(sink, mBodyBytes, null);
     }
 
     @Override

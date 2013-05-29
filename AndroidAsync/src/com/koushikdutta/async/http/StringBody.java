@@ -5,6 +5,10 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.parser.JSONObjectParser;
+import com.koushikdutta.async.parser.StringParser;
+import org.json.JSONObject;
 
 public class StringBody implements AsyncHttpRequestBody<String> {
     public StringBody() {
@@ -19,35 +23,20 @@ public class StringBody implements AsyncHttpRequestBody<String> {
 
     @Override
     public void parse(DataEmitter emitter, final CompletedCallback completed) {
-        final ByteBufferList data = new ByteBufferList();
-        emitter.setEndCallback(new CompletedCallback() {
+        new StringParser().parse(emitter).setCallback(new FutureCallback<String>() {
             @Override
-            public void onCompleted(Exception ex) {
-                if (ex != null) {
-                    completed.onCompleted(ex);
-                    return;
-                }
-                string = data.readString();
-                completed.onCompleted(null);
-            }
-        });
-
-        emitter.setDataCallback(new DataCallback() {
-            @Override
-            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                data.add(bb);
-                bb.clear();
+            public void onCompleted(Exception e, String result) {
+                string = result;
+                completed.onCompleted(e);
             }
         });
     }
 
+    public static final String CONTENT_TYPE = "text/plain";
+
     @Override
     public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
-        Util.writeAll(sink, mBodyBytes, new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-            }
-        });
+        Util.writeAll(sink, mBodyBytes, null);
     }
 
     @Override

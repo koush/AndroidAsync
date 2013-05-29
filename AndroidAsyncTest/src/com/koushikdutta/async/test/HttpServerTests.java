@@ -63,6 +63,9 @@ public class HttpServerTests extends TestCase {
                     else if (request.getBody() instanceof JSONObjectBody) {
                         json = ((JSONObjectBody)request.getBody()).get();
                     }
+                    else if (request.getBody() instanceof StringBody) {
+                        json.put("foo", ((StringBody)request.getBody()).get());
+                    }
                     else if (request.getBody() instanceof MultipartFormDataBody) {
                         MultipartFormDataBody body = (MultipartFormDataBody)request.getBody();
                         for (NameValuePair pair: body.get()) {
@@ -89,6 +92,14 @@ public class HttpServerTests extends TestCase {
         AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000/echo");
         post.setBody(body);
         json = AsyncHttpClient.getDefaultInstance().executeJSONObject(post).get();
+        assertEquals(json.getString("foo"), "bar");
+    }
+
+    public void testString() throws Exception {
+        StringBody body = new StringBody("bar");
+        AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000/echo");
+        post.setBody(body);
+        JSONObject json = AsyncHttpClient.getDefaultInstance().executeJSONObject(post).get();
         assertEquals(json.getString("foo"), "bar");
     }
 
