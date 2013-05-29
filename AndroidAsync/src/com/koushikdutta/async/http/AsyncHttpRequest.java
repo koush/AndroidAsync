@@ -2,6 +2,7 @@ package com.koushikdutta.async.http;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
@@ -16,10 +17,9 @@ import java.util.Map;
 public class AsyncHttpRequest {
     public RequestLine getRequestLine() {
         return new RequestLine() {
-            
             @Override
             public String getUri() {
-                return getUri().toString();
+                return AsyncHttpRequest.this.getUri().toString();
             }
             
             @Override
@@ -276,5 +276,73 @@ public class AsyncHttpRequest {
     public AsyncHttpRequest addHeader(String name, String value) {
         getHeaders().getHeaders().add(name, value);
         return this;
+    }
+
+    public void setLogging(String tag, int level) {
+        LOGTAG = tag;
+        logLevel = level;
+    }
+    // request level logging
+    String LOGTAG;
+    int logLevel;
+    long executionTime;
+    private String getLogMessage(String message) {
+        long elapsed;
+        if (executionTime != 0)
+            elapsed = System.currentTimeMillis() - executionTime;
+        else
+            elapsed = 0;
+        return String.format("(%d ms) %s: %s", elapsed, getUri(), message);
+    }
+    public void logi(String message) {
+        if (LOGTAG == null)
+            return;
+        if (logLevel > Log.INFO)
+            return;
+        Log.i(LOGTAG, getLogMessage(message));
+    }
+    public void logv(String message) {
+        if (LOGTAG == null)
+            return;
+        if (logLevel > Log.VERBOSE)
+            return;
+        Log.v(LOGTAG, getLogMessage(message));
+    }
+    public void logw(String message) {
+        if (LOGTAG == null)
+            return;
+        if (logLevel > Log.WARN)
+            return;
+        Log.w(LOGTAG, getLogMessage(message));
+    }
+    public void logd(String message) {
+        if (LOGTAG == null)
+            return;
+        if (logLevel > Log.DEBUG)
+            return;
+        Log.d(LOGTAG, getLogMessage(message));
+    }
+    public void logd(String message, Exception e) {
+        if (LOGTAG == null)
+            return;
+        if (logLevel > Log.DEBUG)
+            return;
+        Log.d(LOGTAG, getLogMessage(message));
+        Log.d(LOGTAG, e.getMessage(), e);
+    }
+    public void loge(String message) {
+        if (LOGTAG == null)
+            return;
+        if (logLevel > Log.ERROR)
+            return;
+        Log.e(LOGTAG, getLogMessage(message));
+    }
+    public void loge(String message, Exception e) {
+        if (LOGTAG == null)
+            return;
+        if (logLevel > Log.ERROR)
+            return;
+        Log.e(LOGTAG, getLogMessage(message));
+        Log.e(LOGTAG, e.getMessage(), e);
     }
 }

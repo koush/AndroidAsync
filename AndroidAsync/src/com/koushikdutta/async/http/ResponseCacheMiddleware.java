@@ -298,8 +298,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return null;
         }
         
-        ResponseSource responseSource = ResponseSource.NETWORK;
-
         CacheResponse candidate = entry.isHttps() ? new EntrySecureCacheResponse(entry, snapshot) : new EntryCacheResponse(entry, snapshot);
 
         Map<String, List<String>> responseHeadersMap;
@@ -324,10 +322,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         ResponseHeaders cachedResponseHeaders = new ResponseHeaders(data.request.getUri(), rawResponseHeaders);
 
         long now = System.currentTimeMillis();
-        responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
+        ResponseSource responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
         
         if (responseSource == ResponseSource.CACHE) {
-            cacheStoreCount++;
+            cacheHitCount++;
+            data.request.logi("Response retrieved from cache");
             final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
 
             client.getServer().post(new Runnable() {
@@ -339,6 +338,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             });
         }
         else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
+            data.request.logi("Response may be served from conditional cache");
             CacheData cacheData = new CacheData();
             cacheData.cachedResponseHeaders = cachedResponseHeaders;
             cacheData.candidate = candidate;
@@ -347,6 +347,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return null;
         }
         else {
+            data.request.logd("Response can not be served from cache");
             // NETWORK or other
             try {
                 cachedResponseBody.close();
@@ -522,6 +523,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         CacheData cacheData = data.state.getParcelable("cache-data");
         if (cacheData != null) {
             if (cacheData.cachedResponseHeaders.validate(data.headers)) {
+                data.request.logi("Serving response from conditional cache");
                 data.headers = cacheData.cachedResponseHeaders.combine(data.headers);
                 data.headers.getHeaders().setStatusLine(cacheData.cachedResponseHeaders.getHeaders().getStatusLine());
                 
@@ -549,6 +551,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
              * so is high and the benefit is low.
              */
             networkCount++;
+            data.request.logd("Response is not cacheable");
             return;
         }
 
@@ -574,6 +577,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             data.bodyEmitter = cacher;
             
             data.state.putParcelable("body-cacher", cacher);
+            data.request.logd("Caching response");
             cacheStoreCount++;
         }
         catch (Exception e) {

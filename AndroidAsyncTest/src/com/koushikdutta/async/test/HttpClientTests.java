@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import android.util.Log;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.http.*;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
@@ -74,7 +75,9 @@ public class HttpClientTests extends TestCase {
     public void testGithubRandomData() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Md5 md5 = Md5.createInstance();
-        client.execute(github, new HttpConnectCallback() {
+        AsyncHttpGet get = new AsyncHttpGet(github);
+        get.setLogging("AsyncTest", Log.DEBUG);
+        client.execute(get, new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
                 assertNull(ex);

@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http;
 
 import android.os.Handler;
+import android.util.Log;
 import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
@@ -71,16 +72,19 @@ public class AsyncHttpClient {
         }
     }
 
-    private void reportConnectedCompleted(FutureAsyncHttpResponse cancel, Exception ex, AsyncHttpResponseImpl response, final HttpConnectCallback callback) {
+    private void reportConnectedCompleted(FutureAsyncHttpResponse cancel, Exception ex, AsyncHttpResponseImpl response, AsyncHttpRequest request, final HttpConnectCallback callback) {
         assert callback != null;
         boolean complete;
-        if (ex != null)
+        if (ex != null) {
+            request.loge("Connection error", ex);
             complete = cancel.setComplete(ex);
-        else
+        }
+        else {
+            request.logd("Connection successful");
             complete = cancel.setComplete(response);
+        }
         if (complete) {
-            if (callback != null)
-                callback.onConnectCompleted(ex, response);
+            callback.onConnectCompleted(ex, response);
             assert ex != null || response.getDataCallback() != null;
             return;
         }
@@ -94,12 +98,15 @@ public class AsyncHttpClient {
 
     private void execute(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
         if (redirectCount > 5) {
-            reportConnectedCompleted(cancel, new Exception("too many redirects"), null, callback);
+            reportConnectedCompleted(cancel, new Exception("too many redirects"), null, request, callback);
             return;
         }
         final URI uri = request.getUri();
         final OnRequestCompleteData data = new OnRequestCompleteData();
+        request.executionTime = System.currentTimeMillis();
         data.request = request;
+
+        request.logd("Executing request.");
 
         data.connectCallback = new ConnectCallback() {
             Object scheduled = null;
@@ -108,7 +115,7 @@ public class AsyncHttpClient {
                     scheduled = mServer.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            reportConnectedCompleted(cancel, new TimeoutException(), null, callback);
+                            reportConnectedCompleted(cancel, new TimeoutException(), null, request, callback);
                         }
                     }, request.getTimeout());
                 }
@@ -130,7 +137,7 @@ public class AsyncHttpClient {
                 cancel.socket = socket;
 
                 if (ex != null) {
-                    reportConnectedCompleted(cancel, ex, null, callback);
+                    reportConnectedCompleted(cancel, ex, null, request, callback);
                     return;
                 }
 
@@ -152,14 +159,21 @@ public class AsyncHttpClient {
                                 redirect = URI.create(uri.toString().substring(0, uri.toString().length() - uri.getPath().length()) + headers.get("Location"));
                             }
                             AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
+                            newReq.executionTime = request.executionTime;
+                            newReq.logLevel = request.logLevel;
+                            newReq.LOGTAG = request.LOGTAG;
+                            request.logi("Redirecting");
+                            newReq.logi("Redirected");
                             execute(newReq, redirectCount + 1, cancel, callback);
 
                             setDataCallback(new NullDataCallback());
                             return;
                         }
 
+                        request.logv("Final (post cache response) headers: " + mHeaders.getHeaders().toHeaderString());
+
                         // at this point the headers are done being modified
-                        reportConnectedCompleted(cancel, null, this, callback);
+                        reportConnectedCompleted(cancel, null, this, request, callback);
                     }
 
                     protected void onHeadersReceived() {
@@ -171,6 +185,7 @@ public class AsyncHttpClient {
                                 mServer.removeAllCallbacks(scheduled);
 
                             // allow the middleware to massage the headers before the body is decoded
+                            request.logv("Received headers: " + mHeaders.getHeaders().toHeaderString());
 
                             data.headers = mHeaders;
                             for (AsyncHttpClientMiddleware middleware: mMiddleware) {
@@ -182,7 +197,7 @@ public class AsyncHttpClient {
                             // headers will be further massaged in there.
                         }
                         catch (Exception ex) {
-                            reportConnectedCompleted(cancel, ex, null, callback);
+                            reportConnectedCompleted(cancel, ex, null, request, callback);
                         }
                     }
 
@@ -191,6 +206,7 @@ public class AsyncHttpClient {
                         if (cancel.isCancelled())
                             return;
                         if (ex instanceof AsyncSSLException) {
+                            request.loge("SSL Exception", ex);
                             AsyncSSLException ase = (AsyncSSLException)ex;
                             request.onHandshakeException(ase);
                             if (ase.getIgnore())
@@ -202,7 +218,7 @@ public class AsyncHttpClient {
                         super.report(ex);
                         if (!socket.isOpen() || ex != null) {
                             if (getHeaders() == null && ex != null)
-                                reportConnectedCompleted(cancel, ex, null, callback);
+                                reportConnectedCompleted(cancel, ex, null, request, callback);
                         }
 
                         data.exception = ex;
@@ -214,6 +230,7 @@ public class AsyncHttpClient {
 
                     @Override
                     public AsyncSocket detachSocket() {
+                        request.logd("Detaching socket");
                         AsyncSocket socket = getSocket();
                         if (socket == null)
                             return null;
