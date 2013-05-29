@@ -283,7 +283,7 @@ public class AsyncServer {
             semaphore.acquire();
         }
         catch (InterruptedException e) {
-            e.printStackTrace();
+            Log.e(LOGTAG, "run", e);
         }
     }
 
@@ -298,7 +298,7 @@ public class AsyncServer {
     LinkedList<Scheduled> mQueue = new LinkedList<Scheduled>();
 
     public void stop() {
-        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
+//        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
         synchronized (this) {
             if (mSelector == null)
                 return;
@@ -366,7 +366,6 @@ public class AsyncServer {
                     });
                 }
                 catch (Exception e) {
-                    e.printStackTrace();
                     handler.onCompleted(e);
                 }
             }
@@ -495,7 +494,7 @@ public class AsyncServer {
                     socket.connect(remote);
                 }
                 catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(LOGTAG, "Datagram error", e);
                 }
             }
         });
@@ -517,7 +516,7 @@ public class AsyncServer {
                     handleSocket(handler);
                 }
                 catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(LOGTAG, "Datagram error", e);
                 }
             }
         });
@@ -551,7 +550,7 @@ public class AsyncServer {
         synchronized (mServers) {
             AsyncServer current = mServers.get(Thread.currentThread());
             if (current != null) {
-                Log.e(LOGTAG, "****AsyncServer already running on this thread.****");
+//                Log.e(LOGTAG, "****AsyncServer already running on this thread.****");
                 return false;
             }
             mServers.put(mAffinity, this);
@@ -624,9 +623,8 @@ public class AsyncServer {
                 runLoop(this, selector, queue, false);
             }
             catch (Exception e) {
-                Log.i(LOGTAG, "exception?");
-                e.printStackTrace();
-            }
+                Log.e(LOGTAG, "exception?", e);
+           }
             return;
         }
         
@@ -634,7 +632,7 @@ public class AsyncServer {
     }
     
     private static void run(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) {
-        Log.i(LOGTAG, "****AsyncServer is starting.****");
+//        Log.i(LOGTAG, "****AsyncServer is starting.****");
         // at this point, this local queue and selector are owned
         // by this thread.
         // if a stop is called, the instance queue and selector
@@ -649,8 +647,7 @@ public class AsyncServer {
             catch (ClosedSelectorException e) {
             }
             catch (Exception e) {
-                Log.i(LOGTAG, "exception?");
-                e.printStackTrace();
+                Log.e(LOGTAG, "exception?", e);
             }
             // see if we keep looping, this must be in a synchronized block since the queue is accessed.
             synchronized (server) {
@@ -669,7 +666,7 @@ public class AsyncServer {
         synchronized (mServers) {
             mServers.remove(Thread.currentThread());
         }
-        Log.i(LOGTAG, "****AsyncServer has shut down.****");
+//        Log.i(LOGTAG, "****AsyncServer has shut down.****");
     }
     
     private static void shutdownEverything(Selector selector) {
@@ -819,8 +816,7 @@ public class AsyncServer {
                 }
             }
             catch (Exception ex) {
-                Log.i(LOGTAG, "inner loop exception");
-                ex.printStackTrace();
+                Log.e(LOGTAG, "inner loop exception", ex);
             }
         }
         readyKeys.clear();

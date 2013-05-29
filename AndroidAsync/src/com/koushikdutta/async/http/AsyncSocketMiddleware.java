@@ -1,16 +1,14 @@
 package com.koushikdutta.async.http;
 
-import java.net.URI;
-import java.util.HashSet;
-import java.util.Hashtable;
-
-import android.util.Log;
-
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.SimpleCancelable;
+
+import java.net.URI;
+import java.util.HashSet;
+import java.util.Hashtable;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
     String scheme;
@@ -82,7 +80,6 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
     @Override
     public void onRequestComplete(final OnRequestCompleteData data) {
         if (!data.state.getBoolean(getClass().getCanonicalName() + ".owned", false)) {
-            Log.i("AsyncHttpSocket", getClass().getCanonicalName() + " Not keeping non-owned socket: " + data.state.getString("socket.owner"));
             return;
         }
 
