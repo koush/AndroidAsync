@@ -1,6 +1,5 @@
 package com.koushikdutta.async.http;
 
-import android.util.Log;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.LineEmitter;
@@ -15,15 +14,19 @@ import com.koushikdutta.async.http.server.BoundaryEmitter;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpRequestBody<Map<String, List<String>>> {
+public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpRequestBody<Multimap> {
     LineEmitter liner;
     RawHeaders formData;
     ByteBufferList last;
     String lastName;
+
+    @Override
+    public void parse(DataEmitter emitter, final CompletedCallback completed) {
+        setDataEmitter(emitter);
+        setEndCallback(completed);
+    }
 
     void handleLast() {
         if (last == null)
@@ -220,7 +223,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     }
 
     @Override
-    public Map<String, List<String>> get() {
-        return formData.toMultimap();
+    public Multimap get() {
+        return new Multimap(formData);
     }
 }

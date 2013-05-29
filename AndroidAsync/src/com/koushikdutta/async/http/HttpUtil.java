@@ -21,22 +21,18 @@ public class HttpUtil {
             }
             for (String ct: values) {
                 if (UrlEncodedFormBody.CONTENT_TYPE.equals(ct)) {
-                    UrlEncodedFormBody ret = new UrlEncodedFormBody();
-                    emitter.setDataCallback(ret);
-                    return ret;
+                    return new UrlEncodedFormBody();
+                }
+                if (JSONObjectBody.CONTENT_TYPE.equals(ct)) {
+                    return new JSONObjectBody();
                 }
                 if (MultipartFormDataBody.CONTENT_TYPE.equals(ct)) {
-                    MultipartFormDataBody ret = new MultipartFormDataBody(contentType, values);
-                    ret.setDataEmitter(emitter);
-                    ret.setEndCallback(reporter);
-                    return ret;
+                    return new MultipartFormDataBody(contentType, values);
                 }
             }
         }
 
-        UnknownRequestBody ret = new UnknownRequestBody(contentType);
-        emitter.setDataCallback(ret);
-        return ret;
+        return new UnknownRequestBody(contentType);
     }
     
     private static class EndEmitter extends FilteredDataEmitter {

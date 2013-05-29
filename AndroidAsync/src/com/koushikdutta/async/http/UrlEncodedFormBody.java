@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.*;
 
+import com.koushikdutta.async.callback.DataCallback;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -15,14 +16,18 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 
-public class UrlEncodedFormBody implements AsyncHttpRequestBody<Map<String, List<String>>> {
-    private Iterable<NameValuePair> mParameters;
+public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
+    private Multimap mParameters;
     private byte[] mBodyBytes;
-    
-    public UrlEncodedFormBody(Iterable<NameValuePair> parameters) {
+
+    public UrlEncodedFormBody(Multimap parameters) {
         mParameters = parameters;
     }
-    
+
+    public UrlEncodedFormBody(List<NameValuePair> parameters) {
+        mParameters = new Multimap(parameters);
+    }
+
     private void buildData() {
         boolean first = true;
         StringBuilder b = new StringBuilder();
@@ -60,48 +65,32 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Map<String, List
         return CONTENT_TYPE;
     }
 
-    private ByteBufferList data;
     @Override
-    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        if (data == null)
-            data = new ByteBufferList();
-        data.add(bb);
-        bb.clear();
-    }
-    
-    public static Map<String, String> parse(String data) {
-        HashMap<String, String> map = new HashMap<String, String>();
-        String[] pairs = data.split("&");
-        for (String p : pairs) {
-            String[] pair = p.split("=", 2);
-            if (pair.length == 0)
-                continue;
-            String name = Uri.decode(pair[0]);
-            String value = null;
-            if (pair.length == 2)
-                value = Uri.decode(pair[1]);
-            map.put(name, value);
-        }
-        return Collections.unmodifiableMap(map);
-    }
-
-    public Iterable<NameValuePair> getParameters() {
-        if (mParameters == null && data != null) {
-            ArrayList<NameValuePair> params;
-            mParameters = params = new ArrayList<NameValuePair>();
-            String[] pairs = data.peekString().split("&");
-            for (String p : pairs) {
-                String[] pair = p.split("=", 2);
-                if (pair.length == 0)
-                    continue;
-                String name = Uri.decode(pair[0]);
-                String value = null;
-                if (pair.length == 2)
-                    value = Uri.decode(pair[1]);
-                params.add(new BasicNameValuePair(name, value));
+    public void parse(DataEmitter emitter, final CompletedCallback completed) {
+        final ByteBufferList data = new ByteBufferList();
+        emitter.setDataCallback(new DataCallback() {
+            @Override
+            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                data.add(bb);
+                bb.clear();
             }
-        }
-        return mParameters;
+        });
+        emitter.setEndCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                if (ex != null) {
+                    completed.onCompleted(ex);
+                    return;
+                }
+                try {
+                    mParameters = Multimap.parseQuery(data.readString());
+                    completed.onCompleted(null);
+                }
+                catch (Exception e) {
+                    completed.onCompleted(e);
+                }
+            }
+        });
     }
 
     public UrlEncodedFormBody() {
@@ -120,14 +109,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Map<String, List
     }
 
     @Override
-    public Map<String, List<String>> get() {
-        HashMap<String, List<String>> map = new HashMap<String, List<String>>();
-        for (NameValuePair pair: getParameters()) {
-            List<String> list = map.get(pair.getName());
-            if (list == null)
-                list = map.put(pair.getName(), new ArrayList<String>());
-            list.add(pair.getValue());
-        }
-        return map;
+    public Multimap get() {
+        return mParameters;
     }
 }

@@ -21,6 +21,7 @@
     <orderEntry type="jdk" jdkName="Android 4.2.2" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="AndroidAsync" />
+    <orderEntry type="module" module-name="AndroidAsyncSample" />
   </component>
 </module>
 

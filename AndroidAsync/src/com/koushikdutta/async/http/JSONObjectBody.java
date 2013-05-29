@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import com.koushikdutta.async.callback.DataCallback;
 import org.json.JSONObject;
 
 import com.koushikdutta.async.ByteBufferList;
@@ -18,13 +19,32 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
         this.json = json;
     }
 
-    private ByteBufferList data = null;
     @Override
-    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        if (data == null)
-            data = new ByteBufferList();
-        data.add(bb);
-        bb.clear();
+    public void parse(DataEmitter emitter, final CompletedCallback completed) {
+        final ByteBufferList data = new ByteBufferList();
+        emitter.setEndCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                if (ex != null) {
+                    completed.onCompleted(ex);
+                    return;
+                }
+                try {
+                    json = new JSONObject(data.readString());
+                    completed.onCompleted(null);
+                }
+                catch (Exception e) {
+                    completed.onCompleted(e);
+                }
+            }
+        });
+        emitter.setDataCallback(new DataCallback() {
+            @Override
+            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                data.add(bb);
+                bb.clear();
+            }
+        });
     }
 
     @Override
@@ -52,17 +72,10 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
         return mBodyBytes.length;
     }
 
+    public static final String CONTENT_TYPE = "application/json";
+
     @Override
     public JSONObject get() {
-        try {
-            if (json == null && data != null) {
-                json = new JSONObject(data.readString());
-                data = null;
-            }
-        }
-        catch (Exception e) {
-            throw new IllegalArgumentException("invalid json");
-        }
         return json;
     }
 }

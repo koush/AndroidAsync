@@ -1,11 +1,13 @@
 package com.koushikdutta.async.http.server;
 
+import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 
-public class UnknownRequestBody extends NullDataCallback implements AsyncHttpRequestBody<Void> {
+public class UnknownRequestBody implements AsyncHttpRequestBody<Void> {
     public UnknownRequestBody(String contentType) {
         mContentType = contentType;
     }
@@ -34,5 +36,11 @@ public class UnknownRequestBody extends NullDataCallback implements AsyncHttpReq
     @Override
     public Void get() {
         return null;
+    }
+
+    @Override
+    public void parse(DataEmitter emitter, CompletedCallback completed) {
+        emitter.setEndCallback(completed);
+        emitter.setDataCallback(new NullDataCallback());
     }
 }

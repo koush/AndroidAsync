@@ -4,6 +4,7 @@ import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
 
 public class StringBody implements AsyncHttpRequestBody<String> {
     public StringBody() {
@@ -16,13 +17,28 @@ public class StringBody implements AsyncHttpRequestBody<String> {
         this.string = string;
     }
 
-    private ByteBufferList data = null;
     @Override
-    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        if (data == null)
-            data = new ByteBufferList();
-        data.add(bb);
-        bb.clear();
+    public void parse(DataEmitter emitter, final CompletedCallback completed) {
+        final ByteBufferList data = new ByteBufferList();
+        emitter.setEndCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                if (ex != null) {
+                    completed.onCompleted(ex);
+                    return;
+                }
+                string = data.readString();
+                completed.onCompleted(null);
+            }
+        });
+
+        emitter.setDataCallback(new DataCallback() {
+            @Override
+            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                data.add(bb);
+                bb.clear();
+            }
+        });
     }
 
     @Override
@@ -52,10 +68,6 @@ public class StringBody implements AsyncHttpRequestBody<String> {
 
     @Override
     public String toString() {
-        if (string == null && data != null) {
-            string = data.readString();
-            data = null;
-        }
         return string;
     }
 
