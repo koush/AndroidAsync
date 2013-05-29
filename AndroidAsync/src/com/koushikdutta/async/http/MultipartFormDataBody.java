@@ -22,6 +22,10 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     ByteBufferList last;
     String lastName;
 
+    public interface MultipartCallback {
+        public void onPart(Part part);
+    }
+
     @Override
     public void parse(DataEmitter emitter, final CompletedCallback completed) {
         setDataEmitter(emitter);

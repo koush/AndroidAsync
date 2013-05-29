@@ -7,9 +7,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import android.util.Log;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.http.*;
+import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 import android.os.Environment;

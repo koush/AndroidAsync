@@ -36,6 +36,8 @@ public class StringBody implements AsyncHttpRequestBody<String> {
 
     @Override
     public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
+        if (mBodyBytes == null)
+            mBodyBytes = string.getBytes();
         Util.writeAll(sink, mBodyBytes, null);
     }
 
@@ -51,7 +53,8 @@ public class StringBody implements AsyncHttpRequestBody<String> {
 
     @Override
     public int length() {
-        mBodyBytes = string.getBytes();
+        if (mBodyBytes == null)
+            mBodyBytes = string.getBytes();
         return mBodyBytes.length;
     }
 
