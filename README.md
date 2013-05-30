@@ -6,6 +6,19 @@ It uses java.nio to manage connections. All the connections are thus managed on 
 NIO is extremely efficient.
 
 
+### Download
+
+Download [the latest JAR](http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=com.koushikdutta.async&a=async&v=LATEST
+) or grab via Maven:
+
+```xml
+<dependency>
+    <groupId>com.koushikdutta.async</groupId>
+    <artifactId>androidasync</artifactId>
+    <version>(insert latest version)</version>
+</dependency>
+```
+
 ### Download a url to a String
 
 ```java
