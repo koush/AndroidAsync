@@ -31,4 +31,4 @@ android {
     }
 }
 
-apply from: 'https://raw.github.com/koush/mvn-repo/master/maven.gradle'
+//apply from: 'https://raw.github.com/koush/mvn-repo/master/maven.gradle'

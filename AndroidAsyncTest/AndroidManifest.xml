@@ -10,7 +10,7 @@
 
     <instrumentation
         android:name="android.test.InstrumentationTestRunner"
-        android:targetPackage="com.koushikdutta.async.sample" />
+        android:targetPackage="com.koushikdutta.async.test" />
 
     <application
         android:debuggable="true"

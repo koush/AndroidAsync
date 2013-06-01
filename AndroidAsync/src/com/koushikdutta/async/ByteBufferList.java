@@ -86,10 +86,14 @@ public class ByteBufferList {
         remaining -= 8;
         return ret;
     }
-    
+
     public void get(byte[] bytes) {
-        read(bytes.length).get(bytes);
-        remaining -= bytes.length;
+        get(bytes, 0, bytes.length);
+    }
+
+    public void get(byte[] bytes, int offset, int length) {
+        read(length).get(bytes, offset, length);
+        remaining -= length;
     }
 
     public void get(ByteBufferList into, int length) {
