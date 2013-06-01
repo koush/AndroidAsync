@@ -4,7 +4,7 @@ public abstract class TransformFuture<T, F> extends SimpleFuture<T> implements F
     @Override
     public void onCompleted(Exception e, F result) {
         if (e != null) {
-            setComplete(e);
+            error(e);
             return;
         }
 
@@ -12,7 +12,7 @@ public abstract class TransformFuture<T, F> extends SimpleFuture<T> implements F
            transform(result);
         }
         catch (Exception ex) {
-            setComplete(ex);
+            error(ex);
         }
     }
 
@@ -22,5 +22,8 @@ public abstract class TransformFuture<T, F> extends SimpleFuture<T> implements F
         return this;
     }
 
+    protected void error(Exception e) {
+        setComplete(e);
+    }
     protected abstract void transform(F result) throws Exception;
 }
