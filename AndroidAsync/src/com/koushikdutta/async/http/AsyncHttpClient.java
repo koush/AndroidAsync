@@ -43,11 +43,21 @@ public class AsyncHttpClient {
         mMiddleware.add(0, middleware);
     }
 
+    AsyncSSLSocketMiddleware sslSocketMiddleware;
+    AsyncSocketMiddleware socketMiddleware;
     AsyncServer mServer;
     public AsyncHttpClient(AsyncServer server) {
         mServer = server;
-        insertMiddleware(new AsyncSocketMiddleware(this));
-        insertMiddleware(new AsyncSSLSocketMiddleware(this));
+        insertMiddleware(socketMiddleware = new AsyncSocketMiddleware(this));
+        insertMiddleware(sslSocketMiddleware = new AsyncSSLSocketMiddleware(this));
+    }
+
+    public AsyncSocketMiddleware getSocketMiddleware() {
+        return socketMiddleware;
+    }
+
+    public AsyncSSLSocketMiddleware getSSLSocketMiddleware() {
+        return sslSocketMiddleware;
     }
 
     public Future<AsyncHttpResponse> execute(final AsyncHttpRequest request, final HttpConnectCallback callback) {

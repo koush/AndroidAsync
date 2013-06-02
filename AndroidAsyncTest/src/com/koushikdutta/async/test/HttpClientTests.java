@@ -33,8 +33,58 @@ public class HttpClientTests extends TestCase {
         server.setAutostart(true);
         client = new AsyncHttpClient(server);
     }
-    
-    private static final long TIMEOUT = 100000L;
+
+    @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        client.getSSLSocketMiddleware().setConnectAllAddresses(false);
+        client.getSocketMiddleware().setConnectAllAddresses(false);
+        server.stop();
+    }
+
+    public void testConnectAllAddresses() throws Exception {
+        assertEquals(client.getSSLSocketMiddleware().getConnectionPoolCount(), 0);
+        assertEquals(client.getSocketMiddleware().getConnectionPoolCount(), 0);
+
+        client.getSSLSocketMiddleware().setConnectAllAddresses(true);
+        client.getSocketMiddleware().setConnectAllAddresses(true);
+
+        final Semaphore semaphore = new Semaphore(0);
+        final Md5 md5 = Md5.createInstance();
+        AsyncHttpGet get = new AsyncHttpGet("http://www.clockworkmod.com");
+        get.setLogging("ConnectionPool", Log.VERBOSE);
+        client.execute(get, new HttpConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
+                // make sure gzip decoding works, as that is generally what github sends.
+                Assert.assertEquals("gzip", response.getHeaders().getContentEncoding());
+                response.setDataCallback(new DataCallback() {
+                    @Override
+                    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                        md5.update(bb);
+                    }
+                });
+
+                response.setEndCallback(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        semaphore.release();
+                    }
+                });
+            }
+        });
+
+        assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
+
+        long start = System.currentTimeMillis();
+        while (client.getSocketMiddleware().getConnectionPoolCount() != 2) {
+            Thread.sleep(50);
+            if (start + 5000L < System.currentTimeMillis())
+                fail();
+        }
+    }
+
+    private static final long TIMEOUT = 10000L;
     public void testHomepage() throws Exception {
         Future<String> ret = client.get("http://google.com", (StringCallback)null);
         assertNotNull(ret.get(TIMEOUT, TimeUnit.MILLISECONDS));

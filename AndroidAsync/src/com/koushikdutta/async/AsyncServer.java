@@ -7,8 +7,11 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.Future;
+import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.future.TransformFuture;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -20,6 +23,8 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -365,111 +370,119 @@ public class AsyncServer {
             }
         });
     }
-    
-    private void connectSocketInternal(final SocketChannel socket, final SocketAddress remote, ConnectFuture cancel) {
-        if (cancel.isCancelled())
-            return;
-        SelectionKey ckey = null;
-        try {
-            socket.configureBlocking(false);
-            ckey = socket.register(mSelector, SelectionKey.OP_CONNECT);
-            ckey.attach(cancel);
-            socket.connect(remote);
-        }
-        catch (Exception e) {
-            if (ckey != null)
-                ckey.cancel();
-            if (cancel.setComplete(e))
-                cancel.callback.onConnectCompleted(e, null);
-        }
-    }
-    
+
     private class ConnectFuture extends SimpleFuture<AsyncNetworkSocket> {
         @Override
-        public boolean cancel() {
-            if (!super.cancel())
-                return false;
-
+        protected void cancelCleanup() {
+            super.cancelCleanup();
             post(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        socket.close();
+                        if (socket != null)
+                            socket.close();
                     }
                     catch (IOException e) {
                     }
                 }
             });
-            return true;
         }
 
         SocketChannel socket;
         ConnectCallback callback;
     }
     
-    private ConnectFuture prepareConnectSocketCancelable(final SocketChannel socket, ConnectCallback handler) {
-        ConnectFuture cancelable = new ConnectFuture();
-        cancelable.socket = socket;
-        cancelable.callback = handler;
-        return cancelable;
-    }
-    
-    public Cancellable connectSocket(final InetSocketAddress remote, final ConnectCallback handler) {
-        try {
-            final SocketChannel socket = SocketChannel.open();
-            final ConnectFuture cancel = prepareConnectSocketCancelable(socket, handler);
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    connectSocketInternal(socket, new InetSocketAddress(remote.getHostName(), remote.getPort()), cancel);
-                }
-            });
-            return cancel;
-        }
-        catch (final Exception e) {
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    handler.onConnectCompleted(e, null);
-                }
-            });
-            return SimpleCancellable.COMPLETED;
-        }
-    }
-    
-    public Cancellable connectSocket(final String host, final int port, final ConnectCallback handler) {
-        try {
-            final SocketChannel socket = SocketChannel.open();
-            final ConnectFuture cancel = prepareConnectSocketCancelable(socket, handler);
+    private ConnectFuture connectResolvedInetSocketAddress(final InetSocketAddress address, final ConnectCallback callback) {
+        final ConnectFuture cancel = new ConnectFuture();
+        assert !address.isUnresolved();
 
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    SocketAddress remote;
+        post(new Runnable() {
+            @Override
+            public void run() {
+                if (cancel.isCancelled())
+                    return;
+
+                cancel.callback = callback;
+                SelectionKey ckey = null;
+                SocketChannel socket = null;
+                try {
+                    socket = cancel.socket = SocketChannel.open();
+                    socket.configureBlocking(false);
+                    ckey = socket.register(mSelector, SelectionKey.OP_CONNECT);
+                    ckey.attach(cancel);
+                    socket.connect(address);
+                }
+                catch (Exception e) {
+                    if (ckey != null)
+                        ckey.cancel();
                     try {
-                        remote = new InetSocketAddress(host, port);
+                        if (socket != null)
+                            socket.close();
                     }
-                    catch (Exception e) {
-                        if (cancel.setComplete(e))
-                            handler.onConnectCompleted(e, null);
-                        return;
+                    catch (Exception ignored) {
                     }
+                    cancel.setComplete(e);
+                }
+            }
+        });
 
-                    connectSocketInternal(socket, remote, cancel);
-                }
-            });
-            
-            return cancel;
+        return cancel;
+    }
+
+    public Cancellable connectSocket(final InetSocketAddress remote, final ConnectCallback callback) {
+        if (!remote.isUnresolved())
+            return connectResolvedInetSocketAddress(remote, callback);
+
+        return new TransformFuture<AsyncSocket, InetAddress>() {
+            @Override
+            protected void transform(InetAddress result) throws Exception {
+                setParent(connectResolvedInetSocketAddress(new InetSocketAddress(remote.getHostName(), remote.getPort()), callback));
+            }
         }
-        catch (final Exception e) {
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    handler.onConnectCompleted(e, null);
+        .from(getByName(remote.getHostName()));
+    }
+
+    public Cancellable connectSocket(final String host, final int port, final ConnectCallback callback) {
+        return connectSocket(InetSocketAddress.createUnresolved(host, port), callback);
+    }
+
+    ExecutorService synchronousWorkers = Executors.newFixedThreadPool(4);
+    public Future<InetAddress[]> getAllByName(final String host) {
+        final SimpleFuture<InetAddress[]> ret = new SimpleFuture<InetAddress[]>();
+        synchronousWorkers.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final InetAddress[] result = InetAddress.getAllByName(host);
+                    if (result == null || result.length == 0)
+                        throw new Exception("no addresses for host");
+                    post(new Runnable() {
+                        @Override
+                        public void run() {
+                            ret.setComplete(null, result);
+                        }
+                    });
+                } catch (final Exception e) {
+                    post(new Runnable() {
+                        @Override
+                        public void run() {
+                            ret.setComplete(e, null);
+                        }
+                    });
                 }
-            });
-            return SimpleCancellable.COMPLETED;
+            }
+        });
+        return ret;
+    }
+
+    public Future<InetAddress> getByName(String host) {
+        return new TransformFuture<InetAddress, InetAddress[]>() {
+            @Override
+            protected void transform(InetAddress[] result) throws Exception {
+                setComplete(result[0]);
+            }
         }
+        .from(getAllByName(host));
     }
 
     public AsyncDatagramSocket connectDatagram(final String host, final int port) throws IOException {
@@ -800,7 +813,7 @@ public class AsyncServer {
                     catch (Exception ex) {
                         key.cancel();
                         sc.close();
-                        if (cancel.setComplete())
+                        if (cancel.setComplete(ex))
                             cancel.callback.onConnectCompleted(ex, null);
                     }
                 }
