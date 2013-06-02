@@ -96,7 +96,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
         // try to connect to everything...
         data.request.logv("Resolving domain and connecting to all available addresses");
-        return new TransformFuture<AsyncSocket, InetAddress[]>(){
+        return new TransformFuture<AsyncSocket, InetAddress[]>() {
             int reported;
             @Override
             protected void transform(final InetAddress[] result) throws Exception {
@@ -144,8 +144,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
     private void recycleSocket(final AsyncSocket socket, URI uri) {
         if (socket == null)
             return;
-        final int port = getSchemePort(uri);
-        final String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
+        int port = getSchemePort(uri);
+        String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
         // nothing here will block...
         synchronized (this) {
             HashSet<AsyncSocket> sockets = mSockets.get(lookup);
