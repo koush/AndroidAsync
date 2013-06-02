@@ -46,6 +46,30 @@ public class AsyncHttpRequest {
         };
     }
 
+    public RequestLine getProxyRequestLine() {
+        return new RequestLine() {
+            @Override
+            public String getUri() {
+                return AsyncHttpRequest.this.getUri().toString();
+            }
+
+            @Override
+            public ProtocolVersion getProtocolVersion() {
+                return new ProtocolVersion("HTTP", 1, 1);
+            }
+
+            @Override
+            public String getMethod() {
+                return mMethod;
+            }
+
+            @Override
+            public String toString() {
+                return String.format("%s %s HTTP/1.1", mMethod, AsyncHttpRequest.this.getUri());
+            }
+        };
+    }
+
     protected final String getDefaultUserAgent() {
         String agent = System.getProperty("http.agent");
         return agent != null ? agent : ("Java" + System.getProperty("java.version"));
@@ -72,7 +96,7 @@ public class AsyncHttpRequest {
         mHeaders.setHost(uri.getHost());
         mHeaders.setUserAgent(getDefaultUserAgent());
         mHeaders.setAcceptEncoding("gzip, deflate");
-        mHeaders.getHeaders().set("Connection", "keep-alive");
+        mHeaders.setConnection("keep-alive");
         mHeaders.getHeaders().set("Accept", "*/*");
     }
 
@@ -276,6 +300,26 @@ public class AsyncHttpRequest {
     public AsyncHttpRequest addHeader(String name, String value) {
         getHeaders().getHeaders().add(name, value);
         return this;
+    }
+
+    String proxyHost;
+    int proxyPort = -1;
+    public void enableProxy(String host, int port) {
+        proxyHost = host;
+        proxyPort = port;
+    }
+
+    public void disableProxy() {
+        proxyHost = null;
+        proxyPort = -1;
+    }
+
+    public String getProxyHost() {
+        return proxyHost;
+    }
+
+    public int getProxyPort() {
+        return proxyPort;
     }
 
     public void setLogging(String tag, int level) {

@@ -23,6 +23,10 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.http.AsyncHttpClient.DownloadCallback;
 import com.koushikdutta.async.http.AsyncHttpClient.StringCallback;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
 public class HttpClientTests extends TestCase {
     AsyncHttpClient client;
@@ -39,6 +43,7 @@ public class HttpClientTests extends TestCase {
         super.tearDown();
         client.getSSLSocketMiddleware().setConnectAllAddresses(false);
         client.getSocketMiddleware().setConnectAllAddresses(false);
+        client.getSocketMiddleware().disableProxy();
         server.stop();
     }
 
@@ -277,5 +282,46 @@ public class HttpClientTests extends TestCase {
 //        Thread.sleep(1000);
 //        assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
         assertFalse(new File("/sdcard/hello.txt").exists());
+    }
+
+    boolean wasProxied;
+    public void testProxy() throws Exception {
+        wasProxied = false;
+        final AsyncServer proxyServer = new AsyncServer();
+        try {
+            AsyncHttpServer httpServer = new AsyncHttpServer();
+            httpServer.get(".*", new HttpServerRequestCallback() {
+                @Override
+                public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                    Log.i("Proxy", "Proxying request");
+                    wasProxied = true;
+                    AsyncHttpClient proxying = new AsyncHttpClient(proxyServer);
+
+                    String url = request.getPath();
+                    proxying.get(url, new StringCallback() {
+                        @Override
+                        public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
+                            response.send(result);
+                        }
+                    });
+                }
+            });
+
+            httpServer.listen(proxyServer, 5555);
+
+//            client.getSocketMiddleware().enableProxy("localhost", 5555);
+
+            AsyncHttpGet get = new AsyncHttpGet("http://www.clockworkmod.com");
+            get.enableProxy("localhost", 5555);
+
+            Future<String> ret = client.executeString(get);
+            String data;
+            assertNotNull(data = ret.get(TIMEOUT, TimeUnit.MILLISECONDS));
+            assertTrue(data.contains("ClockworkMod"));
+            assertTrue(wasProxied);
+        }
+        finally {
+            proxyServer.stop();
+        }
     }
 }

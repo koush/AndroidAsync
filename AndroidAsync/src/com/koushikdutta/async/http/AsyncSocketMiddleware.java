@@ -4,15 +4,12 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleCancellable;
-import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.future.TransformFuture;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 
@@ -56,6 +53,35 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         this.connectAllAddresses = connectAllAddresses;
     }
 
+    String proxyHost;
+    int proxyPort;
+    InetSocketAddress proxyAddress;
+
+    public void disableProxy() {
+        proxyPort = -1;
+        proxyHost = null;
+        proxyAddress = null;
+    }
+
+    public void enableProxy(String host, int port) {
+        proxyHost = host;
+        proxyPort = port;
+        proxyAddress = null;
+    }
+
+    String computeLookup(URI uri, int port, AsyncHttpRequest request) {
+        String proxy;
+        if (proxyHost != null)
+            proxy = proxyHost + ":" + proxyPort;
+        else
+            proxy = "";
+
+        if (request.proxyHost != null)
+            proxy = request.getProxyHost() + ":" + request.proxyPort;
+
+        return uri.getScheme() + "//" + uri.getHost() + ":" + port + "?proxy=" + proxy;
+    }
+
     @Override
     public Cancellable getSocket(final GetSocketData data) {
         final URI uri = data.request.getUri();
@@ -63,7 +89,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         if (port == -1) {
             return null;
         }
-        final String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
+
+        final String lookup = computeLookup(uri, port, data.request);
         
         data.state.putBoolean(getClass().getCanonicalName() + ".owned", true);
 
@@ -88,10 +115,28 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             }
         }
 
-        if (!connectAllAddresses) {
+        if (!connectAllAddresses || proxyHost != null || data.request.getProxyHost() != null) {
             // just default to connecting to a single address
             data.request.logd("Connecting socket");
-            return mClient.getServer().connectSocket(uri.getHost(), port, wrapCallback(data.connectCallback, uri, port));
+            String unresolvedHost;
+            int unresolvedPort;
+            if (data.request.getProxyHost() != null) {
+                unresolvedHost = data.request.getProxyHost();
+                unresolvedPort = data.request.getProxyPort();
+                // set the host and port explicitly for proxied connections
+                data.request.getHeaders().getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
+            }
+            else if (proxyHost != null) {
+                unresolvedHost = proxyHost;
+                unresolvedPort = proxyPort;
+                // set the host and port explicitly for proxied connections
+                data.request.getHeaders().getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
+            }
+            else {
+                unresolvedHost = uri.getHost();
+                unresolvedPort = port;
+            }
+            return mClient.getServer().connectSocket(unresolvedHost, unresolvedPort, wrapCallback(data.connectCallback, uri, port));
         }
 
         // try to connect to everything...
@@ -110,7 +155,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                             // check if the socket was already provided by a previous callback or request cancelled
                             if (isDone() || isCancelled()) {
                                 data.request.logd("Recycling extra socket leftover from connecting to all addresses");
-                                recycleSocket(socket, uri);
+                                recycleSocket(socket, data.request);
                                 return;
                             }
 
@@ -141,11 +186,12 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         return ret;
     }
 
-    private void recycleSocket(final AsyncSocket socket, URI uri) {
+    private void recycleSocket(final AsyncSocket socket, AsyncHttpRequest request) {
         if (socket == null)
             return;
+        URI uri = request.getUri();
         int port = getSchemePort(uri);
-        String lookup = uri.getScheme() + "//" + uri.getHost() + ":" + port;
+        String lookup = computeLookup(uri, port, request);
         // nothing here will block...
         synchronized (this) {
             HashSet<AsyncSocket> sockets = mSockets.get(lookup);
@@ -184,6 +230,6 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         }
 
         data.request.logd("Recycling keep-alive socket");
-        recycleSocket(data.socket, data.request.getUri());
+        recycleSocket(data.socket, data.request);
     }
 }
