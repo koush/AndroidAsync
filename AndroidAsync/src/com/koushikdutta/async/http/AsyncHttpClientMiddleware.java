@@ -13,6 +13,7 @@ public interface AsyncHttpClientMiddleware {
         public Bundle state = new Bundle();
         public AsyncHttpRequest request;
         public ConnectCallback connectCallback;
+        public Cancellable socketCancellable;
     }
     
     public static class OnSocketData extends GetSocketData {

@@ -111,6 +111,20 @@ public class AsyncHttpClient {
     }
 
     private void execute(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
+        if (mServer.isAffinityThread()) {
+            executeAffinity(request, redirectCount, cancel, callback);
+        }
+        else {
+            mServer.post(new Runnable() {
+                @Override
+                public void run() {
+                    executeAffinity(request, redirectCount, cancel, callback);
+                }
+            });
+        }
+    }
+    private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
+        assert mServer.isAffinityThread();
         if (redirectCount > 5) {
             reportConnectedCompleted(cancel, new Exception("too many redirects"), null, request, callback);
             return;
@@ -129,6 +143,12 @@ public class AsyncHttpClient {
                     cancel.scheduled = scheduled = mServer.postDelayed(new Runnable() {
                         @Override
                         public void run() {
+                            // we've timed out, kill the connections
+                            if (data.socketCancellable != null) {
+                                data.socketCancellable.cancel();
+                                if (data.socket != null)
+                                    data.socket.close();
+                            }
                             reportConnectedCompleted(cancel, new TimeoutException(), null, request, callback);
                         }
                     }, request.getTimeout());
@@ -264,6 +284,7 @@ public class AsyncHttpClient {
         for (AsyncHttpClientMiddleware middleware: mMiddleware) {
             Cancellable socketCancellable = middleware.getSocket(data);
             if (socketCancellable != null) {
+                data.socketCancellable = socketCancellable;
                 cancel.setParent(socketCancellable);
                 return;
             }

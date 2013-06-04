@@ -375,17 +375,12 @@ public class AsyncServer {
         @Override
         protected void cancelCleanup() {
             super.cancelCleanup();
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (socket != null)
-                            socket.close();
-                    }
-                    catch (IOException e) {
-                    }
-                }
-            });
+            try {
+                if (socket != null)
+                    socket.close();
+            }
+            catch (IOException e) {
+            }
         }
 
         SocketChannel socket;
