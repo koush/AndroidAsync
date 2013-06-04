@@ -1,8 +1,12 @@
 package com.koushikdutta.async.http;
 
 import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.TransformFuture;
@@ -201,6 +205,15 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             }
             final HashSet<AsyncSocket> ss = sockets;
             sockets.add(socket);
+            // should not get any data after this point...
+            // if so, eat it and disconnect.
+            socket.setDataCallback(new NullDataCallback() {
+                @Override
+                public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                    super.onDataAvailable(emitter, bb);
+                    socket.close();
+                }
+            });
             socket.setClosedCallback(new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
