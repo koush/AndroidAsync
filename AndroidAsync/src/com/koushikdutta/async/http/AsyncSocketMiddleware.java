@@ -207,13 +207,6 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             sockets.add(socket);
             // should not get any data after this point...
             // if so, eat it and disconnect.
-            socket.setDataCallback(new NullDataCallback() {
-                @Override
-                public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                    super.onDataAvailable(emitter, bb);
-                    socket.close();
-                }
-            });
             socket.setClosedCallback(new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
@@ -231,6 +224,17 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         if (!data.state.getBoolean(getClass().getCanonicalName() + ".owned", false)) {
             return;
         }
+
+        final AsyncSocket socket = data.socket;
+        socket.setEndCallback(null);
+        socket.setWriteableCallback(null);
+        socket.setDataCallback(new NullDataCallback() {
+            @Override
+            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                super.onDataAvailable(emitter, bb);
+                socket.close();
+            }
+        });
 
         if (data.exception != null || !data.socket.isOpen()) {
             data.socket.close();

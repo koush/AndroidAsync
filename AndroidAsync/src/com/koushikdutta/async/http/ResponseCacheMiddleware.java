@@ -145,6 +145,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         @Override
         protected void report(Exception e) {
             super.report(e);
+            try {
+                cacheResponse.getBody().close();
+            }
+            catch (Exception ex) {
+            }
             if (closed)
                 return;
             closed = true;
@@ -489,6 +494,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         protected void report(Exception e) {
             if (!allowEnd)
                 return;
+            try {
+                cacheResponse.getBody().close();
+            }
+            catch (Exception ex) {
+            }
             super.report(e);
         }
     }
