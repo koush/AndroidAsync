@@ -232,6 +232,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                 super.onDataAvailable(emitter, bb);
+                bb.clear();
                 socket.close();
             }
         });
