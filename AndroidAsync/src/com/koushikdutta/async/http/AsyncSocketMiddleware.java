@@ -179,7 +179,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
                                     // if the socket is no longer needed, just hang onto it...
                                     if (isDone() || isCancelled()) {
-                                        data.request.logd("Recycling extra socket leftover from connecting to all addresses");
+                                        data.request.logd("Recycling extra socket leftover from cancelled operation");
                                         idleSocket(socket);
                                         recycleSocket(socket, data.request);
                                         return;

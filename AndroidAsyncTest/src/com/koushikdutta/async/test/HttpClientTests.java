@@ -47,6 +47,7 @@ public class HttpClientTests extends TestCase {
         server.stop();
     }
 
+    /*
     public void testConnectAllAddresses() throws Exception {
         assertEquals(client.getSSLSocketMiddleware().getConnectionPoolCount(), 0);
         assertEquals(client.getSocketMiddleware().getConnectionPoolCount(), 0);
@@ -88,6 +89,7 @@ public class HttpClientTests extends TestCase {
                 fail();
         }
     }
+    */
 
     private static final long TIMEOUT = 10000L;
     public void testHomepage() throws Exception {
