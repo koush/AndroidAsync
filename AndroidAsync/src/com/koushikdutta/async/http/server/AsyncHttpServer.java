@@ -1,6 +1,8 @@
 package com.koushikdutta.async.http.server;
 
 import android.content.Context;
+
+import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.AsyncSocket;
@@ -14,11 +16,16 @@ import com.koushikdutta.async.http.libcore.RequestHeaders;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.security.KeyPair;
+import java.security.KeyStore;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 
 public class AsyncHttpServer {
     ArrayList<AsyncServerSocket> mListeners = new ArrayList<AsyncServerSocket>();
@@ -174,6 +181,26 @@ public class AsyncHttpServer {
     
     public void listen(int port) {
         listen(AsyncServer.getDefault(), port);
+    }
+
+    public void listenSecure(final int port, final SSLContext sslContext) {
+        AsyncServer.getDefault().listen(null, port, new ListenCallback() {
+            @Override
+            public void onAccepted(AsyncSocket socket) {
+                AsyncSSLSocketWrapper sslSocket = new AsyncSSLSocketWrapper(socket, null, port, sslContext, null, false);
+                mListenCallback.onAccepted(sslSocket);
+            }
+
+            @Override
+            public void onListening(AsyncServerSocket socket) {
+                mListenCallback.onListening(socket);
+            }
+
+            @Override
+            public void onCompleted(Exception ex) {
+                mListenCallback.onCompleted(ex);
+            }
+        });
     }
     
     public ListenCallback getListenCallback() {

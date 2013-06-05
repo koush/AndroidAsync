@@ -25,26 +25,35 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     public void end() {
         mSocket.end();
     }
-
     public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port) {
+        this(socket, host, port, sslContext, null, true);
+    }
+
+    TrustManager[] trustManagers;
+    boolean clientMode;
+    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, boolean clientMode) {
         mSocket = socket;
+        this.clientMode = clientMode;
+        this.trustManagers = trustManagers;
+
+        if (sslContext == null)
+            sslContext = AsyncSSLSocketWrapper.sslContext;
 
         if (host != null) {
-            engine = ctx.createSSLEngine(host, port);
+            engine = sslContext.createSSLEngine(host, port);
         }
         else {
-            engine = ctx.createSSLEngine();
+            engine = sslContext.createSSLEngine();
         }
         mHost = host;
         mPort = port;
-        engine.setUseClientMode(true);
+        engine.setUseClientMode(clientMode);
         mSink = new BufferedDataSink(socket);
         mSink.setMaxBuffer(0);
 
         // SSL needs buffering of data written during handshake.
         // aka exhcange.setDatacallback
         mEmitter = new BufferedDataEmitter(socket);
-//        socket.setDataCallback(mEmitter);
 
         mEmitter.setDataCallback(new DataCallback() {
             @Override
@@ -106,7 +115,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         }
     }
 
-    static SSLContext ctx;
+    static SSLContext sslContext;
     static {
         // following is the "trust the system" certs setup
         try {
@@ -117,11 +126,11 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             // fallback is to use a custom SSLContext, and hack around the x509 extension.
             if (Build.VERSION.SDK_INT <= 15)
                 throw new Exception();
-            ctx = SSLContext.getInstance("Default");
+            sslContext = SSLContext.getInstance("Default");
         }
         catch (Exception ex) {
             try {
-                ctx = SSLContext.getInstance("TLS");
+                sslContext = SSLContext.getInstance("TLS");
                 TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
                     public java.security.cert.X509Certificate[] getAcceptedIssuers() {
                         return new X509Certificate[] {};
@@ -136,7 +145,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         }
                     }
                 } };
-                ctx.init(null, trustAllCerts, null);
+                sslContext.init(null, trustAllCerts, null);
             }
             catch (Exception ex2) {
                 ex.printStackTrace();
@@ -171,37 +180,43 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         if (res.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
             mEmitter.onDataAvailable();
         }
-        
+
         try {
             if (!finishedHandshake && (engine.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING || engine.getHandshakeStatus() == HandshakeStatus.FINISHED)) {
-                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                tmf.init((KeyStore) null);
-                boolean trusted = false;
-                for (TrustManager tm : tmf.getTrustManagers()) {
-                    try {
-                        X509TrustManager xtm = (X509TrustManager) tm;
-                        peerCertificates = (X509Certificate[]) engine.getSession().getPeerCertificates();
-                        xtm.checkServerTrusted(peerCertificates, "SSL");
-                        if (mHost != null) {
-                            StrictHostnameVerifier verifier = new StrictHostnameVerifier();
-                            verifier.verify(mHost, StrictHostnameVerifier.getCNs(peerCertificates[0]), StrictHostnameVerifier.getDNSSubjectAlts(peerCertificates[0]));
+                if (clientMode) {
+                    TrustManager[] trustManagers = this.trustManagers;
+                    if (trustManagers == null) {
+                        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                        tmf.init((KeyStore) null);
+                        trustManagers = tmf.getTrustManagers();
+                    }
+                    boolean trusted = false;
+                    for (TrustManager tm : trustManagers) {
+                        try {
+                            X509TrustManager xtm = (X509TrustManager) tm;
+                            peerCertificates = (X509Certificate[]) engine.getSession().getPeerCertificates();
+                            xtm.checkServerTrusted(peerCertificates, "SSL");
+                            if (mHost != null) {
+                                StrictHostnameVerifier verifier = new StrictHostnameVerifier();
+                                verifier.verify(mHost, StrictHostnameVerifier.getCNs(peerCertificates[0]), StrictHostnameVerifier.getDNSSubjectAlts(peerCertificates[0]));
+                            }
+                            trusted = true;
+                            break;
                         }
-                        trusted = true;
-                        break;
+                        catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
                     }
-                    catch (Exception ex) {
-                        ex.printStackTrace();
+                    finishedHandshake = true;
+                    if (!trusted) {
+                        AsyncSSLException e = new AsyncSSLException();
+                        report(e);
+                        if (!e.getIgnore())
+                            throw e;
                     }
                 }
-                finishedHandshake = true;
-                if (!trusted) {
-                    AsyncSSLException e = new AsyncSSLException();
-                    report(e);
-                    if (!e.getIgnore())
-                        throw e;
-                }
-                assert mWriteableCallback != null;
-                mWriteableCallback.onWriteable();
+                if (mWriteableCallback != null)
+                    mWriteableCallback.onWriteable();
                 mEmitter.onDataAvailable();
             }
         }

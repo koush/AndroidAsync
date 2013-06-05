@@ -6,9 +6,23 @@ import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.callback.ConnectCallback;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+
 public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
     public AsyncSSLSocketMiddleware(AsyncHttpClient client) {
         super(client, "https", 443);
+    }
+
+    SSLContext sslContext;
+
+    public void setSSLContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
+    }
+
+    TrustManager[] trustManagers;
+    public void setTrustManagers(TrustManager[] trustManagers) {
+        this.trustManagers = trustManagers;
     }
 
     @Override
@@ -17,7 +31,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                 if (ex == null) {
-                    callback.onConnectCompleted(ex, new AsyncSSLSocketWrapper(socket, uri.getHost(), port));
+                    callback.onConnectCompleted(ex, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, true));
                 }
                 else {
                     callback.onConnectCompleted(ex, socket);
