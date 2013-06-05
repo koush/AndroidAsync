@@ -159,6 +159,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                             // check if the socket was already provided by a previous callback or request cancelled
                             if (isDone() || isCancelled()) {
                                 data.request.logd("Recycling extra socket leftover from connecting to all addresses");
+                                idleSocket(socket);
                                 recycleSocket(socket, data.request);
                                 return;
                             }
@@ -219,13 +220,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         }
     }
 
-    @Override
-    public void onRequestComplete(final OnRequestCompleteData data) {
-        if (!data.state.getBoolean(getClass().getCanonicalName() + ".owned", false)) {
-            return;
-        }
-
-        final AsyncSocket socket = data.socket;
+    private void idleSocket(final AsyncSocket socket) {
         socket.setEndCallback(null);
         socket.setWriteableCallback(null);
         socket.setDataCallback(new NullDataCallback() {
@@ -236,6 +231,15 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 socket.close();
             }
         });
+    }
+
+    @Override
+    public void onRequestComplete(final OnRequestCompleteData data) {
+        if (!data.state.getBoolean(getClass().getCanonicalName() + ".owned", false)) {
+            return;
+        }
+
+        idleSocket(data.socket);
 
         if (data.exception != null || !data.socket.isOpen()) {
             data.socket.close();
