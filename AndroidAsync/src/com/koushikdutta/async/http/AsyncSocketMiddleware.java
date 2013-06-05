@@ -6,8 +6,10 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.callback.ContinuationCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.TransformFuture;
 
@@ -146,36 +148,53 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         // try to connect to everything...
         data.request.logv("Resolving domain and connecting to all available addresses");
         return new TransformFuture<AsyncSocket, InetAddress[]>() {
-            int reported;
+            Exception lastException;
             @Override
             protected void transform(final InetAddress[] result) throws Exception {
-                for (InetAddress address: result) {
-                    mClient.getServer().connectSocket(new InetSocketAddress(address, port), wrapCallback(new ConnectCallback() {
+                Continuation keepTrying = new Continuation(new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        // if it completed, that means that the connection failed
+                        if (lastException == null)
+                            lastException = new Exception("Unable to connect to remote address");
+                        setComplete(lastException);
+                    }
+                });
+
+                for (final InetAddress address: result) {
+                    keepTrying.add(new ContinuationCallback() {
                         @Override
-                        public void onConnectCompleted(Exception ex, AsyncSocket socket) {
-                            // note how many callbacks we received
-                            reported++;
+                        public void onContinue(Continuation continuation, final CompletedCallback next) throws Exception {
+                            mClient.getServer().connectSocket(new InetSocketAddress(address, port), wrapCallback(new ConnectCallback() {
+                                @Override
+                                public void onConnectCompleted(Exception ex, AsyncSocket socket) {
+                                    assert !isDone();
 
-                            // check if the socket was already provided by a previous callback or request cancelled
-                            if (isDone() || isCancelled()) {
-                                data.request.logd("Recycling extra socket leftover from connecting to all addresses");
-                                idleSocket(socket);
-                                recycleSocket(socket, data.request);
-                                return;
-                            }
+                                    // try the next address
+                                    if (ex != null) {
+                                        lastException = ex;
+                                        next.onCompleted(null);
+                                        return;
+                                    }
 
-                            // need a result at this point
+                                    // if the socket is no longer needed, just hang onto it...
+                                    if (isDone() || isCancelled()) {
+                                        data.request.logd("Recycling extra socket leftover from connecting to all addresses");
+                                        idleSocket(socket);
+                                        recycleSocket(socket, data.request);
+                                        return;
+                                    }
 
-                            // only report the final exception... 4 addresses may have been resolved
-                            // but we only care to report if ALL of them resulted in errors
-                            if (ex != null && reported < result.length)
-                                return;
-
-                            if (setComplete(ex, socket))
-                                data.connectCallback.onConnectCompleted(ex, socket);
+                                    if (setComplete(null, socket)) {
+                                        data.connectCallback.onConnectCompleted(ex, socket);
+                                    }
+                                }
+                            }, uri, port));
                         }
-                    }, uri, port));
+                    });
                 }
+
+                keepTrying.start();
             }
         }
         .from(mClient.getServer().getAllByName(uri.getHost()));
