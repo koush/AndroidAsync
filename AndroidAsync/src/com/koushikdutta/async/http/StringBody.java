@@ -1,14 +1,11 @@
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.async.parser.JSONObjectParser;
 import com.koushikdutta.async.parser.StringParser;
-import org.json.JSONObject;
 
 public class StringBody implements AsyncHttpRequestBody<String> {
     public StringBody() {
@@ -35,7 +32,7 @@ public class StringBody implements AsyncHttpRequestBody<String> {
     public static final String CONTENT_TYPE = "text/plain";
 
     @Override
-    public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
+    public void write(AsyncHttpRequest request, DataSink sink) {
         if (mBodyBytes == null)
             mBodyBytes = string.getBytes();
         Util.writeAll(sink, mBodyBytes, null);

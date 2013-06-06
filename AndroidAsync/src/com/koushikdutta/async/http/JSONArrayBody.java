@@ -1,14 +1,13 @@
 package com.koushikdutta.async.http;
 
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.parser.JSONArrayParser;
-import com.koushikdutta.async.parser.JSONObjectParser;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class JSONArrayBody implements AsyncHttpRequestBody<JSONArray> {
     public JSONArrayBody() {
@@ -33,7 +32,7 @@ public class JSONArrayBody implements AsyncHttpRequestBody<JSONArray> {
     }
 
     @Override
-    public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
+    public void write(AsyncHttpRequest request, DataSink sink) {
         Util.writeAll(sink, mBodyBytes, null);
     }
 

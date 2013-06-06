@@ -2,6 +2,7 @@ package com.koushikdutta.async.http;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.NullDataCallback;
@@ -122,7 +123,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
 
     int written;
     @Override
-    public void write(AsyncHttpRequest request, final AsyncHttpResponse sink) {
+    public void write(AsyncHttpRequest request, final DataSink sink) {
         if (mParts == null) {
             sink.end();
             return;

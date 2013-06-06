@@ -1,20 +1,17 @@
 package com.koushikdutta.async.http;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.util.*;
-
-import com.koushikdutta.async.callback.DataCallback;
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
-
-import android.net.Uri;
-
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
+
+import org.apache.http.NameValuePair;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.List;
 
 public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
     private Multimap mParameters;
@@ -48,15 +45,10 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
     }
     
     @Override
-    public void write(AsyncHttpRequest request, final AsyncHttpResponse response) {
+    public void write(AsyncHttpRequest request, final DataSink response) {
         if (mBodyBytes == null)
             buildData();
-        Util.writeAll(response, mBodyBytes, new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-//                response.end();
-            }
-        });
+        Util.writeAll(response, mBodyBytes, null);
     }
 
     public static final String CONTENT_TYPE = "application/x-www-form-urlencoded";

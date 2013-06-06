@@ -1,11 +1,11 @@
 package com.koushikdutta.async.http.server;
 
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.AsyncHttpResponse;
 
 public class UnknownRequestBody implements AsyncHttpRequestBody<Void> {
     public UnknownRequestBody(String contentType) {
@@ -13,7 +13,7 @@ public class UnknownRequestBody implements AsyncHttpRequestBody<Void> {
     }
 
     @Override
-    public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
+    public void write(AsyncHttpRequest request, DataSink sink) {
         assert false;
     }
 

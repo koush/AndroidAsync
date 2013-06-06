@@ -1,14 +1,13 @@
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.async.parser.JSONObjectParser;
-import org.json.JSONObject;
-
-import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.parser.JSONObjectParser;
+
+import org.json.JSONObject;
 
 public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
     public JSONObjectBody() {
@@ -33,7 +32,7 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
     }
 
     @Override
-    public void write(AsyncHttpRequest request, AsyncHttpResponse sink) {
+    public void write(AsyncHttpRequest request, DataSink sink) {
         Util.writeAll(sink, mBodyBytes, null);
     }
 
