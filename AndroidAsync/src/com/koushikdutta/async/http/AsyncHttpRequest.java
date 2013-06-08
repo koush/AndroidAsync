@@ -89,8 +89,15 @@ public class AsyncHttpRequest {
     }
 
     public AsyncHttpRequest(URI uri, String method) {
+        this(uri, method, null);
+    }
+
+    public AsyncHttpRequest(URI uri, String method, RawHeaders headers) {
         assert uri != null;
         mMethod = method;
+        if (headers == null)
+            headers = new RawHeaders();
+        mRawHeaders = headers;
         mHeaders = new RequestHeaders(uri, mRawHeaders);
         mRawHeaders.setStatusLine(getRequestLine().toString());
         mHeaders.setHost(uri.getHost());
@@ -148,7 +155,8 @@ public class AsyncHttpRequest {
     public void onHandshakeException(AsyncSSLException e) {
     }
 
-    int mTimeout = 30000;
+    public static final int DEFAULT_TIMEOUT = 30000;
+    int mTimeout = DEFAULT_TIMEOUT;
     public int getTimeout() {
         return mTimeout;
     }
