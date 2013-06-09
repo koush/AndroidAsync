@@ -15,26 +15,24 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
 
     @Override
     public boolean cancel() {
-        if (super.cancel()) {
-            synchronized (this) {
-                exception = new CancellationException();
-                if (waiter != null)
-                    waiter.release();
-            }
-            return true;
+        if (!super.cancel())
+            return false;
+        // still need to release any pending waiters
+        synchronized (this) {
+            exception = new CancellationException();
+            releaseWaiterLocked();
         }
-
-        return false;
+        return true;
     }
 
     AsyncSemaphore waiter;
     @Override
     public T get() throws InterruptedException, ExecutionException {
+        AsyncSemaphore waiter;
         synchronized (this) {
             if (isCancelled() || isDone())
                 return getResult();
-            if (waiter == null)
-                waiter = new AsyncSemaphore();
+            waiter = ensureWaiterLocked();
         }
         waiter.acquire();
         return getResult();
@@ -48,11 +46,11 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
 
     @Override
     public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        AsyncSemaphore waiter;
         synchronized (this) {
             if (isCancelled() || isDone())
                 return getResult();
-            if (waiter == null)
-                waiter = new AsyncSemaphore();
+            waiter = ensureWaiterLocked();
         }
         if (!waiter.tryAcquire(timeout, unit))
             throw new TimeoutException();
@@ -81,15 +79,27 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
             callback.onCompleted(exception, result);
     }
 
+    void releaseWaiterLocked() {
+        if (waiter != null) {
+            waiter.release();
+            waiter = null;
+        }
+    }
+
+    AsyncSemaphore ensureWaiterLocked() {
+        if (waiter == null)
+            waiter = new AsyncSemaphore();
+        return waiter;
+    }
+
     Exception exception;
     public boolean setComplete(Exception e) {
         FutureCallback<T> callback;
         synchronized (this) {
             if (!super.setComplete())
                 return false;
-            if (waiter != null)
-                waiter.release();
             exception = e;
+            releaseWaiterLocked();
             callback = handleCompleteLocked();
         }
         handleCallbackUnlocked(callback);
@@ -103,8 +113,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
             if (!super.setComplete())
                 return false;
             result = value;
-            if (waiter != null)
-                waiter.release();
+            releaseWaiterLocked();
             callback = handleCompleteLocked();
         }
         handleCallbackUnlocked(callback);
@@ -145,6 +154,21 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     @Override
     public SimpleFuture<T> setParent(Cancellable parent) {
         super.setParent(parent);
+        return this;
+    }
+
+    /**
+     * Reset the future for reuse.
+     * @return
+     */
+    public SimpleFuture<T> reset() {
+        super.reset();
+
+        result = null;
+        exception = null;
+        waiter = null;
+        callback = null;
+
         return this;
     }
 }

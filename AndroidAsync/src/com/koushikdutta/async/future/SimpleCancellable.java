@@ -18,7 +18,7 @@ public class SimpleCancellable implements DependentCancellable {
 
     public boolean setComplete() {
         synchronized (this) {
-            if (canceled)
+            if (cancelled)
                 return false;
             if (complete) {
                 // don't allow a Cancellable to complete twice...
@@ -39,9 +39,9 @@ public class SimpleCancellable implements DependentCancellable {
         synchronized (this) {
             if (complete)
                 return false;
-            if (canceled)
+            if (cancelled)
                 return true;
-            canceled = true;
+            cancelled = true;
             parent = this.parent;
             // null out the parent to allow garbage collection
             this.parent = null;
@@ -52,7 +52,7 @@ public class SimpleCancellable implements DependentCancellable {
         cleanup();
         return true;
     }
-    boolean canceled;
+    boolean cancelled;
 
     private Cancellable parent;
     @Override
@@ -66,7 +66,7 @@ public class SimpleCancellable implements DependentCancellable {
 
     @Override
     public boolean isCancelled() {
-        return canceled || (parent != null && parent.isCancelled());
+        return cancelled || (parent != null && parent.isCancelled());
     }
 
     public static final Cancellable COMPLETED = new SimpleCancellable() {
@@ -74,4 +74,11 @@ public class SimpleCancellable implements DependentCancellable {
             setComplete();
         }
     };
+
+    public Cancellable reset() {
+        cancel();
+        complete = false;
+        cancelled = false;
+        return this;
+    }
 }
