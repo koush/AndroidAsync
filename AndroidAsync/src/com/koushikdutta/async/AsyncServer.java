@@ -242,21 +242,29 @@ public class AsyncServer {
             mQueue.remove(scheduled);
         }
     }
-    
-    public Object postDelayed(Runnable runnable, long delay) {
-        Scheduled s;
+
+    void queueScheduledLocked(Scheduled s) {
         synchronized (this) {
-            if (delay != 0)
-                delay += System.currentTimeMillis();
-            mQueue.add(s = new Scheduled(runnable, delay));
+            mQueue.add(s);
             // start the server up if necessary
             if (mSelector == null)
                 run(false, true);
-            if (Thread.currentThread() != mAffinity) {
-                if (mSelector != null)
-                    mSelector.wakeup();
-            }
+            if (mSelector != null)
+                mSelector.wakeup();
         }
+    }
+
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    public Object postDelayed(Runnable runnable, long delay) {
+        if (delay != 0)
+            delay += System.currentTimeMillis();
+        final Scheduled s = new Scheduled(runnable, delay);
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                queueScheduledLocked(s);
+            }
+        });
         return s;
     }
     
@@ -626,7 +634,7 @@ public class AsyncServer {
             }
             catch (Exception e) {
                 Log.e(LOGTAG, "exception?", e);
-           }
+            }
             return;
         }
         
