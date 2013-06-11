@@ -18,7 +18,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     AsyncSocket mSocket;
     BufferedDataEmitter mEmitter;
     BufferedDataSink mSink;
-    ByteBuffer mReadTmp = ByteBuffer.allocate(8192);
+    ByteBuffer mReadTmp = ByteBufferList.obtain(8192);
     boolean mUnwrapping = false;
 
     @Override
@@ -111,7 +111,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             mReadTmp.limit(mReadTmp.position());
             mReadTmp.position(0);
             out.add(mReadTmp);
-            mReadTmp = ByteBuffer.allocate(mReadTmp.capacity());
+            mReadTmp = ByteBufferList.obtain(mReadTmp.capacity());
         }
     }
 
@@ -241,7 +241,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     private boolean mWrapping = false;
-    ByteBuffer mWriteTmp = ByteBuffer.allocate(8192);
+    ByteBuffer mWriteTmp = ByteBufferList.obtain(8192);
     @Override
     public void write(ByteBuffer bb) {
         if (mWrapping)

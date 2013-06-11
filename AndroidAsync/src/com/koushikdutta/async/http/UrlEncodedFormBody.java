@@ -63,8 +63,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
         emitter.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                data.add(bb);
-                bb.clear();
+                bb.get(data);
             }
         });
         emitter.setEndCallback(new CompletedCallback() {

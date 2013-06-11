@@ -87,8 +87,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                         setDataCallback(new DataCallback() {
                             @Override
                             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                                last.add(bb);
-                                bb.clear();
+                                bb.get(last);
                             }
                         });
                     }

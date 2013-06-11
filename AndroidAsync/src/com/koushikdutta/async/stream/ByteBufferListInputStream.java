@@ -23,7 +23,7 @@ public class ByteBufferListInputStream extends InputStream {
 
     @Override
     public int read(byte[] buffer) throws IOException {
-        return super.read(buffer, 0, buffer.length);
+        return this.read(buffer, 0, buffer.length);
     }
 
     @Override

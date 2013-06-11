@@ -56,8 +56,7 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
 
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        mBuffers.add(bb);
-        bb.clear();
+        bb.get(mBuffers);
 
         onDataAvailable();        
     }

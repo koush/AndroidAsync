@@ -56,17 +56,6 @@ public class FilteredDataEmitter extends DataEmitterBase implements DataEmitter,
         // is obligated to cache the byte buffer list.
     }
 
-    DataCallback mDataCallback;
-    @Override
-    public void setDataCallback(DataCallback callback) {
-        mDataCallback = callback;
-    }
-
-    @Override
-    public DataCallback getDataCallback() {
-        return mDataCallback;
-    }
-
     @Override
     public boolean isChunked() {
         return mEmitter.isChunked();

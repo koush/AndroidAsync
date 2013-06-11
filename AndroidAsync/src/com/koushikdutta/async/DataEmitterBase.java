@@ -26,4 +26,16 @@ public abstract class DataEmitterBase implements DataEmitter {
     public final  CompletedCallback getEndCallback() {
         return endCallback;
     }
+
+
+    DataCallback mDataCallback;
+    @Override
+    public void setDataCallback(DataCallback callback) {
+        mDataCallback = callback;
+    }
+
+    @Override
+    public DataCallback getDataCallback() {
+        return mDataCallback;
+    }
 }

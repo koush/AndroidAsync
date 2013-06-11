@@ -11,7 +11,7 @@ import java.nio.channels.FileChannel;
 /**
  * Created by koush on 5/22/13.
  */
-public class FileDataEmitter implements DataEmitter {
+public class FileDataEmitter extends DataEmitterBase {
     AsyncServer server;
     File file;
     public FileDataEmitter(AsyncServer server, File file) {
@@ -50,18 +50,15 @@ public class FileDataEmitter implements DataEmitter {
         doResume();
     }
 
-    private void report(Exception e) {
+    @Override
+    protected void report(Exception e) {
         try {
             channel.close();
         }
         catch (Exception ex) {
             e = ex;
         }
-        callback = null;
-        if (endCallback != null) {
-            endCallback.onCompleted(e);
-            endCallback = null;
-        }
+        super.report(e);
     }
 
     ByteBufferList pending = new ByteBufferList();
@@ -79,7 +76,7 @@ public class FileDataEmitter implements DataEmitter {
                 }
                 ByteBuffer b;
                 do {
-                    b = ByteBuffer.allocate(8192);
+                    b = ByteBufferList.obtain(8192);
                     if (-1 == channel.read(b)) {
                         report(null);
                         return;
@@ -103,17 +100,6 @@ public class FileDataEmitter implements DataEmitter {
     @Override
     public boolean isPaused() {
         return paused;
-    }
-
-    CompletedCallback endCallback;
-    @Override
-    public void setEndCallback(CompletedCallback callback) {
-        endCallback = callback;
-    }
-
-    @Override
-    public CompletedCallback getEndCallback() {
-        return endCallback;
     }
 
     @Override

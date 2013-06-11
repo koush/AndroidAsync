@@ -17,10 +17,13 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
@@ -441,6 +444,10 @@ public class AsyncServer {
         return connectSocket(InetSocketAddress.createUnresolved(host, port), callback);
     }
 
+    public ExecutorService getExecutorService() {
+        return synchronousWorkers;
+    }
+
     ExecutorService synchronousWorkers = Executors.newFixedThreadPool(4);
     public Future<InetAddress[]> getAllByName(final String host) {
         final SimpleFuture<InetAddress[]> ret = new SimpleFuture<InetAddress[]>();
@@ -546,7 +553,7 @@ public class AsyncServer {
         return handler;
     }
     
-    static Hashtable<Thread, AsyncServer> mServers = new Hashtable<Thread, AsyncServer>();
+    static WeakHashMap<Thread, AsyncServer> mServers = new WeakHashMap<Thread, AsyncServer>();
 
     private boolean addMe() {
         synchronized (mServers) {
@@ -559,7 +566,7 @@ public class AsyncServer {
         }
         return true;
     }
-    
+
     public static AsyncServer getCurrentThreadServer() {
         return mServers.get(Thread.currentThread());
     }
@@ -593,7 +600,7 @@ public class AsyncServer {
                     mAffinity = new Thread("AsyncServer") {
                         public void run() {
                             AsyncServer.run(AsyncServer.this, selector, queue, keepRunning);
-                        };
+                        }
                     };
                 }
                 else {
@@ -847,5 +854,15 @@ public class AsyncServer {
     
     public boolean isAffinityThread() {
         return mAffinity == Thread.currentThread();
+    }
+
+    static class Reclaimer implements Comparator<ByteBuffer> {
+        @Override
+        public int compare(ByteBuffer byteBuffer, ByteBuffer byteBuffer2) {
+            // keep the smaller ones at the head, so they get tossed out quicker
+            if (byteBuffer.capacity() > byteBuffer2.capacity())
+                return 1;
+            return -1;
+        }
     }
 }

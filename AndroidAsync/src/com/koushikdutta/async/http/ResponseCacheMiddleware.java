@@ -120,17 +120,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         @Override
-        public void setDataCallback(DataCallback callback) {
-            dataCallback = callback;            
-        }
-
-        DataCallback dataCallback;
-        @Override
-        public DataCallback getDataCallback() {
-            return dataCallback;
-        }
-
-        @Override
         public boolean isChunked() {
             return false;
         }
@@ -167,7 +156,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             // fill pending
             try {
                 while (pending.remaining() == 0) {
-                    ByteBuffer buffer = ByteBuffer.allocate(8192);
+                    ByteBuffer buffer = ByteBufferList.obtain(8192);
                     int read = cacheResponse.getBody().read(buffer.array());
                     if (read == -1) {
                         report(null);
@@ -404,8 +393,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             
             if (cacheRequest != null && bb.remaining() > 0) {
                 cached = new ByteBufferList();
-                cached.add(bb);
-                bb.clear();
+                bb.get(cached);
             }
         }
         
@@ -449,7 +437,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             // fill pending
             try {
                 while (pending.remaining() == 0) {
-                    ByteBuffer buffer = ByteBuffer.allocate(8192);
+                    ByteBuffer buffer = ByteBufferList.obtain(8192);
                     int read = cacheResponse.getBody().read(buffer.array());
                     if (read == -1) {
                         allowEnd = true;

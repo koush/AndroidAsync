@@ -75,7 +75,7 @@ public class InputStreamDataEmitter implements DataEmitter {
                 }
                 ByteBuffer b;
                 do {
-                    b = ByteBuffer.allocate(8192);
+                    b = ByteBufferList.obtain(8192);
                     int read;
                     if (-1 == (read = inputStream.read(b.array()))) {
                         report(null);

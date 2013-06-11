@@ -1,8 +1,12 @@
 package com.koushikdutta.async;
 
+import android.os.Looper;
+
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 
 public class ByteBufferList {
     LinkedList<ByteBuffer> mBuffers = new LinkedList<ByteBuffer>();
@@ -11,7 +15,7 @@ public class ByteBufferList {
     public ByteOrder order() {
         return order;
     }
-    
+
     public ByteBufferList order(ByteOrder order) {
         this.order = order;
         return this;
@@ -38,13 +42,15 @@ public class ByteBufferList {
     public byte[] getAllByteArray() {
         byte[] ret = new byte[remaining()];
         get(ret);
+
         return ret;
     }
 
     public ByteBuffer[] getAllArray() {
         ByteBuffer[] ret = new ByteBuffer[mBuffers.size()];
         ret = mBuffers.toArray(ret);
-        clear();
+        mBuffers.clear();
+        remaining = 0;
         return ret;
     }
 
@@ -100,31 +106,38 @@ public class ByteBufferList {
         if (remaining() < length)
             throw new IllegalArgumentException("length");
         int offset = 0;
-        for (ByteBuffer b: mBuffers) {
+
+        while (offset < length) {
+            ByteBuffer b = mBuffers.remove();
             int remaining = b.remaining();
 
-            if (remaining == 0)
+            if (remaining == 0) {
+                reclaim(b);
                 continue;
-            // done
-            if (offset > length)
-                break;
+            }
 
             if (offset + remaining > length) {
                 int need = length - offset;
                 // this is shared between both
-                into.add(ByteBuffer.wrap(b.array(), b.arrayOffset() + b.position(), need));
-                b.position(b.position() + need);
+                byte[] bytes = new byte[need];
+                b.get(bytes);
+                into.add(ByteBuffer.wrap(bytes));
+                mBuffers.add(0, b);
+                break;
             }
             else {
                 // this belongs to the new list
-                into.add(ByteBuffer.wrap(b.array(), b.arrayOffset() + b.position(), remaining));
-                b.position(b.limit());
+                into.add(b);
             }
 
             offset += remaining;
         }
 
         remaining -= length;
+    }
+
+    public void get(ByteBufferList into) {
+        get(into, remaining());
     }
 
     public ByteBufferList get(int length) {
@@ -144,7 +157,7 @@ public class ByteBufferList {
 
         ByteBuffer first = mBuffers.peek();
         while (first != null && first.position() == first.limit()) {
-            mBuffers.remove();
+            reclaim(mBuffers.remove());
             first = mBuffers.peek();
         }
         
@@ -161,6 +174,8 @@ public class ByteBufferList {
             int offset = 0;
             ByteBuffer bb = null;
             while (offset < count) {
+                if (bb != null)
+                    reclaim(bb);
                 bb = mBuffers.remove();
                 int toRead = Math.min(count - offset, bb.remaining());
                 bb.get(bytes, offset, toRead);
@@ -183,8 +198,10 @@ public class ByteBufferList {
     }
     
     public void add(ByteBuffer b) {
-        if (b.remaining() <= 0)
+        if (b.remaining() <= 0) {
+            reclaim(b);
             return;
+        }
         addRemaining(b.remaining());
         mBuffers.add(b);
         trim();
@@ -199,15 +216,7 @@ public class ByteBufferList {
         if (this.remaining() >= 0)
             this.remaining += remaining;
     }
-    
-    public void add(ByteBufferList b) {
-        if (b.remaining() <= 0)
-            return;
-        addRemaining(b.remaining());
-        mBuffers.addAll(b.mBuffers);
-        trim();
-    }
-    
+
     public void clear() {
         mBuffers.clear();
         remaining = 0;
@@ -240,5 +249,59 @@ public class ByteBufferList {
         String ret = peekString();
         clear();
         return ret;
+    }
+
+    static PriorityQueue<ByteBuffer> reclaimed = new PriorityQueue<ByteBuffer>();
+    private static PriorityQueue<ByteBuffer> getReclaimed() {
+        if (Thread.currentThread() == Looper.getMainLooper().getThread())
+            return null;
+        return reclaimed;
+    }
+
+    private static final int MAX_SIZE = 1024 * 1024;
+    static int currentSize = 0;
+
+    public static void reclaim(ByteBuffer b) {
+        if (b.arrayOffset() != 0 || b.array().length != b.capacity()) {
+            return;
+        }
+        if (b.capacity() < 8192)
+            return;
+
+        if (currentSize > MAX_SIZE) {
+            return;
+        }
+
+        b.position(0);
+        b.limit(b.capacity());
+        currentSize += b.capacity();
+
+        PriorityQueue<ByteBuffer> r = getReclaimed();
+        if (r == null)
+            return;
+
+        synchronized (r) {
+            r.add(b);
+        }
+    }
+
+    public static ByteBuffer obtain(int size) {
+        if (size <= 8192) {
+            assert Thread.currentThread() != Looper.getMainLooper().getThread();
+            PriorityQueue<ByteBuffer> r = getReclaimed();
+            if (r != null) {
+                synchronized (r) {
+                    while (r.size() > 0) {
+                        ByteBuffer ret = r.remove();
+                        currentSize -= ret.capacity();
+                        if (ret.capacity() >= size) {
+                            return ret;
+                        }
+                    }
+                }
+            }
+        }
+
+        return ByteBuffer.allocate(Math.max(8192, size));
     }
 }

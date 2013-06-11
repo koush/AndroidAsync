@@ -24,7 +24,7 @@ public class InflaterInputFilter extends FilteredDataEmitter {
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         try {
             ByteBufferList transformed = new ByteBufferList();
-            ByteBuffer output = ByteBuffer.allocate(bb.remaining() * 2);
+            ByteBuffer output = ByteBufferList.obtain(bb.remaining() * 2);
             int totalRead = 0;
             while (bb.size() > 0) {
                 ByteBuffer b = bb.remove();
@@ -40,7 +40,7 @@ public class InflaterInputFilter extends FilteredDataEmitter {
                             transformed.add(output);
                             assert totalRead != 0;
                             int newSize = output.capacity() * 2;
-                            output = ByteBuffer.allocate(newSize);
+                            output = ByteBufferList.obtain(newSize);
                         }
                     }
                     while (!mInflater.needsInput() && !mInflater.finished());

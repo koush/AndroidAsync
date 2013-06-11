@@ -25,8 +25,7 @@ public class ByteBufferListParser implements AsyncParser<ByteBufferList> {
         emitter.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList data) {
-                bb.add(data);
-                data.clear();
+                data.get(bb);
             }
         });
 
