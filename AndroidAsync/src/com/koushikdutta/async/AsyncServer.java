@@ -17,10 +17,13 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
@@ -546,7 +549,7 @@ public class AsyncServer {
         return handler;
     }
     
-    static Hashtable<Thread, AsyncServer> mServers = new Hashtable<Thread, AsyncServer>();
+    static WeakHashMap<Thread, AsyncServer> mServers = new WeakHashMap<Thread, AsyncServer>();
 
     private boolean addMe() {
         synchronized (mServers) {
@@ -559,7 +562,7 @@ public class AsyncServer {
         }
         return true;
     }
-    
+
     public static AsyncServer getCurrentThreadServer() {
         return mServers.get(Thread.currentThread());
     }
@@ -848,4 +851,16 @@ public class AsyncServer {
     public boolean isAffinityThread() {
         return mAffinity == Thread.currentThread();
     }
+
+    static class Reclaimer implements Comparator<ByteBuffer> {
+        @Override
+        public int compare(ByteBuffer byteBuffer, ByteBuffer byteBuffer2) {
+            // keep the smaller ones at the head, so they get tossed out quicker
+            if (byteBuffer.capacity() > byteBuffer2.capacity())
+                return 1;
+            return -1;
+        }
+    }
+
+    PriorityQueue<ByteBuffer> reclaimed = new PriorityQueue<ByteBuffer>(10, new Reclaimer());
 }

@@ -1,8 +1,10 @@
 package com.koushikdutta.async;
 
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 
 public class ByteBufferList {
     LinkedList<ByteBuffer> mBuffers = new LinkedList<ByteBuffer>();
@@ -11,7 +13,7 @@ public class ByteBufferList {
     public ByteOrder order() {
         return order;
     }
-    
+
     public ByteBufferList order(ByteOrder order) {
         this.order = order;
         return this;
@@ -100,25 +102,28 @@ public class ByteBufferList {
         if (remaining() < length)
             throw new IllegalArgumentException("length");
         int offset = 0;
-        for (ByteBuffer b: mBuffers) {
+
+        while (offset < length) {
+            ByteBuffer b = mBuffers.remove();
             int remaining = b.remaining();
 
-            if (remaining == 0)
+            if (remaining == 0) {
+                reclaim(b);
                 continue;
-            // done
-            if (offset > length)
-                break;
+            }
 
             if (offset + remaining > length) {
                 int need = length - offset;
                 // this is shared between both
-                into.add(ByteBuffer.wrap(b.array(), b.arrayOffset() + b.position(), need));
-                b.position(b.position() + need);
+                byte[] bytes = new byte[need];
+                b.get(bytes);
+                into.add(ByteBuffer.wrap(bytes));
+                mBuffers.add(0, b);
+                break;
             }
             else {
                 // this belongs to the new list
-                into.add(ByteBuffer.wrap(b.array(), b.arrayOffset() + b.position(), remaining));
-                b.position(b.limit());
+                into.add(b);
             }
 
             offset += remaining;
@@ -144,7 +149,7 @@ public class ByteBufferList {
 
         ByteBuffer first = mBuffers.peek();
         while (first != null && first.position() == first.limit()) {
-            mBuffers.remove();
+            reclaim(mBuffers.remove());
             first = mBuffers.peek();
         }
         
@@ -161,6 +166,8 @@ public class ByteBufferList {
             int offset = 0;
             ByteBuffer bb = null;
             while (offset < count) {
+                if (bb != null)
+                    reclaim(bb);
                 bb = mBuffers.remove();
                 int toRead = Math.min(count - offset, bb.remaining());
                 bb.get(bytes, offset, toRead);
@@ -240,5 +247,37 @@ public class ByteBufferList {
         String ret = peekString();
         clear();
         return ret;
+    }
+
+    public static void reclaim(ByteBuffer b) {
+        AsyncServer server = AsyncServer.getCurrentThreadServer();
+        if (server == null)
+            return;
+        System.out.println("reclaimed " + b.capacity());
+        b.position(0);
+        b.limit(b.capacity());
+
+        PriorityQueue<ByteBuffer> r = server.reclaimed;
+        if (r.size() < 10)
+            r.add(b);
+    }
+
+    public static ByteBuffer obtain(int size) {
+        AsyncServer server = AsyncServer.getCurrentThreadServer();
+        if (server != null) {
+            PriorityQueue<ByteBuffer> r = server.reclaimed;
+
+            System.out.println("obtaining " + size);
+            while (r.size() > 0) {
+                ByteBuffer ret = r.remove();
+                if (ret.capacity() >= size) {
+                    System.out.println("using recycled!");
+                    return ret;
+                }
+                System.out.println("toissing " + ret.capacity());
+            }
+        }
+
+        return ByteBuffer.allocate(size);
     }
 }

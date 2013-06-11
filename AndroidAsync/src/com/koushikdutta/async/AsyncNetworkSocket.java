@@ -142,7 +142,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
         try {
             boolean closed = false;
 
-            ByteBuffer b = ByteBuffer.allocate(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
+            ByteBuffer b = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
             // keep track of the max mount read during this read cycle
             // so we can be quicker about allocations during the next
             // time this socket reads.
