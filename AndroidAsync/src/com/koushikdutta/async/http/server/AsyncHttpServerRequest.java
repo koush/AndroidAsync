@@ -15,4 +15,5 @@ public interface AsyncHttpServerRequest extends DataEmitter {
     public AsyncSocket getSocket();
     public String getPath();
     public Multimap getQuery();
+    public String getMethod();
 }

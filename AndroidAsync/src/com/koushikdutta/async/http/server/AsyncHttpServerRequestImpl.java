@@ -72,6 +72,12 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
     RawHeaders getRawHeaders() {
         return mRawHeaders;
     }
+
+    String method;
+    @Override
+    public String getMethod() {
+        return method;
+    }
     
     void setSocket(AsyncSocket socket) {
         mSocket = socket;

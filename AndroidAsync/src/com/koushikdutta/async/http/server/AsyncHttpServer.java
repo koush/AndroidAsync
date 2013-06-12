@@ -80,9 +80,9 @@ public class AsyncHttpServer {
                     String[] parts = statusLine.split(" ");
                     fullPath = parts[1];
                     path = fullPath.split("\\?")[0];
-                    String action = parts[0];
+                    method = parts[0];
                     synchronized (mActions) {
-                        ArrayList<Pair> pairs = mActions.get(action);
+                        ArrayList<Pair> pairs = mActions.get(method);
                         if (pairs != null) {
                             for (Pair p: pairs) {
                                 Matcher m = p.regex.matcher(path);
