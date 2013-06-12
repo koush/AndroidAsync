@@ -141,7 +141,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
                     public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
                         for (X509Certificate cert : certs) {
-                            cert.getCriticalExtensionOIDs().remove("2.5.29.15");
+                            if (cert != null && cert.getCriticalExtensionOIDs() != null)
+                                cert.getCriticalExtensionOIDs().remove("2.5.29.15");
                         }
                     }
                 } };

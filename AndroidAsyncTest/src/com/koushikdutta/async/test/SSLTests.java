@@ -53,4 +53,5 @@ public class SSLTests extends AndroidTestCase {
         AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setTrustManagers(tmf.getTrustManagers());
         AsyncHttpClient.getDefaultInstance().getString("https://localhost:8888/").get();
     }
+
 }
