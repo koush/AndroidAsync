@@ -55,6 +55,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private static final int ENTRY_COUNT = 2;
     private AsyncHttpClient client;
 
+    public static final String SERVED_FROM = "Served-From";
+    public static final String CONDITIONAL_CACHE = "conditional-cache";
+    public static final String CACHE = "cache";
+
     private ResponseCacheMiddleware() {
     }
     
@@ -515,8 +519,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     @Override
     public void onBodyDecoder(OnBodyData data) {
         CachedSocket cached = (CachedSocket) com.koushikdutta.async.Util.getWrappedSocket(data.socket, CachedSocket.class);
-        if (cached != null)
+        if (cached != null) {
+            data.headers.getHeaders().set(SERVED_FROM, CACHE);
             return;
+        }
 
         CacheData cacheData = data.state.getParcelable("cache-data");
         if (cacheData != null) {
@@ -524,7 +530,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 data.request.logi("Serving response from conditional cache");
                 data.headers = cacheData.cachedResponseHeaders.combine(data.headers);
                 data.headers.getHeaders().setStatusLine(cacheData.cachedResponseHeaders.getHeaders().getStatusLine());
-                
+
+                data.headers.getHeaders().set(SERVED_FROM, CONDITIONAL_CACHE);
                 conditionalCacheHitCount++;
                 
                 BodySpewer bodySpewer = new BodySpewer();
