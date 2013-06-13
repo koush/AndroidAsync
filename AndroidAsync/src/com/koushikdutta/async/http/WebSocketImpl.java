@@ -61,7 +61,7 @@ public class WebSocketImpl implements WebSocket {
             pending = null;
     }
 
-    private void setupParser() {
+    private void setupParser(boolean masking) {
         mParser = new HybiParser(mSocket) {
             @Override
             protected void report(Exception ex) {
@@ -89,7 +89,7 @@ public class WebSocketImpl implements WebSocket {
                 mSink.write(ByteBuffer.wrap(frame));
             }
         };
-        mParser.setMasking(false);
+        mParser.setMasking(masking);
         if (mSocket.isPaused())
             mSocket.resume();
     }
@@ -112,7 +112,7 @@ public class WebSocketImpl implements WebSocket {
 //            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
         response.writeHead();
         
-        setupParser();
+        setupParser(false);
     }
     
     public static void addWebSocketUpgradeHeaders(AsyncHttpRequest req, String protocol) {
@@ -154,7 +154,7 @@ public class WebSocketImpl implements WebSocket {
             return null;
 
         WebSocketImpl ret = new WebSocketImpl(response.detachSocket());
-        ret.setupParser();
+        ret.setupParser(true);
         return ret;
     }
     
