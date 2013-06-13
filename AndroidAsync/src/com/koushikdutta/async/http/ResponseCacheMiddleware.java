@@ -283,11 +283,13 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             snapshot = cache.get(key);
             if (snapshot == null) {
 //                Log.i(LOGTAG, "snapshot fail");
+                networkCount++;
                 return null;
             }
             entry = new Entry(snapshot.getInputStream(ENTRY_METADATA));
         } catch (IOException e) {
             // Give up because the cache cannot be read.
+            networkCount++;
             return null;
         }
 
@@ -318,6 +320,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         RawHeaders rawResponseHeaders = RawHeaders.fromMultimap(responseHeadersMap);
         ResponseHeaders cachedResponseHeaders = new ResponseHeaders(data.request.getUri(), rawResponseHeaders);
+        cachedResponseHeaders.setLocalTimestamps(System.currentTimeMillis(), System.currentTimeMillis());
 
         long now = System.currentTimeMillis();
         ResponseSource responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
@@ -326,6 +329,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             cacheHitCount++;
             data.request.logi("Response retrieved from cache");
             final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
+            socket.pending.add(ByteBuffer.wrap(rawResponseHeaders.toHeaderString().getBytes()));
 
             client.getServer().post(new Runnable() {
                 @Override

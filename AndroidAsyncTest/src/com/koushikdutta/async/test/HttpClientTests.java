@@ -234,7 +234,7 @@ public class HttpClientTests extends TestCase {
             assertTrue(e.getCause() instanceof CancellationException);
         }
     }
-    
+
     public void testCache() throws Exception {
         ResponseCacheMiddleware cache = ResponseCacheMiddleware.addCache(client, new File(Environment.getExternalStorageDirectory(), "AndroidAsyncTest"), 1024 * 1024 * 10);
         try {
