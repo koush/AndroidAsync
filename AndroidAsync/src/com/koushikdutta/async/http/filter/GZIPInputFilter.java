@@ -10,6 +10,7 @@ import java.util.zip.Inflater;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
+import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.PushParser;
 import com.koushikdutta.async.TapCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -51,6 +52,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
                     short magic = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
                     if (magic != (short) GZIPInputStream.GZIP_MAGIC) {
                         report(new IOException(String.format("unknown format (magic number %x)", magic)));
+                        emitter.setDataCallback(new NullDataCallback());
                         return;
                     }
                     flags = header[3];
