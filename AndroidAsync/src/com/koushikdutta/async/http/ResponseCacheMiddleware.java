@@ -55,7 +55,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private static final int ENTRY_COUNT = 2;
     private AsyncHttpClient client;
 
-    public static final String SERVED_FROM = "Served-From";
+    public static final String SERVED_FROM = "X-Served-From";
     public static final String CONDITIONAL_CACHE = "conditional-cache";
     public static final String CACHE = "cache";
 
@@ -267,14 +267,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     // also see if this can be turned into a conditional cache request.
     @Override
     public Cancellable getSocket(final GetSocketData data) {
-        if (cache == null)
+        if (cache == null || !caching || data.request.getHeaders().isNoCache()) {
+            networkCount++;
             return null;
-        
-        if (!caching)
-            return null;
-        if (data.request.getHeaders().isNoCache())
-            return null;
-//        Log.i(LOGTAG, "getting cache socket: " + request.getUri().toString());
+        }
 
         String key = uriToKey(data.request.getUri());
         DiskLruCache.Snapshot snapshot;
@@ -282,7 +278,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         try {
             snapshot = cache.get(key);
             if (snapshot == null) {
-//                Log.i(LOGTAG, "snapshot fail");
                 networkCount++;
                 return null;
             }
@@ -293,7 +288,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return null;
         }
 
+        // verify the entry matches
         if (!entry.matches(data.request.getUri(), data.request.getMethod(), data.request.getHeaders().getHeaders().toMultimap())) {
+            networkCount++;
             snapshot.close();
             return null;
         }
@@ -307,6 +304,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             cachedResponseBody = candidate.getBody();
         }
         catch (Exception e) {
+            networkCount++;
             return null;
         }
         if (responseHeadersMap == null || cachedResponseBody == null) {
@@ -315,6 +313,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
             catch (Exception e) {
             }
+            networkCount++;
             return null;
         }
 
@@ -326,7 +325,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         ResponseSource responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
         
         if (responseSource == ResponseSource.CACHE) {
-            cacheHitCount++;
             data.request.logi("Response retrieved from cache");
             final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
             rawResponseHeaders.removeAll("Content-Encoding");
@@ -341,6 +339,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                     socket.spewInternal();
                 }
             });
+            cacheHitCount++;
+            return new SimpleCancellable();
         }
         else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
             data.request.logi("Response may be served from conditional cache");
@@ -359,10 +359,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
             catch (Exception e) {
             }
+            networkCount++;
             return null;
         }
-        
-        return new SimpleCancellable();
     }
 
     private static class BodyCacher extends FilteredDataEmitter implements Parcelable {
@@ -502,10 +501,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
     }
     
-    int conditionalCacheHitCount;
-    int cacheHitCount;
-    int networkCount;
-    int cacheStoreCount;
+    private int conditionalCacheHitCount;
+    private int cacheHitCount;
+    private int networkCount;
+    private int cacheStoreCount;
     
     public int getConditionalCacheHitCount() {
         return conditionalCacheHitCount;

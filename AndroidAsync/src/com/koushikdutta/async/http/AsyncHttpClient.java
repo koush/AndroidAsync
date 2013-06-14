@@ -134,6 +134,7 @@ public class AsyncHttpClient {
             });
         }
     }
+
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
         assert mServer.isAffinityThread();
         if (redirectCount > 5) {
@@ -147,25 +148,26 @@ public class AsyncHttpClient {
 
         request.logd("Executing request.");
 
-        data.connectCallback = new ConnectCallback() {
-            Object scheduled = null;
-            {
-                if (request.getTimeout() > 0) {
-                    cancel.scheduled = scheduled = mServer.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            // we've timed out, kill the connections
-                            if (data.socketCancellable != null) {
-                                data.socketCancellable.cancel();
-                                if (data.socket != null)
-                                    data.socket.close();
-                            }
-                            reportConnectedCompleted(cancel, new TimeoutException(), null, request, callback);
-                        }
-                    }, request.getTimeout());
+        final Object scheduled;
+        if (request.getTimeout() > 0) {
+            cancel.scheduled = scheduled = mServer.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // we've timed out, kill the connections
+                    if (data.socketCancellable != null) {
+                        data.socketCancellable.cancel();
+                        if (data.socket != null)
+                            data.socket.close();
+                    }
+                    reportConnectedCompleted(cancel, new TimeoutException(), null, request, callback);
                 }
-            }
+            }, request.getTimeout());
+        }
+        else {
+            scheduled = null;
+        }
 
+        data.connectCallback = new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                 if (cancel.isCancelled()) {
