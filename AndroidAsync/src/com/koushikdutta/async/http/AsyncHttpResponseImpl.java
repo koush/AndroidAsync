@@ -51,7 +51,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         LineEmitter liner = new LineEmitter();
         exchange.setDataCallback(liner);
         liner.setLineCallback(mHeaderCallback);
-        
+
         mSocket.setEndCallback(mReporter);
         mSocket.setClosedCallback(new CompletedCallback() {
             @Override

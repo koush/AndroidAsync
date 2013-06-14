@@ -329,6 +329,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             cacheHitCount++;
             data.request.logi("Response retrieved from cache");
             final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
+            rawResponseHeaders.removeAll("Content-Encoding");
+            rawResponseHeaders.removeAll("Transfer-Encoding");
+            rawResponseHeaders.set("Content-Length", String.valueOf(snapshot.getLength(ENTRY_BODY)));
             socket.pending.add(ByteBuffer.wrap(rawResponseHeaders.toHeaderString().getBytes()));
 
             client.getServer().post(new Runnable() {
