@@ -330,4 +330,6 @@ public class ByteBufferList {
 
         return ByteBuffer.allocate(Math.max(8192, size));
     }
+
+    public static final ByteBuffer EMPTY_BYTEBUFFER = ByteBuffer.allocate(0);
 }

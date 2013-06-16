@@ -72,7 +72,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         b = bb.getAll();
                     }
                     else {
-                        b = ByteBuffer.allocate(0);
+                        b = ByteBufferList.EMPTY_BYTEBUFFER;
                     }
 
                     while (true) {
@@ -81,7 +81,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         SSLEngineResult res = engine.unwrap(b, mReadTmp);
                         if (res.getStatus() == Status.BUFFER_OVERFLOW) {
                             addToPending(out);
-                            mReadTmp = ByteBuffer.allocate(mReadTmp.remaining() * 2);
+                            mReadTmp = ByteBufferList.obtain(mReadTmp.remaining() * 2);
                             remaining = -1;
                         }
                         handleResult(res);
@@ -175,7 +175,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         }
         
         if (res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP) {
-            write(ByteBuffer.allocate(0));
+            write(ByteBufferList.EMPTY_BYTEBUFFER);
         }
 
         if (res.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
@@ -235,7 +235,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     
     boolean checkWrapResult(SSLEngineResult res) {
         if (res.getStatus() == Status.BUFFER_OVERFLOW) {
-            mWriteTmp = ByteBuffer.allocate(mWriteTmp.remaining() * 2);
+            mWriteTmp = ByteBufferList.obtain(mWriteTmp.remaining() * 2);
             return false;
         }
         return true;
