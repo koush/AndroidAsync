@@ -40,6 +40,11 @@ public class ByteBufferList {
     }
 
     public byte[] getAllByteArray() {
+        // fast path to return the contents of the first and only byte buffer,
+        // if that's what we're looking for. avoids allocation.
+        if (mBuffers.size() == 1 && mBuffers.peek().capacity() == remaining())
+            return mBuffers.remove().array();
+
         byte[] ret = new byte[remaining()];
         get(ret);
 
@@ -98,7 +103,23 @@ public class ByteBufferList {
     }
 
     public void get(byte[] bytes, int offset, int length) {
-        read(length).get(bytes, offset, length);
+        if (remaining() < length)
+            throw new IllegalArgumentException("length");
+
+        int need = length;
+        while (need > 0) {
+            ByteBuffer b = mBuffers.peek();
+            int read = Math.min(b.remaining(), need);
+            b.get(bytes, offset, read);
+            need -= read;
+            offset += read;
+            if (b.remaining() == 0) {
+                ByteBuffer removed = mBuffers.remove();
+                assert b == removed;
+                reclaim(b);
+            }
+        }
+
         remaining -= length;
     }
 
@@ -119,9 +140,10 @@ public class ByteBufferList {
             if (offset + remaining > length) {
                 int need = length - offset;
                 // this is shared between both
-                byte[] bytes = new byte[need];
-                b.get(bytes);
-                into.add(ByteBuffer.wrap(bytes));
+                ByteBuffer subset = obtain(need);
+                subset.limit(need);
+                b.get(subset.array(), 0, need);
+                into.add(subset);
                 mBuffers.add(0, b);
                 break;
             }
@@ -170,6 +192,7 @@ public class ByteBufferList {
         }
         else {
             // reallocate the count into a single buffer, and return it
+            System.out.println("allocating!");
             byte[] bytes = new byte[count];
             int offset = 0;
             ByteBuffer bb = null;
@@ -246,9 +269,13 @@ public class ByteBufferList {
     }
 
     public String readString() {
-        String ret = peekString();
-        clear();
-        return ret;
+        StringBuilder builder = new StringBuilder();
+        while (mBuffers.size() > 0) {
+            ByteBuffer bb = mBuffers.remove();
+            builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
+            reclaim(bb);
+        }
+        return builder.toString();
     }
 
     static PriorityQueue<ByteBuffer> reclaimed = new PriorityQueue<ByteBuffer>();
