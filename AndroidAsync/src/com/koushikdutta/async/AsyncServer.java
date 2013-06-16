@@ -245,6 +245,17 @@ public class AsyncServer {
             mQueue.remove(scheduled);
         }
     }
+
+    private static void wakeup(ExecutorService service, final Selector selector) {
+        if (selector == null)
+            return;
+        service.execute(new Runnable() {
+            @Override
+            public void run() {
+                selector.wakeup();
+            }
+        });
+    }
     
     public Object postDelayed(Runnable runnable, long delay) {
         Scheduled s;
@@ -255,9 +266,8 @@ public class AsyncServer {
             // start the server up if necessary
             if (mSelector == null)
                 run(false, true);
-            if (Thread.currentThread() != mAffinity) {
-                if (mSelector != null)
-                    mSelector.wakeup();
+            if (!isAffinityThread()) {
+                wakeup(getExecutorService(), mSelector);
             }
         }
         return s;
