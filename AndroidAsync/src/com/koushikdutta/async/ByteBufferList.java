@@ -192,7 +192,6 @@ public class ByteBufferList {
         }
         else {
             // reallocate the count into a single buffer, and return it
-            System.out.println("allocating!");
             byte[] bytes = new byte[count];
             int offset = 0;
             ByteBuffer bb = null;
