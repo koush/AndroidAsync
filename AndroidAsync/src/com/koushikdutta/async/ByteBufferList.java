@@ -2,7 +2,6 @@ package com.koushikdutta.async;
 
 import android.os.Looper;
 
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.LinkedList;
@@ -141,7 +140,6 @@ public class ByteBufferList {
                 int need = length - offset;
                 // this is shared between both
                 ByteBuffer subset = obtain(need);
-                subset.limit(need);
                 b.get(subset.array(), 0, need);
                 into.add(subset);
                 mBuffers.add(0, b);
@@ -184,34 +182,72 @@ public class ByteBufferList {
         }
         
         if (first == null) {
-            return ByteBuffer.wrap(new byte[0]).order(order);
+            return EMPTY_BYTEBUFFER;
         }
 
         if (first.remaining() >= count) {
             return first.order(order);
         }
-        else {
-            // reallocate the count into a single buffer, and return it
-            byte[] bytes = new byte[count];
-            int offset = 0;
-            ByteBuffer bb = null;
-            while (offset < count) {
-                if (bb != null)
-                    reclaim(bb);
-                bb = mBuffers.remove();
-                int toRead = Math.min(count - offset, bb.remaining());
-                bb.get(bytes, offset, toRead);
-                offset += toRead;
+
+        ByteBuffer ret = null;
+        int retOffset = 0;
+        int allocSize = 0;
+
+        // attempt to find a buffer that can fit this, and the necessary
+        // alloc size to not leave anything leftover in the final buffer.
+        for (ByteBuffer b: mBuffers) {
+            if (allocSize >= count)
+                break;
+            // see if this fits...
+            if ((ret == null || b.capacity() > ret.capacity()) && b.capacity() >= count) {
+                ret = b;
+                retOffset = allocSize;
             }
-            assert bb != null;
-            // if there was still data left in the last buffer we popped
-            // toss it back into the head
-            if (bb.position() < bb.limit())
-                mBuffers.add(0, bb);
-            ByteBuffer ret = ByteBuffer.wrap(bytes);
-            mBuffers.add(0, ret);
-            return ret.order(order);
+            allocSize += b.remaining();
         }
+
+        if (ret != null && ret.capacity() > allocSize) {
+            // move the current contents of the target bytebuffer around to its final position
+            System.arraycopy(ret.array(), ret.arrayOffset() + ret.position(), ret.array(), ret.arrayOffset() + retOffset, ret.remaining());
+            int retRemaining = ret.remaining();
+            ret.position(0);
+            ret.limit(allocSize);
+            allocSize = 0;
+            while (allocSize < count) {
+                ByteBuffer b = mBuffers.remove();
+                if (b != ret) {
+                    System.arraycopy(b.array(), b.arrayOffset() + b.position(), ret.array(), ret.arrayOffset() + allocSize, b.remaining());
+                    allocSize += b.remaining();
+                    reclaim(b);
+                }
+                else {
+                    allocSize += retRemaining;
+                }
+            }
+            mBuffers.add(0, ret);
+            return ret;
+        }
+
+        ret = obtain(count);
+        byte[] bytes = ret.array();
+        int offset = 0;
+        ByteBuffer bb = null;
+        while (offset < count) {
+            bb = mBuffers.remove();
+            int toRead = Math.min(count - offset, bb.remaining());
+            bb.get(bytes, offset, toRead);
+            offset += toRead;
+            if (bb.remaining() == 0) {
+                reclaim(bb);
+                bb = null;
+            }
+        }
+        // if there was still data left in the last buffer we popped
+        // toss it back into the head
+        if (bb != null && bb.remaining() > 0)
+            mBuffers.add(0, bb);
+        mBuffers.add(0, ret);
+        return ret.order(order);
     }
     
     public void trim() {
@@ -230,6 +266,10 @@ public class ByteBufferList {
     }
     
     public void add(int location, ByteBuffer b) {
+        if (b.remaining() <= 0) {
+            reclaim(b);
+            return;
+        }
         addRemaining(b.remaining());
         mBuffers.add(location, b);
     }
@@ -286,6 +326,7 @@ public class ByteBufferList {
 
     private static final int MAX_SIZE = 1024 * 1024;
     static int currentSize = 0;
+    static int maxItem = 0;
 
     public static void reclaim(ByteBuffer b) {
         if (b.arrayOffset() != 0 || b.array().length != b.capacity()) {
@@ -299,7 +340,6 @@ public class ByteBufferList {
         }
 
         b.position(0);
-        b.limit(b.capacity());
         currentSize += b.capacity();
 
         PriorityQueue<ByteBuffer> r = getReclaimed();
@@ -308,19 +348,23 @@ public class ByteBufferList {
 
         synchronized (r) {
             r.add(b);
+            maxItem = Math.max(maxItem, b.capacity());
         }
     }
 
     public static ByteBuffer obtain(int size) {
-        if (size <= 8192) {
+        if (size < maxItem) {
             assert Thread.currentThread() != Looper.getMainLooper().getThread();
             PriorityQueue<ByteBuffer> r = getReclaimed();
             if (r != null) {
                 synchronized (r) {
                     while (r.size() > 0) {
                         ByteBuffer ret = r.remove();
+                        if (r.size() == 0)
+                            maxItem = 0;
                         currentSize -= ret.capacity();
                         if (ret.capacity() >= size) {
+                            ret.limit(size);
                             return ret;
                         }
                     }
@@ -328,7 +372,9 @@ public class ByteBufferList {
             }
         }
 
-        return ByteBuffer.allocate(Math.max(8192, size));
+        ByteBuffer ret = ByteBuffer.allocate(Math.max(8192, size));
+        ret.limit(size);
+        return ret;
     }
 
     public static final ByteBuffer EMPTY_BYTEBUFFER = ByteBuffer.allocate(0);

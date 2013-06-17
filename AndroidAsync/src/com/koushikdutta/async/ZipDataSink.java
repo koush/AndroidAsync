@@ -51,6 +51,7 @@ public class ZipDataSink extends FilteredDataSink {
                 while (bb.size() > 0) {
                     ByteBuffer b = bb.remove();
                     zop.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                    ByteBufferList.reclaim(b);
                 }
             }
             ByteBufferList ret = new ByteBufferList(bout.toByteArray());

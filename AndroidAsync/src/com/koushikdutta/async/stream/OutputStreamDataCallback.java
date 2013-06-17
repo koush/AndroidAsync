@@ -25,6 +25,7 @@ public class OutputStreamDataCallback implements DataCallback, CompletedCallback
             while (bb.size() > 0) {
                 ByteBuffer b = bb.remove();
                 mOutput.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                ByteBufferList.reclaim(b);
             }
         }
         catch (Exception ex) {

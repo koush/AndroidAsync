@@ -67,15 +67,12 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
                     mReadTmp.position(0);
                     mReadTmp.limit(mReadTmp.capacity());
-                    ByteBuffer b;
-                    if (bb.size() > 0) {
-                        b = bb.getAll();
-                    }
-                    else {
-                        b = ByteBufferList.EMPTY_BYTEBUFFER;
-                    }
 
+                    ByteBuffer b = ByteBufferList.EMPTY_BYTEBUFFER;
                     while (true) {
+                        if (b.remaining() == 0 && bb.size() > 0) {
+                            b = bb.remove();
+                        }
                         int remaining = b.remaining();
 
                         SSLEngineResult res = engine.unwrap(b, mReadTmp);
@@ -84,13 +81,20 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             mReadTmp = ByteBufferList.obtain(mReadTmp.remaining() * 2);
                             remaining = -1;
                         }
+                        else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
+                            bb.add(0, b);
+                            if (bb.size() <= 1) {
+                                break;
+                            }
+                            remaining = -1;
+                            b = bb.getAll();
+                        }
                         handleResult(res);
-                        if (b.remaining() == remaining)
+                        if (b.remaining() == remaining) {
+                            bb.add(0, b);
                             break;
+                        }
                     }
-
-                    if (b.remaining() > 0)
-                        bb.add(0, b);
 
                     addToPending(out);
                     Util.emitAllData(AsyncSSLSocketWrapper.this, out);

@@ -94,6 +94,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
                                 while (bb.size() > 0) {
                                     ByteBuffer b = bb.remove();
                                     crc.update(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                                    ByteBufferList.reclaim(b);
                                 }
                             }
                         }

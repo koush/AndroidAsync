@@ -45,6 +45,7 @@ public class InflaterInputFilter extends FilteredDataEmitter {
                     }
                     while (!mInflater.needsInput() && !mInflater.finished());
                 }
+                ByteBufferList.reclaim(b);
             }
             output.limit(output.position());
             output.position(0);
