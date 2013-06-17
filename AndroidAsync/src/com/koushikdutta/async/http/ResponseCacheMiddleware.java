@@ -2,6 +2,7 @@ package com.koushikdutta.async.http;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
@@ -102,8 +103,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
     
     private class CachedSSLSocket extends CachedSocket implements AsyncSSLSocket {
-        public CachedSSLSocket(CacheResponse cacheResponse) {
-            super(cacheResponse);
+        public CachedSSLSocket(CacheResponse cacheResponse, long contentLength) {
+            super(cacheResponse, contentLength);
         }
 
         @Override
@@ -115,8 +116,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     
     private class CachedSocket extends DataEmitterBase implements AsyncSocket {
         CacheResponse cacheResponse;
-        public CachedSocket(CacheResponse cacheResponse) {
+        long contentLength;
+        public CachedSocket(CacheResponse cacheResponse, long contentLength) {
             this.cacheResponse = cacheResponse;
+            this.contentLength = contentLength;
         }
 
         @Override
@@ -150,6 +153,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 closedCallback.onCompleted(e);
         }
 
+        boolean first = true;
         void spewInternal() {
             if (pending.remaining() > 0) {
                 com.koushikdutta.async.Util.emitAllData(CachedSocket.this, pending);
@@ -159,17 +163,18 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
             // fill pending
             try {
-                while (pending.remaining() == 0) {
-                    ByteBuffer buffer = ByteBufferList.obtain(8192);
-                    int read = cacheResponse.getBody().read(buffer.array());
-                    if (read == -1) {
-                        report(null);
-                        return;
-                    }
-                    buffer.limit(read);
-                    pending.add(buffer);
-                    com.koushikdutta.async.Util.emitAllData(CachedSocket.this, pending);
-                }
+                assert first;
+                if (!first)
+                    return;
+                first = false;
+                ByteBuffer buffer = ByteBufferList.obtain((int)contentLength);
+                assert buffer.position() == 0;
+                DataInputStream din = new DataInputStream(cacheResponse.getBody());
+                din.readFully(buffer.array(), buffer.arrayOffset(), (int)contentLength);
+                pending.add(buffer);
+                com.koushikdutta.async.Util.emitAllData(CachedSocket.this, pending);
+                assert din.read() == -1;
+                report(null);
             }
             catch (IOException e) {
                 report(e);
@@ -248,6 +253,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     
     public static class CacheData implements Parcelable {
         CacheResponse candidate;
+        long contentLength;
         ResponseHeaders cachedResponseHeaders;
 
         @Override
@@ -323,13 +329,14 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         long now = System.currentTimeMillis();
         ResponseSource responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
-        
+        long contentLength = snapshot.getLength(ENTRY_BODY);
+
         if (responseSource == ResponseSource.CACHE) {
             data.request.logi("Response retrieved from cache");
-            final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate) : new CachedSocket((EntryCacheResponse)candidate);
+            final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket((EntrySecureCacheResponse)candidate, contentLength) : new CachedSocket((EntryCacheResponse)candidate, contentLength);
             rawResponseHeaders.removeAll("Content-Encoding");
             rawResponseHeaders.removeAll("Transfer-Encoding");
-            rawResponseHeaders.set("Content-Length", String.valueOf(snapshot.getLength(ENTRY_BODY)));
+            rawResponseHeaders.set("Content-Length", String.valueOf(contentLength));
             socket.pending.add(ByteBuffer.wrap(rawResponseHeaders.toHeaderString().getBytes()));
 
             client.getServer().post(new Runnable() {
@@ -345,6 +352,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
             data.request.logi("Response may be served from conditional cache");
             CacheData cacheData = new CacheData();
+            cacheData.contentLength = contentLength;
             cacheData.cachedResponseHeaders = cachedResponseHeaders;
             cacheData.candidate = candidate;
             data.state.putParcelable("cache-data", cacheData);
@@ -435,8 +443,13 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
     
     private static class BodySpewer extends FilteredDataEmitter {
+        long contentLength;
+        public BodySpewer(long contentLength) {
+            this.contentLength = contentLength;
+        }
         CacheResponse cacheResponse;
 
+        boolean first = true;
         void spewInternal() {
             if (pending.remaining() > 0) {
                 com.koushikdutta.async.Util.emitAllData(BodySpewer.this, pending);
@@ -446,18 +459,19 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
             // fill pending
             try {
-                while (pending.remaining() == 0) {
-                    ByteBuffer buffer = ByteBufferList.obtain(8192);
-                    int read = cacheResponse.getBody().read(buffer.array());
-                    if (read == -1) {
-                        allowEnd = true;
-                        report(null);
-                        return;
-                    }
-                    buffer.limit(read);
-                    pending.add(buffer);
-                    com.koushikdutta.async.Util.emitAllData(BodySpewer.this, pending);
-                }
+                assert first;
+                if (!first)
+                    return;
+                first = false;
+                ByteBuffer buffer = ByteBufferList.obtain((int)contentLength);
+                assert buffer.position() == 0;
+                DataInputStream din = new DataInputStream(cacheResponse.getBody());
+                din.readFully(buffer.array(), buffer.arrayOffset(), (int)contentLength);
+                pending.add(buffer);
+                com.koushikdutta.async.Util.emitAllData(this, pending);
+                assert din.read() == -1;
+                allowEnd = true;
+                report(null);
             }
             catch (IOException e) {
                 allowEnd = true;
@@ -540,7 +554,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 data.headers.getHeaders().set(SERVED_FROM, CONDITIONAL_CACHE);
                 conditionalCacheHitCount++;
                 
-                BodySpewer bodySpewer = new BodySpewer();
+                BodySpewer bodySpewer = new BodySpewer(cacheData.contentLength);
                 bodySpewer.cacheResponse = cacheData.candidate;
                 bodySpewer.setDataEmitter(data.bodyEmitter);
                 data.bodyEmitter = bodySpewer;

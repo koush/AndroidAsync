@@ -334,6 +334,8 @@ public class ByteBufferList {
         }
         if (b.capacity() < 8192)
             return;
+        if (b.capacity() > 1024 * 256)
+            return;
 
         if (currentSize > MAX_SIZE) {
             return;
