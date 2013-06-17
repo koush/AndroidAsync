@@ -194,6 +194,9 @@ public class SocketIOClient {
         webSocket.setClosedCallback(null);
         webSocket.close();
         webSocket = null;
+        if (closedCallback != null) {
+        	closedCallback.onCompleted(null);
+        }
     }
     
     private void reconnect(final SocketIOConnectCallback callback, final FutureImpl ret) {
