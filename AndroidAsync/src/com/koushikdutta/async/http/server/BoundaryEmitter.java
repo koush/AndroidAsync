@@ -67,7 +67,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
         // at the beginning of the buffer and process it too.
         if (state > 0) {
             ByteBuffer b = ByteBuffer.wrap(boundary, 0, state).duplicate();
-            bb.add(0, b);
+            bb.addFirst(b);
             state = 0;
         }
         

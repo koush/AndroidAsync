@@ -76,4 +76,14 @@ class DatagramChannelWrapper extends ChannelWrapper {
     @Override
     public void shutdownInput() {
     }
+
+    @Override
+    public long read(ByteBuffer[] byteBuffers) throws IOException {
+        return mChannel.read(byteBuffers);
+    }
+
+    @Override
+    public long read(ByteBuffer[] byteBuffers, int i, int i2) throws IOException {
+        return mChannel.read(byteBuffers, i, i2);
+    }
 }

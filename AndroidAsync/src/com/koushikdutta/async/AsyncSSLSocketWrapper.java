@@ -82,7 +82,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             remaining = -1;
                         }
                         else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
-                            bb.add(0, b);
+                            bb.addFirst(b);
                             if (bb.size() <= 1) {
                                 break;
                             }
@@ -91,7 +91,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         }
                         handleResult(res);
                         if (b.remaining() == remaining) {
-                            bb.add(0, b);
+                            bb.addFirst(b);
                             break;
                         }
                     }

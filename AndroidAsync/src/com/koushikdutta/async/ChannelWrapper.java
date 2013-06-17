@@ -5,11 +5,12 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.ScatteringByteChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.AbstractSelectableChannel;
 
-abstract class ChannelWrapper implements ReadableByteChannel {
+abstract class ChannelWrapper implements ReadableByteChannel, ScatteringByteChannel {
     private AbstractSelectableChannel mChannel;
     ChannelWrapper(AbstractSelectableChannel channel) throws IOException {
         channel.configureBlocking(false);

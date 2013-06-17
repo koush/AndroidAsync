@@ -170,7 +170,7 @@ public class PushParser {
                                 }
                                 b.reset();
                                 if (!different) {
-                                    bb.add(0, b);
+                                    bb.addFirst(b);
                                     bb.get(cb, index);
                                     break;
                                 }

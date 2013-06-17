@@ -46,7 +46,6 @@ class ServerSocketChannelWrapper extends ChannelWrapper {
         final String msg = "Can't write ServerSocketChannel";
         assert false;
         throw new IOException(msg);
-
     }
 
     @Override
@@ -57,6 +56,20 @@ class ServerSocketChannelWrapper extends ChannelWrapper {
     @Override
     public int write(ByteBuffer[] src) throws IOException {
         final String msg = "Can't write ServerSocketChannel";
+        assert false;
+        throw new IOException(msg);
+    }
+
+    @Override
+    public long read(ByteBuffer[] byteBuffers) throws IOException {
+        final String msg = "Can't read ServerSocketChannel";
+        assert false;
+        throw new IOException(msg);
+    }
+
+    @Override
+    public long read(ByteBuffer[] byteBuffers, int i, int i2) throws IOException {
+        final String msg = "Can't read ServerSocketChannel";
         assert false;
         throw new IOException(msg);
     }

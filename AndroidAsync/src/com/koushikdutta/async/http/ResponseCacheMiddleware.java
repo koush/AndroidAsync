@@ -377,6 +377,13 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         ByteBufferList cached;
 
         @Override
+        protected void report(Exception e) {
+            super.report(e);
+            if (e != null)
+                abort();
+        }
+
+        @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
             if (cached != null) {
                 com.koushikdutta.async.Util.emitAllData(this, cached);

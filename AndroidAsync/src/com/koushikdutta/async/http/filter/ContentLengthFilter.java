@@ -8,7 +8,14 @@ public class ContentLengthFilter extends FilteredDataEmitter {
     public ContentLengthFilter(int contentLength) {
         this.contentLength = contentLength;
     }
-    
+
+    @Override
+    protected void report(Exception e) {
+        if (e == null && totalRead != contentLength)
+            e = new Exception("End of data reached before content length was read");
+        super.report(e);
+    }
+
     int contentLength;
     int totalRead;
     @Override

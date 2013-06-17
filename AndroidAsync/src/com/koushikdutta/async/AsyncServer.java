@@ -865,14 +865,4 @@ public class AsyncServer {
     public boolean isAffinityThread() {
         return mAffinity == Thread.currentThread();
     }
-
-    static class Reclaimer implements Comparator<ByteBuffer> {
-        @Override
-        public int compare(ByteBuffer byteBuffer, ByteBuffer byteBuffer2) {
-            // keep the smaller ones at the head, so they get tossed out quicker
-            if (byteBuffer.capacity() > byteBuffer2.capacity())
-                return 1;
-            return -1;
-        }
-    }
 }

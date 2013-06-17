@@ -127,7 +127,8 @@ public class AsyncNetworkSocket implements AsyncSocket {
         }
     }
 
-    private ByteBufferList pending;
+    private ByteBufferList pending = new ByteBufferList();
+//    private ByteBuffer[] buffers = new ByteBuffer[8];
 
     int maxAlloc;
     int mToAlloc = 0;
@@ -142,11 +143,12 @@ public class AsyncNetworkSocket implements AsyncSocket {
         try {
             boolean closed = false;
 
+//            ByteBufferList.obtainArray(buffers, Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
             ByteBuffer b = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
             // keep track of the max mount read during this read cycle
             // so we can be quicker about allocations during the next
             // time this socket reads.
-            int read = mChannel.read(b);
+            long read = mChannel.read(b);
             if (read < 0) {
                 closeInternal();
                 closed = true;
@@ -155,15 +157,16 @@ public class AsyncNetworkSocket implements AsyncSocket {
                 total += read;
             }
             if (read > 0) {
-                mToAlloc = read * 2;
-                b.limit(b.position());
-                b.position(0);
-                ByteBufferList list = new ByteBufferList(b);
-                Util.emitAllData(this, list);
-                if (b.remaining() != 0) {
-                    assert pending == null;
-                    pending = list;
-                }
+                mToAlloc = (int)read * 2;
+                b.flip();
+//                for (int i = 0; i < buffers.length; i++) {
+//                    ByteBuffer b = buffers[i];
+//                    buffers[i] = null;
+//                    b.flip();
+//                    pending.add(b);
+//                }
+                pending.add(b);
+                Util.emitAllData(this, pending);
             }
 
             if (closed) {
@@ -252,7 +255,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
     boolean mEndReported;
     Exception mPendingEndException;
     void reportEndPending(Exception e) {
-        if (pending != null) {
+        if (pending.hasRemaining()) {
             mPendingEndException = e;
             return;
         }
@@ -299,11 +302,8 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
     
     private void spitPending() {
-        if (pending != null) {
+        if (pending.hasRemaining()) {
             Util.emitAllData(this, pending);
-            if (pending.remaining() == 0) {
-                pending = null;
-            }
         }
     }
     
