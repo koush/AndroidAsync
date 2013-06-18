@@ -55,6 +55,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         // aka exhcange.setDatacallback
         mEmitter = new BufferedDataEmitter(socket);
 
+        final ByteBufferList transformed = new ByteBufferList();
         mEmitter.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -62,8 +63,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                     return;
                 try {
                     mUnwrapping = true;
-                    
-                    ByteBufferList out = new ByteBufferList();
 
                     mReadTmp.position(0);
                     mReadTmp.limit(mReadTmp.capacity());
@@ -77,7 +76,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
                         SSLEngineResult res = engine.unwrap(b, mReadTmp);
                         if (res.getStatus() == Status.BUFFER_OVERFLOW) {
-                            addToPending(out);
+                            addToPending(transformed);
                             mReadTmp = ByteBufferList.obtain(mReadTmp.remaining() * 2);
                             remaining = -1;
                         }
@@ -96,8 +95,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         }
                     }
 
-                    addToPending(out);
-                    Util.emitAllData(AsyncSSLSocketWrapper.this, out);
+                    addToPending(transformed);
+                    Util.emitAllData(AsyncSSLSocketWrapper.this, transformed);
                 }
                 catch (Exception ex) {
                     ex.printStackTrace();

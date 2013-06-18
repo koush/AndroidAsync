@@ -8,11 +8,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
-import junit.framework.TestCase;
-
-import java.io.FileInputStream;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -53,5 +49,4 @@ public class SSLTests extends AndroidTestCase {
         AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setTrustManagers(tmf.getTrustManagers());
         AsyncHttpClient.getDefaultInstance().getString("https://localhost:8888/").get();
     }
-
 }

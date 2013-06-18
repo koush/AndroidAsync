@@ -20,10 +20,10 @@ public class InflaterInputFilter extends FilteredDataEmitter {
         super.report(e);
     }
 
+    ByteBufferList transformed = new ByteBufferList();
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         try {
-            ByteBufferList transformed = new ByteBufferList();
             ByteBuffer output = ByteBufferList.obtain(bb.remaining() * 2);
             int totalRead = 0;
             while (bb.size() > 0) {
