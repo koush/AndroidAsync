@@ -53,7 +53,7 @@ public class MultipartTests extends TestCase {
                                 @Override
                                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                                     gotten += bb.remaining();
-                                    bb.clear();
+                                    bb.recycle();
                                 }
                             });
                         }

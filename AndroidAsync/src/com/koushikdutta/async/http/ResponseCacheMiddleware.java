@@ -37,7 +37,6 @@ import android.util.Base64;
 
 import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.SimpleCancellable;
@@ -211,7 +210,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         @Override
         public void write(ByteBufferList bb) {
             // it's gonna write headers and stuff... whatever
-            bb.clear();
+            bb.recycle();
         }
 
         @Override

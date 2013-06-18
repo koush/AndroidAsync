@@ -31,7 +31,9 @@ public class OutputStreamDataCallback implements DataCallback, CompletedCallback
         catch (Exception ex) {
             onCompleted(ex);
         }
-        bb.clear();
+        finally {
+            bb.recycle();
+        }
     }
     
     public void close() {

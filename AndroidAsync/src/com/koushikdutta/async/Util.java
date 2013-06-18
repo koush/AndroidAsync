@@ -20,7 +20,7 @@ public class Util {
             handler.onDataAvailable(emitter, list);
             if (remaining == list.remaining() && handler == emitter.getDataCallback()) {
                 // not all the data was consumed...
-                // call byteBufferList.clear() or read all the data to prevent this assertion.
+                // call byteBufferList.recycle() or read all the data to prevent this assertion.
                 // this is nice to have, as it identifies protocol or parsing errors.
                 System.out.println("Data: " + list.peekString());
                 System.out.println("handler: " + handler);
@@ -30,22 +30,13 @@ public class Util {
         }
         if (list.remaining() != 0 && !emitter.isPaused()) {
             // not all the data was consumed...
-            // call byteBufferList.clear() or read all the data to prevent this assertion.
+            // call byteBufferList.recycle() or read all the data to prevent this assertion.
             // this is nice to have, as it identifies protocol or parsing errors.
             System.out.println("Data: " + list.peekString());
             System.out.println("handler: " + handler);
             assert false;
             throw new RuntimeException("mDataHandler failed to consume data, yet remains the mDataHandler.");
         }
-    }
-
-    public static void emitAllData(DataEmitter emitter, ByteBuffer b) {
-        ByteBufferList list = new ByteBufferList();
-        list.add(b);
-        emitAllData(emitter, list);
-        // previous call makes sure list is empty,
-        // so this is safe to clear
-        b.position(b.limit());
     }
 
     public static void pump(final InputStream is, final DataSink ds, final CompletedCallback callback) {

@@ -287,8 +287,11 @@ public class ByteBufferList {
             this.remaining += remaining;
     }
 
-    public void clear() {
-        mBuffers.clear();
+    public void recycle() {
+        while (mBuffers.size() > 0) {
+            reclaim(mBuffers.remove());
+        }
+        assert mBuffers.size() == 0;
         remaining = 0;
     }
     

@@ -56,7 +56,9 @@ public class OutputStreamDataSink implements DataSink {
         catch (IOException e) {
             reportClose(e);
         }
-        bb.clear();
+        finally {
+            bb.recycle();
+        }
     }
 
     WritableCallback mWritable;

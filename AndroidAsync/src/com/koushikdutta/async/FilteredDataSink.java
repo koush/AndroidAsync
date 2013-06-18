@@ -37,6 +37,6 @@ public class FilteredDataSink extends BufferedDataSink {
         assert bb == null || filtered == bb || bb.isEmpty();
         super.write(filtered, true);
         if (bb != null)
-            bb.clear();
+            bb.recycle();
     }
 }

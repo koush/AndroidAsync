@@ -31,7 +31,7 @@ class StreamUtility {
             // write to the channel, may block
             dest.write(buffer);
             // If partial transfer, shift remainder down
-            // If buffer is empty, same as doing clear()
+            // If buffer is empty, same as doing recycle()
             buffer.compact();
         }
         // EOF will leave buffer in fill state

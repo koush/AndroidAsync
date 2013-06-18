@@ -7,7 +7,6 @@ import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
-import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.future.SimpleCancellable;
@@ -246,7 +245,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                 super.onDataAvailable(emitter, bb);
-                bb.clear();
+                bb.recycle();
                 socket.close();
             }
         });

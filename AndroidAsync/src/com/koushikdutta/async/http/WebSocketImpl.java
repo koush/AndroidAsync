@@ -239,9 +239,7 @@ public class WebSocketImpl implements WebSocket {
 
     @Override
     public void write(ByteBufferList bb) {
-        byte[] buf = new byte[bb.remaining()];
-        bb.get(buf);
-        bb.clear();
+        byte[] buf = bb.getAllByteArray();
         send(buf);
     }
 

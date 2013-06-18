@@ -56,13 +56,15 @@ public class ZipDataSink extends FilteredDataSink {
             }
             ByteBufferList ret = new ByteBufferList(bout.toByteArray());
             bout.reset();
-            if (bb != null)
-                bb.clear();
             return ret;
         }
         catch (IOException e) {
             report(e);
             return null;
+        }
+        finally {
+            if (bb != null)
+                bb.recycle();
         }
     }
 }
