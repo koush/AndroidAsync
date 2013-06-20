@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http;
 
 import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 import java.security.MessageDigest;
 import java.util.LinkedList;
 import java.util.UUID;
@@ -23,6 +24,14 @@ public class WebSocketImpl implements WebSocket {
     @Override
     public void end() {
         mSocket.end();
+    }
+    
+    private static byte[] toByteArray(UUID uuid) {
+    	byte[] byteArray = new byte[(Long.SIZE / Byte.SIZE) * 2];
+    	ByteBuffer buffer = ByteBuffer.wrap(byteArray);
+    	LongBuffer longBuffer = buffer.asLongBuffer();
+    	longBuffer.put(new long[] { uuid.getMostSignificantBits(),uuid.getLeastSignificantBits() });
+    	return byteArray;
     }
 
     private static String SHA1(String text) {
@@ -117,7 +126,7 @@ public class WebSocketImpl implements WebSocket {
     
     public static void addWebSocketUpgradeHeaders(AsyncHttpRequest req, String protocol) {
         RawHeaders headers = req.getHeaders().getHeaders();
-        final String key = UUID.randomUUID().toString();
+        final String key = Base64.encodeToString(toByteArray(UUID.randomUUID()),Base64.DEFAULT);
         headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
         headers.set("Connection", "Upgrade");
