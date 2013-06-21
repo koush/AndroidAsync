@@ -126,7 +126,7 @@ public class WebSocketImpl implements WebSocket {
     
     public static void addWebSocketUpgradeHeaders(AsyncHttpRequest req, String protocol) {
         RawHeaders headers = req.getHeaders().getHeaders();
-        final String key = Base64.encodeToString(toByteArray(UUID.randomUUID()),Base64.DEFAULT);
+        final String key = Base64.encodeToString(toByteArray(UUID.randomUUID()),Base64.NO_WRAP);
         headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
         headers.set("Connection", "Upgrade");
