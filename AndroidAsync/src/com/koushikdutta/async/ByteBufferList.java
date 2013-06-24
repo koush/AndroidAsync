@@ -43,8 +43,10 @@ public class ByteBufferList {
     public byte[] getAllByteArray() {
         // fast path to return the contents of the first and only byte buffer,
         // if that's what we're looking for. avoids allocation.
-        if (mBuffers.size() == 1 && mBuffers.peek().capacity() == remaining())
+        if (mBuffers.size() == 1 && mBuffers.peek().capacity() == remaining()) {
+            remaining = 0;
             return mBuffers.remove().array();
+        }
 
         byte[] ret = new byte[remaining()];
         get(ret);

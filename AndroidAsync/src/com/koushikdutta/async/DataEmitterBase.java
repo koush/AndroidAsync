@@ -7,7 +7,10 @@ import com.koushikdutta.async.callback.DataCallback;
  * Created by koush on 5/27/13.
  */
 public abstract class DataEmitterBase implements DataEmitter {
-    boolean ended;
+    private boolean ended;
+    protected void resetEnded() {
+        ended = false;
+    }
     protected void report(Exception e) {
         if (ended)
             return;
@@ -23,7 +26,7 @@ public abstract class DataEmitterBase implements DataEmitter {
 
     CompletedCallback endCallback;
     @Override
-    public final  CompletedCallback getEndCallback() {
+    public final CompletedCallback getEndCallback() {
         return endCallback;
     }
 
