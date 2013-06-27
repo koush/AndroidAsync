@@ -176,6 +176,8 @@ public class ByteBufferList {
     }
 
     public ByteBuffer getAll() {
+        if (remaining() == 0)
+            return EMPTY_BYTEBUFFER;
         read(remaining());
         return remove();
     }
