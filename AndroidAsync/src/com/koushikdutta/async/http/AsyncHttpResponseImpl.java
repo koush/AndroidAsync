@@ -38,19 +38,6 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         else {
             mSink = mSocket;
         }
-        
-        String rs = mRequest.getRequestString();
-        com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                if (mWriter != null)
-                    mWriter.write(mRequest, AsyncHttpResponseImpl.this);
-            }
-        });
-        
-        LineEmitter liner = new LineEmitter();
-        exchange.setDataCallback(liner);
-        liner.setLineCallback(mHeaderCallback);
 
         mSocket.setEndCallback(mReporter);
         mSocket.setClosedCallback(new CompletedCallback() {
@@ -59,6 +46,19 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
                 // TODO: do we care? throw if socket is still writing or something?
             }
         });
+
+        String rs = mRequest.getRequestString();
+        com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                if (mWriter != null)
+                    mWriter.write(mRequest, AsyncHttpResponseImpl.this);
+            }
+        });
+
+        LineEmitter liner = new LineEmitter();
+        exchange.setDataCallback(liner);
+        liner.setLineCallback(mHeaderCallback);
     }
     
     private CompletedCallback mReporter = new CompletedCallback() {
