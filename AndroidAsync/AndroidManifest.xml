@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.koushikdutta.async"
-    android:versionCode="111"
-    android:versionName="1.1.1" >
+    android:versionCode="112"
+    android:versionName="1.1.2" >
 
     <uses-sdk
         android:minSdkVersion="8"
