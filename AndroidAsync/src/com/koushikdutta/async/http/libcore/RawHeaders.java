@@ -66,6 +66,10 @@ public final class RawHeaders {
     public RawHeaders() {}
 
     public RawHeaders(RawHeaders copyFrom) {
+        copy(copyFrom);
+    }
+
+    public void copy(RawHeaders copyFrom) {
         namesAndValues.addAll(copyFrom.namesAndValues);
         statusLine = copyFrom.statusLine;
         httpMinorVersion = copyFrom.httpMinorVersion;
