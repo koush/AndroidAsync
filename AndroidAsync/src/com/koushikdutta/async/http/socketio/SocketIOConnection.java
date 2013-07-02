@@ -256,12 +256,15 @@ class SocketIOConnection {
                             Acknowledge ack = acknowledges.remove(ackParts[0]);
                             if (ack == null)
                                 return;
-                            JSONArray ackArgs = new JSONArray(ackParts[1]);
+                            JSONArray ackArgs = null;
+                            if (ackParts.length > 1)
+                                ackArgs = new JSONArray(ackParts[1]);
                             ack.acknowledge(ackArgs);
                             break;
                         case 7:
                             // error
                             reportError(parts[2], parts[3]);
+                            break;
                         case 8:
                             // noop
                             break;
