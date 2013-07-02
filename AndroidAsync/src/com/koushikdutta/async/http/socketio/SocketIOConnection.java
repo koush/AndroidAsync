@@ -39,8 +39,8 @@ class SocketIOConnection {
         return webSocket != null && webSocket.isOpen();
     }
 
-    public void emitRaw(int type, String endpoint, String message) {
-        webSocket.send(String.format("%d::%s:%s", type, endpoint, message));
+    public void emitRaw(int type, SocketIOClient client, String message, Acknowledge acknowledge) {
+        webSocket.send(String.format("%d::%s:%s", type, client.endpoint, message));
     }
 
     public void disconnect(SocketIOClient client) {

@@ -36,27 +36,39 @@ public class SocketIOClient extends EventEmitter {
         }
     }
 
-    private void emitRaw(int type, String message) {
-        connection.emitRaw(type, endpoint, message);
+    private void emitRaw(int type, String message, Acknowledge acknowledge) {
+        connection.emitRaw(type, this, message, acknowledge);
     }
 
     public void emit(String name, JSONArray args) {
+        emit(name, args, null);
+    }
+
+    public void emit(final String message) {
+        emit(message, (Acknowledge)null);
+    }
+
+    public void emit(final JSONObject jsonMessage) {
+        emit(jsonMessage, null);
+    }
+
+    public void emit(String name, JSONArray args, Acknowledge acknowledge) {
         final JSONObject event = new JSONObject();
         try {
             event.put("name", name);
             event.put("args", args);
-            emitRaw(5, event.toString());
+            emitRaw(5, event.toString(), acknowledge);
         }
         catch (Exception e) {
         }
     }
 
-    public void emit(final String message) {
-        emitRaw(3, message);
+    public void emit(final String message, Acknowledge acknowledge) {
+        emitRaw(3, message, acknowledge);
     }
-    
-    public void emit(final JSONObject jsonMessage) {
-        emitRaw(4, jsonMessage.toString());
+
+    public void emit(final JSONObject jsonMessage, Acknowledge acknowledge) {
+        emitRaw(4, jsonMessage.toString(), acknowledge);
     }
 
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, final ConnectCallback callback) {
