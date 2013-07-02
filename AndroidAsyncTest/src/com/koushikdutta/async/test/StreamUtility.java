@@ -1,5 +1,13 @@
 package com.koushikdutta.async.test;
 
+import android.net.http.AndroidHttpClient;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -10,17 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import android.net.http.AndroidHttpClient;
 
 class StreamUtility {
     public static void fastChannelCopy(final ReadableByteChannel src, final WritableByteChannel dest) throws IOException {

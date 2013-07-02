@@ -1,10 +1,5 @@
 package com.koushikdutta.async.test;
 
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
-import junit.framework.TestCase;
-
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
@@ -14,6 +9,11 @@ import com.koushikdutta.async.http.WebSocket.StringCallback;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServer.WebSocketRequestCallback;
+
+import junit.framework.TestCase;
+
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class WebSocketTests extends TestCase {
     AsyncHttpServer httpServer;

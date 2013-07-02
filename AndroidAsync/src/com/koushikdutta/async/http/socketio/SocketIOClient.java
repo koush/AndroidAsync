@@ -1,15 +1,8 @@
-package com.koushikdutta.async.http;
-
-import java.util.Arrays;
-import java.util.HashSet;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
+package com.koushikdutta.async.http.socketio;
 
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.NullDataCallback;
@@ -17,25 +10,19 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpClient.WebSocketConnectCallback;
+import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.AsyncHttpResponse;
+import com.koushikdutta.async.http.WebSocket;
 
-public class SocketIOClient {
-    public static interface SocketIOConnectCallback {
-        public void onConnectCompleted(Exception ex, SocketIOClient client);
-    }
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-    public static interface JSONCallback {
-        public void onJSON(JSONObject json);
-    }
-    
-    public static interface StringCallback {
-        public void onString(String string);
-    }
-    
-    public static interface EventCallback {
-        public void onEvent(String event, JSONArray arguments);
-    }
-    
+import java.util.Arrays;
+import java.util.HashSet;
+
+public class SocketIOClient extends EventEmitter {
     private static void reportError(FutureImpl future, Handler handler, final SocketIOConnectCallback callback, final Exception e) {
         if (!future.setComplete(e))
             return;
@@ -51,7 +38,7 @@ public class SocketIOClient {
             callback.onConnectCompleted(e, null);
         }
     }
-    
+
     private void emitRaw(int type, String message) {
         webSocket.send(String.format("%d:::%s", type, message));
 
@@ -80,21 +67,21 @@ public class SocketIOClient {
     }
     
     public static class SocketIORequest extends AsyncHttpPost {
-        String channel;
-        public String getChannel() {
-            return channel;
-        }
-        
         public SocketIORequest(String uri) {
-            super(Uri.parse(uri).buildUpon().encodedPath("/socket.io/1/").build().toString());
-            channel = Uri.parse(uri).getPath();
-            if (TextUtils.isEmpty(channel))
-                channel = null;
+            this(uri, "socket.io");
+        }
+
+        public SocketIORequest(String uri, String channel) {
+            super(Uri.parse(uri).buildUpon().encodedPath("/" + channel + "/1/").build().toString());
         }
     }
-    
+
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, final SocketIOConnectCallback callback) {
-        return connect(client, new SocketIORequest(uri), callback);
+        return connect(client, uri, null, callback);
+    }
+
+    public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, String channel, final SocketIOConnectCallback callback) {
+        return connect(client, new SocketIORequest(uri, channel), callback);
     }
     
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, final SocketIORequest request, final SocketIOConnectCallback callback) {
@@ -165,23 +152,15 @@ public class SocketIOClient {
     public void setStringCallback(StringCallback callback) {
         stringCallback = callback;
     }
-    
-    EventCallback eventCallback;
-    public EventCallback getEventCallback() {
-        return eventCallback;
-    }
-    public void setEventCallback(EventCallback callback) {
-        eventCallback = callback;
-    }
-    
+
     String sessionUrl;
     WebSocket webSocket;
     AsyncHttpClient httpClient;
-    private SocketIOClient(Handler handler, int heartbeat, String sessionUrl, AsyncHttpClient httpCliet) {
+    private SocketIOClient(Handler handler, int heartbeat, String sessionUrl, AsyncHttpClient httpClient) {
         this.handler = handler;
         this.heartbeat = heartbeat;
         this.sessionUrl = sessionUrl;
-        this.httpClient = httpCliet;
+        this.httpClient = httpClient;
     }
     
     public boolean isConnected() {
@@ -401,18 +380,16 @@ public class SocketIOClient {
                             webSocket.send(String.format("6:::%s", messageId));
                         }
 
-                        if (eventCallback != null) {
-                            if (handler != null) {
-                                AsyncServer.post(handler, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        eventCallback.onEvent(event, args);
-                                    }
-                                });
-                            }
-                            else {
-                                eventCallback.onEvent(event, args);
-                            }
+                        if (handler != null) {
+                            AsyncServer.post(handler, new Runnable() {
+                                @Override
+                                public void run() {
+                                    onEvent(event, args);
+                                }
+                            });
+                        }
+                        else {
+                            onEvent(event, args);
                         }
                         break;
                     }

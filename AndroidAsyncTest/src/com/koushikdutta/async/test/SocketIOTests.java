@@ -1,22 +1,22 @@
 package com.koushikdutta.async.test;
 
-import java.util.concurrent.TimeUnit;
-
 import android.util.Log;
-import com.koushikdutta.async.http.AsyncHttpGet;
+
+import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.socketio.EventCallback;
+import com.koushikdutta.async.http.socketio.JSONCallback;
+import com.koushikdutta.async.http.socketio.SocketIOClient;
+import com.koushikdutta.async.http.socketio.SocketIOConnectCallback;
+import com.koushikdutta.async.http.socketio.StringCallback;
+
 import junit.framework.TestCase;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.koushikdutta.async.future.SimpleFuture;
-import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.SocketIOClient;
-import com.koushikdutta.async.http.SocketIOClient.EventCallback;
-import com.koushikdutta.async.http.SocketIOClient.JSONCallback;
-import com.koushikdutta.async.http.SocketIOClient.SocketIOConnectCallback;
-import com.koushikdutta.async.http.SocketIOClient.StringCallback;
+import java.util.concurrent.TimeUnit;
 
 public class SocketIOTests extends TestCase {
     public static final long TIMEOUT = 100000L;
@@ -64,9 +64,9 @@ public class SocketIOTests extends TestCase {
                         trigger1.trigger("hello".equals(string));
                     }
                 });
-                client.setEventCallback(new EventCallback() {
+                client.on("pong", new EventCallback() {
                     @Override
-                    public void onEvent(String event, JSONArray arguments) {
+                    public void onEvent(JSONArray arguments) {
                         trigger2.trigger(arguments.length() == 3);
                     }
                 });

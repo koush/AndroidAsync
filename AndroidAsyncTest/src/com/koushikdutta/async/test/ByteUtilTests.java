@@ -1,9 +1,13 @@
 package com.koushikdutta.async.test;
 
-import com.koushikdutta.async.*;
-import junit.framework.TestCase;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.FilteredDataEmitter;
+import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.PushParser;
+import com.koushikdutta.async.TapCallback;
+import com.koushikdutta.async.Util;
 
-import java.nio.ByteBuffer;
+import junit.framework.TestCase;
 
 /**
  * Created by koush on 5/17/13.
