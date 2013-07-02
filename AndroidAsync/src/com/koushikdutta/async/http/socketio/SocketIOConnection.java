@@ -16,6 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 /**
  * Created by koush on 7/1/13.
@@ -39,8 +40,15 @@ class SocketIOConnection {
         return webSocket != null && webSocket.isOpen();
     }
 
+    Hashtable<String, Acknowledge> acknowledges = new Hashtable<String, Acknowledge>();
+    int ackCount;
     public void emitRaw(int type, SocketIOClient client, String message, Acknowledge acknowledge) {
-        webSocket.send(String.format("%d::%s:%s", type, client.endpoint, message));
+        String ack = "";
+        if (acknowledge != null) {
+            ack = "" + ackCount++;
+            acknowledges.put(ack, acknowledge);
+        }
+        webSocket.send(String.format("%d:%s:%s:%s", type, ack, client.endpoint, message));
     }
 
     public void disconnect(SocketIOClient client) {
@@ -244,6 +252,12 @@ class SocketIOConnection {
                         }
                         case 6:
                             // ACK
+                            final String[] ackParts = parts[3].split("\\+", 2);
+                            Acknowledge ack = acknowledges.remove(ackParts[0]);
+                            if (ack == null)
+                                return;
+                            JSONArray ackArgs = new JSONArray(ackParts[1]);
+                            ack.acknowledge(ackArgs);
                             break;
                         case 7:
                             // error
