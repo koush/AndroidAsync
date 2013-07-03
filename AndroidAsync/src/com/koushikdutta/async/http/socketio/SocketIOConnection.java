@@ -62,6 +62,19 @@ class SocketIOConnection {
     public void disconnect(SocketIOClient client) {
         clients.remove(client);
 
+        // see if we can leave this endpoint completely
+        boolean needsEndpointDisconnect = true;
+        for (SocketIOClient other: clients) {
+            if (TextUtils.equals(other.endpoint, client.endpoint)) {
+                needsEndpointDisconnect = false;
+                break;
+            }
+        }
+
+        if (needsEndpointDisconnect)
+            webSocket.send(String.format("0::%s", client.endpoint));
+
+        // and see if we can disconnect the socket completely
         if (clients.size() > 0)
             return;
 
@@ -252,6 +265,8 @@ class SocketIOConnection {
     }
 
     private void attach() {
+        setupHeartbeat();
+
         webSocket.setDataCallback(new NullDataCallback());
         webSocket.setClosedCallback(new CompletedCallback() {
             @Override
@@ -276,7 +291,6 @@ class SocketIOConnection {
                             break;
                         case 1:
                             // connect
-                            setupHeartbeat();
                             reportConnect(parts[2]);
                             break;
                         case 2:
