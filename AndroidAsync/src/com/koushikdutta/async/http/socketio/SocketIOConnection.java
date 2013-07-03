@@ -7,15 +7,19 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.DependentCancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.WebSocket;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Hashtable;
 
 /**
@@ -23,17 +27,16 @@ import java.util.Hashtable;
  */
 class SocketIOConnection {
     Handler handler;
-    String sessionUrl;
     AsyncHttpClient httpClient;
     int heartbeat;
     ArrayList<SocketIOClient> clients = new ArrayList<SocketIOClient>();
     WebSocket webSocket;
+    SocketIORequest request;
 
-    public SocketIOConnection(Handler handler, int heartbeat, String sessionUrl, AsyncHttpClient httpClient) {
+    public SocketIOConnection(Handler handler, AsyncHttpClient httpClient, SocketIORequest request) {
         this.handler = handler;
-        this.heartbeat = heartbeat;
-        this.sessionUrl = sessionUrl;
         this.httpClient = httpClient;
+        this.request = request;
     }
 
     public boolean isConnected() {
@@ -52,6 +55,7 @@ class SocketIOConnection {
     }
 
     public void connect(SocketIOClient client) {
+        clients.add(client);
         webSocket.send(String.format("1::%s", client.endpoint));
     }
 
@@ -67,24 +71,63 @@ class SocketIOConnection {
         webSocket = null;
     }
 
-    void reconnect() {
+    void reconnect(final DependentCancellable child) {
         if (isConnected()) {
-            assert false;
             return;
         }
 
-        Cancellable cancel = httpClient.websocket(sessionUrl, null, new AsyncHttpClient.WebSocketConnectCallback() {
+        // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
+        request.setHandler(null);
+        // initiate a session
+        Cancellable cancel = httpClient.executeString(request, new AsyncHttpClient.StringCallback() {
             @Override
-            public void onCompleted(Exception ex, WebSocket webSocket) {
-                if (ex != null) {
-                    reportDisconnect(ex);
+            public void onCompleted(final Exception e, AsyncHttpResponse response, String result) {
+                if (e != null) {
+                    reportDisconnect(e);
                     return;
                 }
 
-                SocketIOConnection.this.webSocket = webSocket;
-                attach();
+                try {
+                    String[] parts = result.split(":");
+                    String session = parts[0];
+                    final int heartbeat;
+                    if (!"".equals(parts[1]))
+                        heartbeat = Integer.parseInt(parts[1]) / 2 * 1000;
+                    else
+                        heartbeat = 0;
+
+                    String transportsLine = parts[3];
+                    String[] transports = transportsLine.split(",");
+                    HashSet<String> set = new HashSet<String>(Arrays.asList(transports));
+                    if (!set.contains("websocket"))
+                        throw new Exception("websocket not supported");
+
+                    final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
+
+                    Cancellable cancel = httpClient.websocket(sessionUrl, null, new AsyncHttpClient.WebSocketConnectCallback() {
+                        @Override
+                        public void onCompleted(Exception ex, WebSocket webSocket) {
+                            if (ex != null) {
+                                reportDisconnect(ex);
+                                return;
+                            }
+
+                            SocketIOConnection.this.webSocket = webSocket;
+                            attach();
+                        }
+                    });
+
+                    if (child != null)
+                        child.setParent(cancel);
+                }
+                catch (Exception ex) {
+                    reportDisconnect(ex);
+                }
             }
         });
+
+        if (child != null)
+            child.setParent(cancel);
     }
 
     void setupHeartbeat() {
@@ -117,10 +160,18 @@ class SocketIOConnection {
         select(null, new SelectCallback() {
             @Override
             public void onSelect(SocketIOClient client) {
-                client.disconnected = true;
-                DisconnectCallback closed = client.getDisconnectCallback();
-                if (closed != null)
-                    closed.onDisconnect(ex);
+                if (client.connected) {
+                    client.disconnected = true;
+                    DisconnectCallback closed = client.getDisconnectCallback();
+                    if (closed != null)
+                        closed.onDisconnect(ex);
+                }
+                else {
+                    // client has never connected, this is a initial connect failure
+                    ConnectCallback callback = client.connectCallback;
+                    if (callback != null)
+                        callback.onConnectCompleted(ex, client);
+                }
             }
         });
     }

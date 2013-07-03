@@ -81,57 +81,30 @@ public class SocketIOClient extends EventEmitter {
         final Handler handler = Looper.myLooper() == null ? null : request.getHandler();
         final SimpleFuture<SocketIOClient> ret = new SimpleFuture<SocketIOClient>();
 
-        // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
-        request.setHandler(null);
-        // initiate a session
-        Cancellable cancel = client.executeString(request, new AsyncHttpClient.StringCallback() {
+        final ConnectCallback wrappedCallback = new ConnectCallback() {
             @Override
-            public void onCompleted(final Exception e, AsyncHttpResponse response, String result) {
-                if (e != null) {
-                    reportError(ret, handler, callback, e);
+            public void onConnectCompleted(Exception ex, SocketIOClient client) {
+                if (ex != null || TextUtils.isEmpty(request.getEndpoint())) {
+                    callback.onConnectCompleted(ex, client);
+                    ret.setComplete(ex, client);
                     return;
                 }
-                
-                try {
-                    String[] parts = result.split(":");
-                    String session = parts[0];
-                    final int heartbeat;
-                    if (!"".equals(parts[1]))
-                        heartbeat = Integer.parseInt(parts[1]) / 2 * 1000;
-                    else
-                        heartbeat = 0;
-                    
-                    String transportsLine = parts[3];
-                    String[] transports = transportsLine.split(",");
-                    HashSet<String> set = new HashSet<String>(Arrays.asList(transports));
-                    if (!set.contains("websocket"))
-                        throw new Exception("websocket not supported");
-                    
-                    final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
-                    final SocketIOConnection connection = new SocketIOConnection(handler, heartbeat, sessionUrl, client);
-                    ConnectCallback wrappedCallback = callback;
-                    if (!TextUtils.isEmpty(request.getEndpoint())) {
-                        wrappedCallback = new ConnectCallback() {
-                            @Override
-                            public void onConnectCompleted(Exception ex, SocketIOClient client) {
-                                if (ex != null) {
-                                    callback.onConnectCompleted(ex, client);
-                                    return;
-                                }
-                                client.of(request.getEndpoint(), callback);
-                            }
-                        };
-                    }
-                    SocketIOClient socketio = new SocketIOClient(connection, "", wrappedCallback);
-                    socketio.connection.reconnect();
-                }
-                catch (Exception ex) {
-                    reportError(ret, handler, callback, ex);
-                }
-            }
-        });
 
-        ret.setParent(cancel);
+                client.of(request.getEndpoint(), new ConnectCallback() {
+                    @Override
+                    public void onConnectCompleted(Exception ex, SocketIOClient client) {
+                        callback.onConnectCompleted(ex, client);
+                        ret.setComplete(ex, client);
+                    }
+                });
+            }
+        };
+
+        final SocketIOConnection connection = new SocketIOConnection(handler, client, request);
+        connection.clients.add(new SocketIOClient(connection, "", wrappedCallback));
+        connection.reconnect(ret);
+
+//        ret.setParent(cancel);
         
         return ret;
     }
@@ -182,7 +155,6 @@ public class SocketIOClient extends EventEmitter {
         this.endpoint = endpoint;
         this.connection = connection;
         this.connectCallback = callback;
-        connection.clients.add(this);
     }
     
     public boolean isConnected() {
@@ -198,7 +170,6 @@ public class SocketIOClient extends EventEmitter {
     }
 
     public void of(String endpoint, ConnectCallback connectCallback) {
-        SocketIOClient ret = new SocketIOClient(connection, endpoint, connectCallback);
-        connection.connect(ret);
+        connection.connect(new SocketIOClient(connection, endpoint, connectCallback));
     }
 }

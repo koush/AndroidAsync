@@ -29,7 +29,7 @@ public class SocketIOTests extends TestCase {
         }
     }
 
-    public void testChannels() throws Exception {
+    public void testEndpoint() throws Exception {
         final TriggerFuture trigger = new TriggerFuture();
         SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), new SocketIORequest("http://10.1.10.18:3000/", "/chat"), new ConnectCallback() {
             @Override
