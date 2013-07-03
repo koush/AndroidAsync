@@ -28,25 +28,24 @@ public class SocketIOTests extends TestCase {
             setComplete(val);
         }
     }
-    
-//    public void testChannels() throws Exception {
-//        final TriggerFuture trigger = new TriggerFuture();
-//        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com/chat", new ConnectCallback() {
-//            @Override
-//            public void onConnectCompleted(Exception ex, SocketIOClient client) {
-//                assertNull(ex);
-//                client.setStringCallback(new StringCallback() {
-//                    @Override
-//                    public void onString(String string) {
-//                        trigger.trigger("hello".equals(string));
-//                    }
-//                });
-//                client.emit("hello");
-//            }
-//        });
-//        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
-//
-//    }
+
+    public void testChannels() throws Exception {
+        final TriggerFuture trigger = new TriggerFuture();
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), new SocketIORequest("http://10.1.10.18:3000/", "/chat"), new ConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, SocketIOClient client) {
+                assertNull(ex);
+                client.setStringCallback(new StringCallback() {
+                    @Override
+                    public void onString(String string) {
+                        trigger.trigger("hello".equals(string));
+                    }
+                });
+                client.emit("hello");
+            }
+        });
+        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
     
     public void testEchoServer() throws Exception {
         final TriggerFuture trigger1 = new TriggerFuture();

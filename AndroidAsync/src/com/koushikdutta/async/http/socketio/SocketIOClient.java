@@ -2,6 +2,7 @@ package com.koushikdutta.async.http.socketio;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.future.Cancellable;
@@ -72,11 +73,7 @@ public class SocketIOClient extends EventEmitter {
     }
 
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, final ConnectCallback callback) {
-        return connect(client, uri, null, callback);
-    }
-
-    public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, String channel, final ConnectCallback callback) {
-        return connect(client, new SocketIORequest(uri, channel), callback);
+        return connect(client, new SocketIORequest(uri), callback);
     }
 
     ConnectCallback connectCallback;
@@ -112,7 +109,20 @@ public class SocketIOClient extends EventEmitter {
                     
                     final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
                     final SocketIOConnection connection = new SocketIOConnection(handler, heartbeat, sessionUrl, client);
-                    final SocketIOClient socketio = new SocketIOClient(connection, request.getEndpoint(), callback);
+                    ConnectCallback wrappedCallback = callback;
+                    if (!TextUtils.isEmpty(request.getEndpoint())) {
+                        wrappedCallback = new ConnectCallback() {
+                            @Override
+                            public void onConnectCompleted(Exception ex, SocketIOClient client) {
+                                if (ex != null) {
+                                    callback.onConnectCompleted(ex, client);
+                                    return;
+                                }
+                                client.of(request.getEndpoint(), callback);
+                            }
+                        };
+                    }
+                    SocketIOClient socketio = new SocketIOClient(connection, "", wrappedCallback);
                     socketio.connection.reconnect();
                 }
                 catch (Exception ex) {
@@ -181,8 +191,14 @@ public class SocketIOClient extends EventEmitter {
     
     public void disconnect() {
         connection.disconnect(this);
+        DisconnectCallback disconnectCallback = this.disconnectCallback;
         if (disconnectCallback != null) {
         	disconnectCallback.onDisconnect(null);
         }
+    }
+
+    public void of(String endpoint, ConnectCallback connectCallback) {
+        SocketIOClient ret = new SocketIOClient(connection, endpoint, connectCallback);
+        connection.connect(ret);
     }
 }

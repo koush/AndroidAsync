@@ -1,12 +1,13 @@
 package com.koushikdutta.async.http.socketio;
 
 import android.net.Uri;
+import android.text.TextUtils;
 
 import com.koushikdutta.async.http.AsyncHttpPost;
 
 public class SocketIORequest extends AsyncHttpPost {
     public SocketIORequest(String uri) {
-        this(uri, "socket.io", "");
+        this(uri, "");
     }
 
     String endpoint;
@@ -14,12 +15,8 @@ public class SocketIORequest extends AsyncHttpPost {
         return endpoint;
     }
 
-    private SocketIORequest(String uri, String path, String endpoint) {
-        super(Uri.parse(uri).buildUpon().encodedPath("/" + path + "/1/").build().toString());
-        this.endpoint = endpoint;
-    }
-
     public SocketIORequest(String uri, String endpoint) {
-        this(uri, endpoint, endpoint);
+        super(Uri.parse(uri).buildUpon().encodedPath("/socket.io/1/").build().toString());
+        this.endpoint = endpoint;
     }
 }

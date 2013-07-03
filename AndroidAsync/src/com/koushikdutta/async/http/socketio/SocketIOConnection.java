@@ -51,6 +51,10 @@ class SocketIOConnection {
         webSocket.send(String.format("%d:%s:%s:%s", type, ack, client.endpoint, message));
     }
 
+    public void connect(SocketIOClient client) {
+        webSocket.send(String.format("1::%s", client.endpoint));
+    }
+
     public void disconnect(SocketIOClient client) {
         clients.remove(client);
 
@@ -142,7 +146,8 @@ class SocketIOConnection {
                         callback.onReconnect();
                 }
                 else {
-                    assert false;
+                    // double connect?
+//                    assert false;
                 }
             }
         });
