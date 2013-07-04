@@ -5,17 +5,12 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.AsyncHttpResponse;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.util.Arrays;
-import java.util.HashSet;
 
 public class SocketIOClient extends EventEmitter {
     boolean connected;
@@ -81,6 +76,8 @@ public class SocketIOClient extends EventEmitter {
         final Handler handler = Looper.myLooper() == null ? null : request.getHandler();
         final SimpleFuture<SocketIOClient> ret = new SimpleFuture<SocketIOClient>();
 
+        final SocketIOConnection connection = new SocketIOConnection(handler, client, request);
+
         final ConnectCallback wrappedCallback = new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, SocketIOClient client) {
@@ -90,6 +87,10 @@ public class SocketIOClient extends EventEmitter {
                     return;
                 }
 
+                // remove the root client since that's not actually being used.
+                connection.clients.remove(client);
+
+                // connect to the endpoint we want
                 client.of(request.getEndpoint(), new ConnectCallback() {
                     @Override
                     public void onConnectCompleted(Exception ex, SocketIOClient client) {
@@ -100,12 +101,9 @@ public class SocketIOClient extends EventEmitter {
             }
         };
 
-        final SocketIOConnection connection = new SocketIOConnection(handler, client, request);
         connection.clients.add(new SocketIOClient(connection, "", wrappedCallback));
         connection.reconnect(ret);
 
-//        ret.setParent(cancel);
-        
         return ret;
     }
 

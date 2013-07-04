@@ -65,7 +65,10 @@ class SocketIOConnection {
         // see if we can leave this endpoint completely
         boolean needsEndpointDisconnect = true;
         for (SocketIOClient other: clients) {
-            if (TextUtils.equals(other.endpoint, client.endpoint)) {
+            // if this is the default endpoint (which disconnects everything),
+            // or another client is using this endpoint,
+            // we can't disconnect
+            if (TextUtils.equals(other.endpoint, client.endpoint) || TextUtils.isEmpty(client.endpoint)) {
                 needsEndpointDisconnect = false;
                 break;
             }
