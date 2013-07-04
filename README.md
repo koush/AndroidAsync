@@ -5,8 +5,8 @@
 It uses java.nio to manage connections. All the connections are thus managed on a *single* thread, rather than one per thread. 
 NIO is extremely efficient.
 
-AndroidAsync is meant to be a low level protocol library. I have built a useful higher level, Android aware,
-http request library built on top of AndroidAsync called [Ion](https://github.com/koush/ion). The typical Android
+AndroidAsync is meant to be a low level protocol library. I have built an easy to use, higher level, Android aware,
+http request library on top of AndroidAsync called [Ion](https://github.com/koush/ion). The typical Android
 app developer would probably be more interested in Ion.
 
 But if you're looking for a raw Socket, HTTP client/server, WebSocket, and Socket.IO library for Android, AndroidAsync
