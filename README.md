@@ -83,7 +83,7 @@ AsyncHttpClient.getDefaultInstance().getFile(url, filename, new AsyncHttpClient.
 
 
 
-### Caching is supported too (experimental)
+### Caching is supported too
 
 ```java
 // arguments are the http client, the directory to store cache files, and the size of the cache in bytes
