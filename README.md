@@ -1,13 +1,5 @@
 # AndroidAsync
 
-#### Features
- * Based on NIO. One thread, driven by callbacks. Highly effecient.
- * All operations return a Future that can be cancelled
- * Socket client + socket server
- * HTTP client + server
- * WebSocket client + server
- * Socket.IO client
-
 AndroidAsync is meant to be a low level protocol library. I have built an easy to use, higher level, Android aware,
 http request library on top of AndroidAsync called [Ion](https://github.com/koush/ion). The typical Android
 app developer would probably be more interested in Ion.
@@ -15,6 +7,13 @@ app developer would probably be more interested in Ion.
 But if you're looking for a raw Socket, HTTP client/server, WebSocket, and Socket.IO library for Android, AndroidAsync
 is it.
 
+#### Features
+ * Based on NIO. One thread, driven by callbacks. Highly effecient.
+ * All operations return a Future that can be cancelled
+ * Socket client + socket server
+ * HTTP client + server
+ * WebSocket client + server
+ * Socket.IO client
 
 ### Download
 
