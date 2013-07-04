@@ -20,19 +20,23 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     BufferedDataSink mSink;
     ByteBuffer mReadTmp = ByteBufferList.obtain(8192);
     boolean mUnwrapping = false;
+    HostnameVerifier hostnameVerifier = null;
 
     @Override
     public void end() {
         mSocket.end();
     }
+
     public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port) {
-        this(socket, host, port, sslContext, null, true);
+        this(socket, host, port, sslContext, null, null, true);
     }
 
     TrustManager[] trustManagers;
     boolean clientMode;
-    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, boolean clientMode) {
+
+    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
         mSocket = socket;
+        hostnameVerifier = verifier;
         this.clientMode = clientMode;
         this.trustManagers = trustManagers;
 
@@ -41,8 +45,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
         if (host != null) {
             engine = sslContext.createSSLEngine(host, port);
-        }
-        else {
+        } else {
             engine = sslContext.createSSLEngine();
         }
         mHost = host;
@@ -79,8 +82,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             addToPending(transformed);
                             mReadTmp = ByteBufferList.obtain(mReadTmp.remaining() * 2);
                             remaining = -1;
-                        }
-                        else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
+                        } else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
                             bb.addFirst(b);
                             if (bb.size() <= 1) {
                                 break;
@@ -97,18 +99,16 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
                     addToPending(transformed);
                     Util.emitAllData(AsyncSSLSocketWrapper.this, transformed);
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     ex.printStackTrace();
                     report(ex);
-                }
-                finally {
+                } finally {
                     mUnwrapping = false;
                 }
             }
         });
     }
-    
+
     void addToPending(ByteBufferList out) {
         if (mReadTmp.position() > 0) {
             mReadTmp.limit(mReadTmp.position());
@@ -119,6 +119,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     static SSLContext sslContext;
+
     static {
         // following is the "trust the system" certs setup
         try {
@@ -130,13 +131,12 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             if (Build.VERSION.SDK_INT <= 15)
                 throw new Exception();
             sslContext = SSLContext.getInstance("Default");
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             try {
                 sslContext = SSLContext.getInstance("TLS");
-                TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+                TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
                     public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[] {};
+                        return new X509Certificate[]{};
                     }
 
                     public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
@@ -148,10 +148,9 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                                 cert.getCriticalExtensionOIDs().remove("2.5.29.15");
                         }
                     }
-                } };
+                }};
                 sslContext.init(null, trustAllCerts, null);
-            }
-            catch (Exception ex2) {
+            } catch (Exception ex2) {
                 ex.printStackTrace();
                 ex2.printStackTrace();
             }
@@ -162,21 +161,23 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     boolean finishedHandshake = false;
 
     private String mHost;
+
     public String getHost() {
         return mHost;
     }
-    
+
     private int mPort;
+
     public int getPort() {
         return mPort;
     }
-    
+
     private void handleResult(SSLEngineResult res) {
         if (res.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
             final Runnable task = engine.getDelegatedTask();
             task.run();
         }
-        
+
         if (res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP) {
             write(ByteBufferList.EMPTY_BYTEBUFFER);
         }
@@ -201,13 +202,16 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             peerCertificates = (X509Certificate[]) engine.getSession().getPeerCertificates();
                             xtm.checkServerTrusted(peerCertificates, "SSL");
                             if (mHost != null) {
-                                StrictHostnameVerifier verifier = new StrictHostnameVerifier();
-                                verifier.verify(mHost, StrictHostnameVerifier.getCNs(peerCertificates[0]), StrictHostnameVerifier.getDNSSubjectAlts(peerCertificates[0]));
+                                if (hostnameVerifier == null) {
+                                    StrictHostnameVerifier verifier = new StrictHostnameVerifier();
+                                    verifier.verify(mHost, StrictHostnameVerifier.getCNs(peerCertificates[0]), StrictHostnameVerifier.getDNSSubjectAlts(peerCertificates[0]));
+                                } else {
+                                    hostnameVerifier.verify(mHost, engine.getSession());
+                                }
                             }
                             trusted = true;
                             break;
-                        }
-                        catch (Exception ex) {
+                        } catch (Exception ex) {
                             ex.printStackTrace();
                         }
                     }
@@ -223,19 +227,18 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                     mWriteableCallback.onWriteable();
                 mEmitter.onDataAvailable();
             }
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             report(ex);
         }
     }
-    
+
     private void writeTmp() {
         mWriteTmp.limit(mWriteTmp.position());
         mWriteTmp.position(0);
         if (mWriteTmp.remaining() > 0)
             mSink.write(mWriteTmp);
     }
-    
+
     boolean checkWrapResult(SSLEngineResult res) {
         if (res.getStatus() == Status.BUFFER_OVERFLOW) {
             mWriteTmp = ByteBufferList.obtain(mWriteTmp.remaining() * 2);
@@ -246,6 +249,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     private boolean mWrapping = false;
     ByteBuffer mWriteTmp = ByteBufferList.obtain(8192);
+
     @Override
     public void write(ByteBuffer bb) {
         if (mWrapping)
@@ -272,8 +276,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                     remaining = -1;
                 writeTmp();
                 handleResult(res);
-            }
-            catch (SSLException e) {
+            } catch (SSLException e) {
                 report(e);
             }
         }
@@ -309,8 +312,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                     remaining = -1;
                 writeTmp();
                 handleResult(res);
-            }
-            catch (SSLException e) {
+            } catch (SSLException e) {
                 report(e);
             }
         }
@@ -319,11 +321,12 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     WritableCallback mWriteableCallback;
+
     @Override
     public void setWriteableCallback(WritableCallback handler) {
         mWriteableCallback = handler;
     }
-    
+
     @Override
     public WritableCallback getWriteableCallback() {
         return mWriteableCallback;
@@ -336,6 +339,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     DataCallback mDataCallback;
+
     @Override
     public void setDataCallback(DataCallback callback) {
         mDataCallback = callback;
@@ -405,13 +409,14 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     public AsyncSocket getSocket() {
         return mSocket;
     }
-    
+
     @Override
     public DataEmitter getDataEmitter() {
         return mSocket;
     }
-    
+
     X509Certificate[] peerCertificates;
+
     @Override
     public X509Certificate[] getPeerCertificates() {
         return peerCertificates;
