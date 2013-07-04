@@ -39,7 +39,8 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                 if (ex == null) {
                     callback.onConnectCompleted(ex, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, hostnameVerifier, true));
-                } else {
+                }
+                else {
                     callback.onConnectCompleted(ex, socket);
                 }
             }
