@@ -8,7 +8,7 @@ But if you're looking for a raw Socket, HTTP client/server, WebSocket, and Socke
 is it.
 
 #### Features
- * Based on NIO. One thread, driven by callbacks. Highly effecient.
+ * Based on NIO. One thread, driven by callbacks. Highly efficient.
  * All operations return a Future that can be cancelled
  * Socket client + socket server
  * HTTP client + server
