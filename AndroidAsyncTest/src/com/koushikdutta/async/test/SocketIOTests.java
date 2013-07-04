@@ -1,22 +1,24 @@
 package com.koushikdutta.async.test;
 
-import java.util.concurrent.TimeUnit;
-
 import android.util.Log;
-import com.koushikdutta.async.http.AsyncHttpGet;
+
+import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.socketio.Acknowledge;
+import com.koushikdutta.async.http.socketio.ConnectCallback;
+import com.koushikdutta.async.http.socketio.EventCallback;
+import com.koushikdutta.async.http.socketio.JSONCallback;
+import com.koushikdutta.async.http.socketio.SocketIOClient;
+import com.koushikdutta.async.http.socketio.SocketIORequest;
+import com.koushikdutta.async.http.socketio.StringCallback;
+
 import junit.framework.TestCase;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.koushikdutta.async.future.SimpleFuture;
-import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.SocketIOClient;
-import com.koushikdutta.async.http.SocketIOClient.EventCallback;
-import com.koushikdutta.async.http.SocketIOClient.JSONCallback;
-import com.koushikdutta.async.http.SocketIOClient.SocketIOConnectCallback;
-import com.koushikdutta.async.http.SocketIOClient.StringCallback;
+import java.util.concurrent.TimeUnit;
 
 public class SocketIOTests extends TestCase {
     public static final long TIMEOUT = 100000L;
@@ -27,52 +29,89 @@ public class SocketIOTests extends TestCase {
             setComplete(val);
         }
     }
-    
-//    public void testChannels() throws Exception {
-//        final TriggerFuture trigger = new TriggerFuture();
-//        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com/chat", new SocketIOConnectCallback() {
-//            @Override
-//            public void onConnectCompleted(Exception ex, SocketIOClient client) {
-//                assertNull(ex);
-//                client.setStringCallback(new StringCallback() {
-//                    @Override
-//                    public void onString(String string) {
-//                        trigger.trigger("hello".equals(string));
-//                    }
-//                });
-//                client.emit("hello");
-//            }
-//        });
-//        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
-//
-//    }
+
+    public void testAcknowledge() throws Exception {
+        final TriggerFuture trigger = new TriggerFuture();
+        SocketIOClient client = SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080/", null).get();
+
+        client.emit("hello", new Acknowledge() {
+            @Override
+            public void acknowledge(JSONArray arguments) {
+                trigger.trigger("hello".equals(arguments.optString(0)));
+            }
+        });
+
+        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
+
+
+    public void testSendAcknowledge() throws Exception {
+        final TriggerFuture trigger = new TriggerFuture();
+        SocketIOClient client = SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080/", null).get();
+
+        client.setStringCallback(new StringCallback() {
+            boolean isEcho = true;
+            @Override
+            public void onString(String string, Acknowledge acknowledge) {
+                if (!isEcho) {
+                    trigger.trigger("hello".equals(string));
+                    return;
+                }
+                assertNotNull(acknowledge);
+                isEcho = false;
+                acknowledge.acknowledge(new JSONArray().put(string));
+            }
+        });
+
+        client.emit("hello");
+
+        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
+
+    public void testEndpoint() throws Exception {
+        final TriggerFuture trigger = new TriggerFuture();
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), new SocketIORequest("http://koush.clockworkmod.com:8080/", "/chat"), new ConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, SocketIOClient client) {
+                assertNull(ex);
+                client.setStringCallback(new StringCallback() {
+                    @Override
+                    public void onString(String string, Acknowledge acknowledge) {
+                        trigger.trigger("hello".equals(string));
+                    }
+                });
+                client.emit("hello");
+            }
+        });
+        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
     
     public void testEchoServer() throws Exception {
         final TriggerFuture trigger1 = new TriggerFuture();
         final TriggerFuture trigger2 = new TriggerFuture();
         final TriggerFuture trigger3 = new TriggerFuture();
 
-        SocketIOClient.SocketIORequest req = new SocketIOClient.SocketIORequest("http://koush.clockworkmod.com:8080");
+        SocketIORequest req = new SocketIORequest("http://koush.clockworkmod.com:8080");
         req.setLogging("Socket.IO", Log.VERBOSE);
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), req, new SocketIOConnectCallback() {
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), req, new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, SocketIOClient client) {
                 assertNull(ex);
                 client.setStringCallback(new StringCallback() {
                     @Override
-                    public void onString(String string) {
+                    public void onString(String string, Acknowledge acknowledge) {
                         trigger1.trigger("hello".equals(string));
                     }
                 });
-                client.setEventCallback(new EventCallback() {
+                client.on("pong", new EventCallback() {
                     @Override
-                    public void onEvent(String event, JSONArray arguments) {
+                    public void onEvent(JSONArray arguments, Acknowledge acknowledge) {
                         trigger2.trigger(arguments.length() == 3);
                     }
                 });
                 client.setJSONCallback(new JSONCallback() {
                     @Override
-                    public void onJSON(JSONObject json) {
+                    public void onJSON(JSONObject json, Acknowledge acknowledge) {
                         trigger3.trigger("world".equals(json.optString("hello")));
                     }
                 });
@@ -95,12 +134,12 @@ public class SocketIOTests extends TestCase {
 //        final TriggerFuture trigger = new TriggerFuture();
 //
 //
-//        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080", new SocketIOConnectCallback() {
+//        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080", new ConnectCallback() {
 //            @Override
 //            public void onConnectCompleted(Exception ex, final SocketIOClient oldClient) {
 //                assertNull(ex);
 //                oldClient.disconnect();
-//                oldClient.reconnect(new SocketIOConnectCallback() {
+//                oldClient.reconnect(new ConnectCallback() {
 //                    @Override
 //                    public void onConnectCompleted(Exception ex, SocketIOClient client) {
 //                        assertNull(ex);

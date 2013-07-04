@@ -2,11 +2,10 @@ package com.koushikdutta.async.test;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.FileDataEmitter;
-import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.async.http.StringBody;
 import com.koushikdutta.async.parser.StringParser;
+
 import junit.framework.TestCase;
 
 import java.io.File;

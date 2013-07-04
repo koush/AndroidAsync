@@ -2,16 +2,22 @@ package com.koushikdutta.async.test;
 
 import android.os.Handler;
 import android.os.Looper;
+
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
 import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
+
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
-import java.util.concurrent.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class FutureTests extends TestCase {
     private static class IntegerFuture extends SimpleFuture<Integer> {
