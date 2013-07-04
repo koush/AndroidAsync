@@ -32,14 +32,38 @@ public class SocketIOTests extends TestCase {
 
     public void testAcknowledge() throws Exception {
         final TriggerFuture trigger = new TriggerFuture();
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000/", null)
-        .get()
-        .emit("hello", new Acknowledge() {
+        SocketIOClient client = SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080/", null).get();
+
+        client.emit("hello", new Acknowledge() {
             @Override
             public void acknowledge(JSONArray arguments) {
                 trigger.trigger("hello".equals(arguments.optString(0)));
             }
         });
+
+        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
+
+
+    public void testSendAcknowledge() throws Exception {
+        final TriggerFuture trigger = new TriggerFuture();
+        SocketIOClient client = SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080/", null).get();
+
+        client.setStringCallback(new StringCallback() {
+            boolean isEcho = true;
+            @Override
+            public void onString(String string, Acknowledge acknowledge) {
+                if (!isEcho) {
+                    trigger.trigger("hello".equals(string));
+                    return;
+                }
+                assertNotNull(acknowledge);
+                isEcho = false;
+                acknowledge.acknowledge(new JSONArray().put(string));
+            }
+        });
+
+        client.emit("hello");
 
         assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
