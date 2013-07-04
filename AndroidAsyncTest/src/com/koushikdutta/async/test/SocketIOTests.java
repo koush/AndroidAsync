@@ -2,12 +2,15 @@ package com.koushikdutta.async.test;
 
 import android.util.Log;
 
+import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.socketio.Acknowledge;
 import com.koushikdutta.async.http.socketio.ConnectCallback;
+import com.koushikdutta.async.http.socketio.DisconnectCallback;
 import com.koushikdutta.async.http.socketio.EventCallback;
 import com.koushikdutta.async.http.socketio.JSONCallback;
+import com.koushikdutta.async.http.socketio.ReconnectCallback;
 import com.koushikdutta.async.http.socketio.SocketIOClient;
 import com.koushikdutta.async.http.socketio.SocketIORequest;
 import com.koushikdutta.async.http.socketio.StringCallback;
@@ -21,7 +24,7 @@ import org.json.JSONObject;
 import java.util.concurrent.TimeUnit;
 
 public class SocketIOTests extends TestCase {
-    public static final long TIMEOUT = 100000L;
+    public static final long TIMEOUT = 10000L;
     
     
     class TriggerFuture extends SimpleFuture<Boolean> {
@@ -130,32 +133,40 @@ public class SocketIOTests extends TestCase {
         assertTrue(trigger3.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
-//    public void testReconnect() throws Exception {
-//        final TriggerFuture trigger = new TriggerFuture();
-//
-//
-//        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080", new ConnectCallback() {
-//            @Override
-//            public void onConnectCompleted(Exception ex, final SocketIOClient oldClient) {
-//                assertNull(ex);
-//                oldClient.disconnect();
-//                oldClient.reconnect(new ConnectCallback() {
-//                    @Override
-//                    public void onConnectCompleted(Exception ex, SocketIOClient client) {
-//                        assertNull(ex);
-//                        assertEquals(client, oldClient);
-//                        client.setStringCallback(new StringCallback() {
-//                            @Override
-//                            public void onString(String string) {
-//                                trigger.trigger("hello".equals(string));
-//                            }
-//                        });
-//                        client.emit("hello");
-//                    }
-//                });
-//            }
-//        });
-//
-//        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
-//    }
+    public void testReconnect() throws Exception {
+        final TriggerFuture disconnectTrigger = new TriggerFuture();
+        final TriggerFuture reconnectTrigger = new TriggerFuture();
+
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080", new ConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, final SocketIOClient client) {
+                assertNull(ex);
+
+                client.setDisconnectCallback(new DisconnectCallback() {
+                    @Override
+                    public void onDisconnect(Exception e) {
+                        disconnectTrigger.trigger(true);
+                    }
+                });
+
+                client.setReconnectCallback(new ReconnectCallback() {
+                    @Override
+                    public void onReconnect() {
+                        reconnectTrigger.trigger(true);
+                    }
+                });
+
+                AsyncServer.getDefault().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        // this will trigger a reconnect
+                        client.getWebSocket().close();
+                    }
+                }, 200);
+            }
+        });
+
+        assertTrue(disconnectTrigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertTrue(reconnectTrigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
 }

@@ -8,6 +8,7 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.WebSocket;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -171,5 +172,9 @@ public class SocketIOClient extends EventEmitter {
 
     public void of(String endpoint, ConnectCallback connectCallback) {
         connection.connect(new SocketIOClient(connection, endpoint, connectCallback));
+    }
+
+    public WebSocket getWebSocket() {
+        return connection.webSocket;
     }
 }

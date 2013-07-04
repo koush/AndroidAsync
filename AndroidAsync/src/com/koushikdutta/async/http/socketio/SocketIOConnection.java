@@ -13,6 +13,7 @@ import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.WebSocket;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -128,6 +129,7 @@ class SocketIOConnection {
                                 return;
                             }
 
+                            reconnectDelay = 1000L;
                             SocketIOConnection.this.webSocket = webSocket;
                             attach();
                         }
@@ -172,6 +174,33 @@ class SocketIOConnection {
         }
     }
 
+    private void delayReconnect() {
+        if (webSocket != null || clients.size() == 0)
+            return;
+
+        // see if any client has disconnected,
+        // and that we need a reconnect
+        boolean disconnected = false;
+        for (SocketIOClient client: clients) {
+            if (client.disconnected) {
+                disconnected = true;
+                break;
+            }
+        }
+
+        if (!disconnected)
+            return;
+
+        httpClient.getServer().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                reconnect(null);
+            }
+        }, reconnectDelay);
+        reconnectDelay *= 2;
+    }
+
+    long reconnectDelay = 1000L;
     private void reportDisconnect(final Exception ex) {
         select(null, new SelectCallback() {
             @Override
@@ -190,6 +219,8 @@ class SocketIOConnection {
                 }
             }
         });
+
+        delayReconnect();
     }
 
     private void reportConnect(String endpoint) {
@@ -353,7 +384,9 @@ class SocketIOConnection {
                     }
                 }
                 catch (Exception ex) {
+                    webSocket.setClosedCallback(null);
                     webSocket.close();
+                    webSocket = null;
                     reportDisconnect(ex);
                 }
             }
