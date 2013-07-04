@@ -82,7 +82,8 @@ public class SocketIOClient extends EventEmitter {
             @Override
             public void onConnectCompleted(Exception ex, SocketIOClient client) {
                 if (ex != null || TextUtils.isEmpty(request.getEndpoint())) {
-                    callback.onConnectCompleted(ex, client);
+                    if (callback != null)
+                        callback.onConnectCompleted(ex, client);
                     ret.setComplete(ex, client);
                     return;
                 }
@@ -94,7 +95,8 @@ public class SocketIOClient extends EventEmitter {
                 client.of(request.getEndpoint(), new ConnectCallback() {
                     @Override
                     public void onConnectCompleted(Exception ex, SocketIOClient client) {
-                        callback.onConnectCompleted(ex, client);
+                        if (callback != null)
+                            callback.onConnectCompleted(ex, client);
                         ret.setComplete(ex, client);
                     }
                 });

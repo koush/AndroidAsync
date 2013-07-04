@@ -48,8 +48,9 @@ class SocketIOConnection {
     public void emitRaw(int type, SocketIOClient client, String message, Acknowledge acknowledge) {
         String ack = "";
         if (acknowledge != null) {
-            ack = "" + ackCount++;
-            acknowledges.put(ack, acknowledge);
+            String id = "" + ackCount++;
+            ack =  id + "+";
+            acknowledges.put(id, acknowledge);
         }
         webSocket.send(String.format("%d:%s:%s:%s", type, ack, client.endpoint, message));
     }
@@ -106,7 +107,6 @@ class SocketIOConnection {
                 try {
                     String[] parts = result.split(":");
                     String session = parts[0];
-                    final int heartbeat;
                     if (!"".equals(parts[1]))
                         heartbeat = Integer.parseInt(parts[1]) / 2 * 1000;
                     else
@@ -220,33 +220,33 @@ class SocketIOConnection {
         });
     }
 
-    private void reportJson(String endpoint, final JSONObject jsonMessage) {
+    private void reportJson(String endpoint, final JSONObject jsonMessage, final Acknowledge acknowledge) {
         select(endpoint, new SelectCallback() {
             @Override
             public void onSelect(SocketIOClient client) {
                 JSONCallback callback = client.jsonCallback;
                 if (callback != null)
-                    callback.onJSON(jsonMessage);
+                    callback.onJSON(jsonMessage, acknowledge);
             }
         });
     }
 
-    private void reportString(String endpoint, final String string) {
+    private void reportString(String endpoint, final String string, final Acknowledge acknowledge) {
         select(endpoint, new SelectCallback() {
             @Override
             public void onSelect(SocketIOClient client) {
                 StringCallback callback = client.stringCallback;
                 if (callback != null)
-                    callback.onString(string);
+                    callback.onString(string, acknowledge);
             }
         });
     }
 
-    private void reportEvent(String endpoint, final String event, final JSONArray arguments) {
+    private void reportEvent(String endpoint, final String event, final JSONArray arguments, final Acknowledge acknowledge) {
         select(endpoint, new SelectCallback() {
             @Override
             public void onSelect(SocketIOClient client) {
-                client.onEvent(event, arguments);
+                client.onEvent(event, arguments, acknowledge);
             }
         });
     }
@@ -262,9 +262,19 @@ class SocketIOConnection {
         });
     }
 
-    private void acknowledge(String messageId) {
-        if (!"".equals(messageId))
-            webSocket.send(String.format("6:::%s", messageId));
+    private Acknowledge acknowledge(final String messageId) {
+        if (TextUtils.isEmpty(messageId))
+            return null;
+
+        return new Acknowledge() {
+            @Override
+            public void acknowledge(JSONArray arguments) {
+                String data = "";
+                if (arguments != null)
+                    data += "+" + arguments.toString();
+                webSocket.send(String.format("6:::%s%s", messageId, data));
+            }
+        };
     }
 
     private void attach() {
@@ -302,16 +312,14 @@ class SocketIOConnection {
                             break;
                         case 3: {
                             // message
-                            acknowledge(parts[1]);
-                            reportString(parts[2], parts[3]);
+                            reportString(parts[2], parts[3], acknowledge(parts[1]));
                             break;
                         }
                         case 4: {
                             //json message
                             final String dataString = parts[3];
                             final JSONObject jsonMessage = new JSONObject(dataString);
-                            acknowledge(parts[1]);
-                            reportJson(parts[2], jsonMessage);
+                            reportJson(parts[2], jsonMessage, acknowledge(parts[1]));
                             break;
                         }
                         case 5: {
@@ -319,8 +327,7 @@ class SocketIOConnection {
                             final JSONObject data = new JSONObject(dataString);
                             final String event = data.getString("name");
                             final JSONArray args = data.optJSONArray("args");
-                            acknowledge(parts[1]);
-                            reportEvent(parts[2], event, args);
+                            reportEvent(parts[2], event, args, acknowledge(parts[1]));
                             break;
                         }
                         case 6:
@@ -329,10 +336,10 @@ class SocketIOConnection {
                             Acknowledge ack = acknowledges.remove(ackParts[0]);
                             if (ack == null)
                                 return;
-                            JSONArray ackArgs = null;
-                            if (ackParts.length > 1)
-                                ackArgs = new JSONArray(ackParts[1]);
-                            ack.acknowledge(ackArgs);
+                            JSONArray arguments = null;
+                            if (ackParts.length == 2)
+                                arguments = new JSONArray(ackParts[1]);
+                            ack.acknowledge(arguments);
                             break;
                         case 7:
                             // error

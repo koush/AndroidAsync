@@ -15,14 +15,14 @@ public class EventEmitter {
     }
 
     HashList<EventCallback> callbacks = new HashList<EventCallback>();
-    void onEvent(String event, JSONArray arguments) {
+    void onEvent(String event, JSONArray arguments, Acknowledge acknowledge) {
         List<EventCallback> list = callbacks.get(event);
         if (list == null)
             return;
         Iterator<EventCallback> iter = list.iterator();
         while (iter.hasNext()) {
             EventCallback cb = iter.next();
-            cb.onEvent(arguments);
+            cb.onEvent(arguments, acknowledge);
             if (cb instanceof OnceCallback)
                 iter.remove();
         }
@@ -35,8 +35,8 @@ public class EventEmitter {
     public void once(final String event, final EventCallback callback) {
         on(event, new OnceCallback() {
             @Override
-            public void onEvent(JSONArray arguments) {
-                callback.onEvent(arguments);
+            public void onEvent(JSONArray arguments, Acknowledge acknowledge) {
+                callback.onEvent(arguments, acknowledge);
             }
         });
     }

@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.socketio.Acknowledge;
 import com.koushikdutta.async.http.socketio.ConnectCallback;
 import com.koushikdutta.async.http.socketio.EventCallback;
 import com.koushikdutta.async.http.socketio.JSONCallback;
@@ -29,15 +30,29 @@ public class SocketIOTests extends TestCase {
         }
     }
 
+    public void testAcknowledge() throws Exception {
+        final TriggerFuture trigger = new TriggerFuture();
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000/", null)
+        .get()
+        .emit("hello", new Acknowledge() {
+            @Override
+            public void acknowledge(JSONArray arguments) {
+                trigger.trigger("hello".equals(arguments.optString(0)));
+            }
+        });
+
+        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
+
     public void testEndpoint() throws Exception {
         final TriggerFuture trigger = new TriggerFuture();
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), new SocketIORequest("http://10.1.10.18:3000/", "/chat"), new ConnectCallback() {
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), new SocketIORequest("http://koush.clockworkmod.com:8080/", "/chat"), new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, SocketIOClient client) {
                 assertNull(ex);
                 client.setStringCallback(new StringCallback() {
                     @Override
-                    public void onString(String string) {
+                    public void onString(String string, Acknowledge acknowledge) {
                         trigger.trigger("hello".equals(string));
                     }
                 });
@@ -60,19 +75,19 @@ public class SocketIOTests extends TestCase {
                 assertNull(ex);
                 client.setStringCallback(new StringCallback() {
                     @Override
-                    public void onString(String string) {
+                    public void onString(String string, Acknowledge acknowledge) {
                         trigger1.trigger("hello".equals(string));
                     }
                 });
                 client.on("pong", new EventCallback() {
                     @Override
-                    public void onEvent(JSONArray arguments) {
+                    public void onEvent(JSONArray arguments, Acknowledge acknowledge) {
                         trigger2.trigger(arguments.length() == 3);
                     }
                 });
                 client.setJSONCallback(new JSONCallback() {
                     @Override
-                    public void onJSON(JSONObject json) {
+                    public void onJSON(JSONObject json, Acknowledge acknowledge) {
                         trigger3.trigger("world".equals(json.optString("hello")));
                     }
                 });
