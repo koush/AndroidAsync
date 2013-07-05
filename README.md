@@ -1,7 +1,7 @@
 # AndroidAsync
 
-AndroidAsync is meant to be a low level protocol library. I have built an easy to use, higher level, Android aware,
-http request library on top of AndroidAsync called [Ion](https://github.com/koush/ion). The typical Android
+AndroidAsync is a low level network protocol library. If you are looking for an easy to use, higher level, Android aware,
+http request library, check out [Ion](https://github.com/koush/ion) (it is built on top of AndroidAsync). The typical Android
 app developer would probably be more interested in Ion.
 
 But if you're looking for a raw Socket, HTTP client/server, WebSocket, and Socket.IO library for Android, AndroidAsync
