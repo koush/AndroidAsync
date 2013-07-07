@@ -101,7 +101,8 @@ public class AsyncHttpRequest {
         mHeaders = new RequestHeaders(uri, mRawHeaders);
         mRawHeaders.setStatusLine(getRequestLine().toString());
         mHeaders.setHost(uri.getHost());
-        mHeaders.setUserAgent(getDefaultUserAgent());
+        if (mHeaders.getUserAgent() == null)
+            mHeaders.setUserAgent(getDefaultUserAgent());
         mHeaders.setAcceptEncoding("gzip, deflate");
         mHeaders.setConnection("keep-alive");
         mHeaders.getHeaders().set("Accept", "*/*");
