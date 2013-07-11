@@ -148,6 +148,13 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         data.request.logv("Resolving domain and connecting to all available addresses");
         return new TransformFuture<AsyncSocket, InetAddress[]>() {
             Exception lastException;
+
+            @Override
+            protected void error(Exception e) {
+                super.error(e);
+                data.connectCallback.onConnectCompleted(e, null);
+            }
+
             @Override
             protected void transform(final InetAddress[] result) throws Exception {
                 Continuation keepTrying = new Continuation(new CompletedCallback() {
