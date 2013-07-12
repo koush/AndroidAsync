@@ -137,7 +137,9 @@ public class AsyncHttpClient {
     }
 
     private static long getTimeoutRemaining(AsyncHttpRequest request) {
-        return Math.max(System.currentTimeMillis() - request.executionTime + request.getTimeout(), 1);
+        // need a better way to calculate this.
+        // a timer of sorts that stops/resumes.
+        return request.getTimeout();
     }
 
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
