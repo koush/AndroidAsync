@@ -32,8 +32,8 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
     }
 
     @Override
-    public void write(AsyncHttpRequest request, DataSink sink) {
-        Util.writeAll(sink, mBodyBytes, null);
+    public void write(AsyncHttpRequest request, DataSink sink, final CompletedCallback completed) {
+        Util.writeAll(sink, mBodyBytes, completed);
     }
 
     @Override

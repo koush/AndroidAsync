@@ -32,8 +32,8 @@ public class JSONArrayBody implements AsyncHttpRequestBody<JSONArray> {
     }
 
     @Override
-    public void write(AsyncHttpRequest request, DataSink sink) {
-        Util.writeAll(sink, mBodyBytes, null);
+    public void write(AsyncHttpRequest request, DataSink sink, final CompletedCallback completed) {
+        Util.writeAll(sink, mBodyBytes, completed);
     }
 
     @Override

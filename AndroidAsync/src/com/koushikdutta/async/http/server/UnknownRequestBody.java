@@ -13,7 +13,7 @@ public class UnknownRequestBody implements AsyncHttpRequestBody<Void> {
     }
 
     @Override
-    public void write(AsyncHttpRequest request, DataSink sink) {
+    public void write(AsyncHttpRequest request, DataSink sink, final CompletedCallback completed) {
         assert false;
     }
 

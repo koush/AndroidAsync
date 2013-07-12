@@ -122,7 +122,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
 
     int written;
     @Override
-    public void write(AsyncHttpRequest request, final DataSink sink) {
+    public void write(AsyncHttpRequest request, final DataSink sink, final CompletedCallback completed) {
         if (mParts == null) {
             sink.end();
             return;
@@ -131,6 +131,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         Continuation c = new Continuation(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
+                completed.onCompleted(ex);
 //                if (ex == null)
 //                    sink.end();
 //                else
