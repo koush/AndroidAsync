@@ -57,9 +57,8 @@ public class TimeoutTests extends TestCase {
     @Override
     protected void tearDown() throws Exception {
         super.tearDown();
-//        AsyncServer.getDefault().stop();
         server.stop();
-
+        AsyncServer.getDefault().stop();
     }
 
     public void testTimeout() throws Exception {

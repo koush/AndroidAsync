@@ -28,14 +28,10 @@ import java.util.concurrent.TimeUnit;
 
 public class MultipartTests extends TestCase {
     AsyncHttpServer httpServer;
-    AsyncServer server;
-    
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-
-        server = new AsyncServer();
-        server.setAutostart(true);
 
         httpServer = new AsyncHttpServer();
         httpServer.setErrorCallback(new CompletedCallback() {
@@ -44,7 +40,7 @@ public class MultipartTests extends TestCase {
                 fail();
             }
         });
-        httpServer.listen(server, 5000);
+        httpServer.listen(AsyncServer.getDefault(), 5000);
         
         httpServer.post("/", new HttpServerRequestCallback() {
             int gotten = 0;
@@ -81,7 +77,7 @@ public class MultipartTests extends TestCase {
         super.tearDown();
         
         httpServer.stop();
-        server.stop();
+        AsyncServer.getDefault().stop();
     }
 
     public void testUpload() throws Exception {
@@ -109,7 +105,7 @@ public class MultipartTests extends TestCase {
             }
         });
         
-        String data = ret.get(500000, TimeUnit.MILLISECONDS);
+        String data = ret.get(10000, TimeUnit.MILLISECONDS);
         assertEquals(data, FIELD_VAL + (zeroes.length * 10) + FIELD_VAL);
     }
 }

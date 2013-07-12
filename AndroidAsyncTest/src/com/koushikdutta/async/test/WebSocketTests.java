@@ -17,14 +17,10 @@ import java.util.concurrent.TimeUnit;
 
 public class WebSocketTests extends TestCase {
     AsyncHttpServer httpServer;
-    AsyncServer server;
-    
+
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-
-        server = new AsyncServer();
-        server.setAutostart(true);
 
         httpServer = new AsyncHttpServer();
         httpServer.setErrorCallback(new CompletedCallback() {
@@ -33,7 +29,7 @@ public class WebSocketTests extends TestCase {
                 fail();
             }
         });
-        httpServer.listen(server, 5000);
+        httpServer.listen(AsyncServer.getDefault(), 5000);
         
     
         httpServer.websocket("/ws", new WebSocketRequestCallback() {
@@ -75,6 +71,5 @@ public class WebSocketTests extends TestCase {
         super.tearDown();
         
         httpServer.stop();
-        server.stop();
     }
 }
