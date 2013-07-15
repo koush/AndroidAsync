@@ -38,7 +38,7 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
 
     @Override
     public String getContentType() {
-        return "application/json";
+        return CONTENT_TYPE;
     }
 
     @Override
