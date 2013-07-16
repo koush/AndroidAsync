@@ -798,7 +798,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
         try {
             @SuppressWarnings("unchecked")
             ArrayDeque<E> result = (ArrayDeque<E>) super.clone();
-            result.elements = Arrays.copyOf(elements, elements.length);
+            System.arraycopy(elements, 0, result.elements, 0, elements.length);
             return result;
 
         } catch (CloneNotSupportedException e) {
