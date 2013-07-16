@@ -12,4 +12,5 @@ public interface AsyncHttpResponse extends AsyncSocket {
     public ResponseHeaders getHeaders();
     public void end();
     public AsyncSocket detachSocket();
+    public AsyncHttpRequest getRequest();
 }

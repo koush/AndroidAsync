@@ -16,7 +16,12 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     public AsyncSocket getSocket() {
         return mSocket;
     }
-    
+
+    @Override
+    public AsyncHttpRequest getRequest() {
+        return mRequest;
+    }
+
     void setSocket(AsyncSocket exchange) {
         mSocket = exchange;
         
