@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import android.util.Log;
+
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -349,5 +350,9 @@ public class AsyncNetworkSocket implements AsyncSocket {
     
     public int getLocalPort() {
         return mChannel.getLocalPort();
+    }
+
+    public Object getSocket() {
+        return getChannel().getSocket();
     }
 }

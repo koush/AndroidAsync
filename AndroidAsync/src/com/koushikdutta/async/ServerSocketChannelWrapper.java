@@ -73,4 +73,9 @@ class ServerSocketChannelWrapper extends ChannelWrapper {
         assert false;
         throw new IOException(msg);
     }
+
+    @Override
+    public Object getSocket() {
+        return mChannel.socket();
+    }
 }
