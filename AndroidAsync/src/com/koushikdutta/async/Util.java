@@ -183,13 +183,13 @@ public class Util {
         writeAll(sink, bbl, callback);
     }
 
-    public static AsyncSocket getWrappedSocket(AsyncSocket socket, Class wrappedClass) {
+    public static <T extends AsyncSocket> T getWrappedSocket(AsyncSocket socket, Class<T> wrappedClass) {
         if (wrappedClass.isInstance(socket))
-            return socket;
+            return (T)socket;
         while (socket instanceof AsyncSocketWrapper) {
             socket = ((AsyncSocketWrapper)socket).getSocket();
             if (wrappedClass.isInstance(socket))
-                return socket;
+                return (T)socket;
         }
         return null;
     }
