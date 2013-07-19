@@ -293,9 +293,11 @@ class SocketIOConnection {
         });
     }
 
-    private Acknowledge acknowledge(final String messageId) {
-        if (TextUtils.isEmpty(messageId))
+    private Acknowledge acknowledge(final String _messageId) {
+        if (TextUtils.isEmpty(_messageId))
             return null;
+
+        final String messageId = _messageId.replaceAll("\\+$", "");
 
         return new Acknowledge() {
             @Override

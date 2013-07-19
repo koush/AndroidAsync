@@ -169,4 +169,32 @@ public class SocketIOTests extends TestCase {
         assertTrue(disconnectTrigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
         assertTrue(reconnectTrigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
+
+    public void testEventAck() throws Exception {
+        final TriggerFuture trigger = new TriggerFuture();
+        SocketIOClient client = SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000/", null).get();
+
+        final JSONArray args = new JSONArray();
+        args.put("echo");
+
+        client.on("scoop", new EventCallback() {
+            @Override
+            public void onEvent(JSONArray argument, Acknowledge acknowledge) {
+                acknowledge.acknowledge(args);
+
+            }
+        });
+
+        client.on("ack", new EventCallback() {
+            @Override
+            public void onEvent(JSONArray argument, Acknowledge acknowledge) {
+
+                trigger.trigger(args.optString(0, null).equals("echo"));
+            }
+        });
+
+        client.emit("poop", args);
+
+        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
 }
