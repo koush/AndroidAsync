@@ -172,7 +172,7 @@ public class SocketIOTests extends TestCase {
 
     public void testEventAck() throws Exception {
         final TriggerFuture trigger = new TriggerFuture();
-        SocketIOClient client = SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000/", null).get();
+        SocketIOClient client = SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080/", null).get();
 
         final JSONArray args = new JSONArray();
         args.put("echo");
