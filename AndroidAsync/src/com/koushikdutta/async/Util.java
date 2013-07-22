@@ -168,8 +168,7 @@ public class Util {
         sink.setWriteableCallback(wc = new WritableCallback() {
             @Override
             public void onWriteable() {
-                if (bb.remaining() > 0)
-                    sink.write(bb);
+                sink.write(bb);
                 if (bb.remaining() == 0 && callback != null)
                     callback.onCompleted(null);
             }
