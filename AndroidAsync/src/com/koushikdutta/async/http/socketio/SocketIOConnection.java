@@ -7,6 +7,8 @@ import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.DependentCancellable;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.WebSocket;
@@ -85,8 +87,16 @@ class SocketIOConnection {
         webSocket = null;
     }
 
+    Cancellable connecting;
     void reconnect(final DependentCancellable child) {
         if (isConnected()) {
+            return;
+        }
+
+        // if a connection is in progress, just wait.
+        if (connecting != null && !connecting.isDone() && !connecting.isCancelled()) {
+            if (child != null)
+                child.setParent(connecting);
             return;
         }
 
@@ -94,57 +104,46 @@ class SocketIOConnection {
 
         // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
         request.setHandler(null);
-        // initiate a session
-        Cancellable cancel = httpClient.executeString(request, new AsyncHttpClient.StringCallback() {
+
+        Cancellable connecting = httpClient.executeString(request)
+        .then(new TransformFuture<WebSocket, String>() {
             @Override
-            public void onCompleted(final Exception e, AsyncHttpResponse response, String result) {
-                request.logi("socket.io session received");
+            protected void transform(String result) throws Exception {
+                String[] parts = result.split(":");
+                String session = parts[0];
+                if (!"".equals(parts[1]))
+                    heartbeat = Integer.parseInt(parts[1]) / 2 * 1000;
+                else
+                    heartbeat = 0;
+
+                String transportsLine = parts[3];
+                String[] transports = transportsLine.split(",");
+                HashSet<String> set = new HashSet<String>(Arrays.asList(transports));
+                if (!set.contains("websocket"))
+                    throw new Exception("websocket not supported");
+
+                final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
+
+                httpClient.websocket(sessionUrl, null, null)
+                .setCallback(getCompletionCallback());
+            }
+        })
+        .setCallback(new FutureCallback<WebSocket>() {
+            @Override
+            public void onCompleted(Exception e, WebSocket result) {
                 if (e != null) {
                     reportDisconnect(e);
                     return;
                 }
 
-                try {
-                    String[] parts = result.split(":");
-                    String session = parts[0];
-                    if (!"".equals(parts[1]))
-                        heartbeat = Integer.parseInt(parts[1]) / 2 * 1000;
-                    else
-                        heartbeat = 0;
-
-                    String transportsLine = parts[3];
-                    String[] transports = transportsLine.split(",");
-                    HashSet<String> set = new HashSet<String>(Arrays.asList(transports));
-                    if (!set.contains("websocket"))
-                        throw new Exception("websocket not supported");
-
-                    final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
-
-                    Cancellable cancel = httpClient.websocket(sessionUrl, null, new AsyncHttpClient.WebSocketConnectCallback() {
-                        @Override
-                        public void onCompleted(Exception ex, WebSocket webSocket) {
-                            if (ex != null) {
-                                reportDisconnect(ex);
-                                return;
-                            }
-
-                            reconnectDelay = 1000L;
-                            SocketIOConnection.this.webSocket = webSocket;
-                            attach();
-                        }
-                    });
-
-                    if (child != null)
-                        child.setParent(cancel);
-                }
-                catch (Exception ex) {
-                    reportDisconnect(ex);
-                }
+                reconnectDelay = 1000L;
+                SocketIOConnection.this.webSocket = result;
+                attach();
             }
         });
 
         if (child != null)
-            child.setParent(cancel);
+            child.setParent(connecting);
     }
 
     void setupHeartbeat() {
