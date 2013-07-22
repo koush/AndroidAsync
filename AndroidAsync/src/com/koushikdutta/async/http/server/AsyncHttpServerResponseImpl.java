@@ -128,7 +128,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             mContentLength = bytes.length;
             mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
             mRawHeaders.set("Content-Type", contentType);
-            
+
             writeHead();
             mSink.write(ByteBuffer.wrap(string.getBytes()));
             onEnd();
@@ -150,12 +150,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void send(String string) {
         responseCode(200);
-        send("text/html", string);
+        send("text/html; charset=utf8", string);
     }
 
     @Override
     public void send(JSONObject json) {
-        send("application/json", json.toString());
+        send("application/json; charset=utf8", json.toString());
     }
     
     public void sendFile(File file) {
