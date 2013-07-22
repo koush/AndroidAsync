@@ -635,7 +635,7 @@ public class AsyncHttpClient {
 
     public Future<WebSocket> websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
         assert callback != null;
-        final AsyncHttpGet get = new AsyncHttpGet(uri);
+        final AsyncHttpGet get = new AsyncHttpGet(uri.replace("ws://", "http://").replace("wss://", "https://"));
         return websocket(get, protocol, callback);
     }
 
