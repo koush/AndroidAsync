@@ -3,17 +3,13 @@ package com.koushikdutta.async.http.socketio;
 import android.os.Handler;
 import android.text.TextUtils;
 
-import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.DependentCancellable;
-import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.WebSocket;
-import com.koushikdutta.async.http.server.AsyncHttpServer;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -94,12 +90,15 @@ class SocketIOConnection {
             return;
         }
 
+        request.logi("Reconnecting socket.io");
+
         // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
         request.setHandler(null);
         // initiate a session
         Cancellable cancel = httpClient.executeString(request, new AsyncHttpClient.StringCallback() {
             @Override
             public void onCompleted(final Exception e, AsyncHttpResponse response, String result) {
+                request.logi("socket.io session received");
                 if (e != null) {
                     reportDisconnect(e);
                     return;
@@ -202,6 +201,12 @@ class SocketIOConnection {
 
     long reconnectDelay = 1000L;
     private void reportDisconnect(final Exception ex) {
+        if (ex != null) {
+            request.loge("socket.io disconnected", ex);
+        }
+        else {
+            request.logi("socket.io disconnected");
+        }
         select(null, new SelectCallback() {
             @Override
             public void onSelect(SocketIOClient client) {
@@ -391,6 +396,17 @@ class SocketIOConnection {
                     webSocket = null;
                     reportDisconnect(ex);
                 }
+            }
+        });
+
+        // now reconnect all the sockets that may have been previously connected
+        select(null, new SelectCallback() {
+            @Override
+            public void onSelect(SocketIOClient client) {
+                if (TextUtils.isEmpty(client.endpoint))
+                    return;
+
+                connect(client);
             }
         });
     }
