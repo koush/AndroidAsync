@@ -67,4 +67,9 @@ class SocketChannelWrapper extends ChannelWrapper {
     public long read(ByteBuffer[] byteBuffers, int i, int i2) throws IOException {
         return mChannel.read(byteBuffers, i, i2);
     }
+
+    @Override
+    public Object getSocket() {
+        return mChannel.socket();
+    }
 }

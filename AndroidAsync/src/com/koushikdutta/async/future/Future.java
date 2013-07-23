@@ -8,4 +8,5 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
      * @return
      */
     public Future<T> setCallback(FutureCallback<T> callback);
+    public <C extends TransformFuture<?, T>> C then(C callback);
 }

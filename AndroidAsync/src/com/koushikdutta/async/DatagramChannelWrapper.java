@@ -1,10 +1,7 @@
 package com.koushikdutta.async;
 
-import android.util.Log;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
@@ -85,5 +82,10 @@ class DatagramChannelWrapper extends ChannelWrapper {
     @Override
     public long read(ByteBuffer[] byteBuffers, int i, int i2) throws IOException {
         return mChannel.read(byteBuffers, i, i2);
+    }
+
+    @Override
+    public Object getSocket() {
+        return mChannel.socket();
     }
 }

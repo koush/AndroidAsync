@@ -329,6 +329,7 @@ public class ByteBufferList {
             builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
             reclaim(bb);
         }
+        remaining = 0;
         return builder.toString();
     }
 

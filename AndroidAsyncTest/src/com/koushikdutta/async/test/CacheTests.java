@@ -5,6 +5,7 @@ import android.os.Environment;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.ResponseCacheMiddleware;
+import com.koushikdutta.async.http.libcore.DiskLruCache;
 import com.koushikdutta.async.http.libcore.HttpDate;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
@@ -51,4 +52,30 @@ public class CacheTests extends TestCase {
             client.getMiddleware().remove(cache);
         }
     }
+
+//    static public boolean deleteDirectory(File path) {
+//        if (path.exists()) {
+//            File[] files = path.listFiles();
+//            if (files != null) {
+//                for (int i = 0; i < files.length; i++) {
+//                    if (files[i].isDirectory()) {
+//                        deleteDirectory(files[i]);
+//                    } else {
+//                        files[i].delete();
+//                    }
+//                }
+//            }
+//        }
+//        return (path.delete());
+//    }
+
+//    public void testDiskLruCache() throws Exception {
+//        File dir = new File(Environment.getExternalStorageDirectory(), "AndroidAsyncTest/cache-test");
+//        deleteDirectory(dir);
+//        DiskLruCache cache = DiskLruCache.open(dir, 0, 1000, 10000000);
+//        DiskLruCache.Editor editor = cache.edit("stuff");
+//
+//        DiskLruCache cache2 = DiskLruCache.open(dir, 0, 2, 10000000);
+//        DiskLruCache.Snapshot snapshot = cache2.get("stuff");
+//    }
 }

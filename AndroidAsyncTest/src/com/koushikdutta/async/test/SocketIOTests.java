@@ -25,8 +25,13 @@ import java.util.concurrent.TimeUnit;
 
 public class SocketIOTests extends TestCase {
     public static final long TIMEOUT = 10000L;
-    
-    
+
+    @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        AsyncServer.getDefault().stop();
+    }
+
     class TriggerFuture extends SimpleFuture<Boolean> {
         public void trigger(boolean val) {
             setComplete(val);
@@ -88,7 +93,7 @@ public class SocketIOTests extends TestCase {
         });
         assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
-    
+
     public void testEchoServer() throws Exception {
         final TriggerFuture trigger1 = new TriggerFuture();
         final TriggerFuture trigger2 = new TriggerFuture();
@@ -136,11 +141,43 @@ public class SocketIOTests extends TestCase {
     public void testReconnect() throws Exception {
         final TriggerFuture disconnectTrigger = new TriggerFuture();
         final TriggerFuture reconnectTrigger = new TriggerFuture();
+        final TriggerFuture endpointReconnectTrigger = new TriggerFuture();
+        final TriggerFuture echoTrigger = new TriggerFuture();
 
-        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080", new ConnectCallback() {
+        SocketIORequest req = new SocketIORequest("http://koush.clockworkmod.com:8080");
+        req.setLogging("socket.io", Log.VERBOSE);
+        SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), req, new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, final SocketIOClient client) {
                 assertNull(ex);
+
+                client.of("/chat", new ConnectCallback() {
+                    @Override
+                    public void onConnectCompleted(Exception ex, final SocketIOClient client) {
+                        client.setReconnectCallback(new ReconnectCallback() {
+                            @Override
+                            public void onReconnect() {
+                                client.emit("hello");
+                                endpointReconnectTrigger.trigger(true);
+                            }
+                        });
+
+                        client.setStringCallback(new StringCallback() {
+                            @Override
+                            public void onString(String string, Acknowledge acknowledge) {
+                                echoTrigger.trigger("hello".equals(string));
+                            }
+                        });
+
+                        AsyncServer.getDefault().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                // this will trigger a reconnect
+                                client.getWebSocket().close();
+                            }
+                        }, 200);
+                    }
+                });
 
                 client.setDisconnectCallback(new DisconnectCallback() {
                     @Override
@@ -155,18 +192,40 @@ public class SocketIOTests extends TestCase {
                         reconnectTrigger.trigger(true);
                     }
                 });
-
-                AsyncServer.getDefault().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        // this will trigger a reconnect
-                        client.getWebSocket().close();
-                    }
-                }, 200);
             }
         });
 
         assertTrue(disconnectTrigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
         assertTrue(reconnectTrigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertTrue(endpointReconnectTrigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+        assertTrue(echoTrigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
+    }
+
+    public void testEventAck() throws Exception {
+        final TriggerFuture trigger = new TriggerFuture();
+        SocketIOClient client = SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://koush.clockworkmod.com:8080/", null).get();
+
+        final JSONArray args = new JSONArray();
+        args.put("echo");
+
+        client.on("scoop", new EventCallback() {
+            @Override
+            public void onEvent(JSONArray argument, Acknowledge acknowledge) {
+                acknowledge.acknowledge(args);
+
+            }
+        });
+
+        client.on("ack", new EventCallback() {
+            @Override
+            public void onEvent(JSONArray argument, Acknowledge acknowledge) {
+
+                trigger.trigger(args.optString(0, null).equals("echo"));
+            }
+        });
+
+        client.emit("poop", args);
+
+        assertTrue(trigger.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
 }

@@ -47,4 +47,5 @@ abstract class ChannelWrapper implements ReadableByteChannel, ScatteringByteChan
     }
     
     public abstract int getLocalPort();
+    public abstract Object getSocket();
 }
