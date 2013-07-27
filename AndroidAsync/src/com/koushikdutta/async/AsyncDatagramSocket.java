@@ -1,10 +1,7 @@
 package com.koushikdutta.async;
 
-import android.util.Log;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
 public class AsyncDatagramSocket extends AsyncNetworkSocket {

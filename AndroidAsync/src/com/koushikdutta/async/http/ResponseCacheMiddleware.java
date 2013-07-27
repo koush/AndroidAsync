@@ -251,6 +251,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
     
     public static class CacheData implements Parcelable {
+        DiskLruCache.Snapshot snapshot;
         CacheResponse candidate;
         long contentLength;
         ResponseHeaders cachedResponseHeaders;
@@ -278,7 +279,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         String key = uriToKey(data.request.getUri());
-        DiskLruCache.Snapshot snapshot;
+        DiskLruCache.Snapshot snapshot = null;
         Entry entry;
         try {
             snapshot = cache.get(key);
@@ -299,7 +300,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             snapshot.close();
             return null;
         }
-        
+
         CacheResponse candidate = entry.isHttps() ? new EntrySecureCacheResponse(entry, snapshot) : new EntryCacheResponse(entry, snapshot);
 
         Map<String, List<String>> responseHeadersMap;
@@ -310,6 +311,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
         catch (Exception e) {
             networkCount++;
+            snapshot.close();
             return null;
         }
         if (responseHeadersMap == null || cachedResponseBody == null) {
@@ -319,6 +321,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             catch (Exception e) {
             }
             networkCount++;
+            snapshot.close();
             return null;
         }
 
@@ -351,6 +354,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
             data.request.logi("Response may be served from conditional cache");
             CacheData cacheData = new CacheData();
+            cacheData.snapshot = snapshot;
             cacheData.contentLength = contentLength;
             cacheData.cachedResponseHeaders = cachedResponseHeaders;
             cacheData.candidate = candidate;
@@ -367,6 +371,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             catch (Exception e) {
             }
             networkCount++;
+            snapshot.close();
             return null;
         }
     }
@@ -567,9 +572,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 bodySpewer.spew();
                 return;
             }
-            
+
             // did not validate, so fall through and cache the response
             data.state.remove("cache-data");
+            cacheData.snapshot.close();
         }
         
         if (!caching)
@@ -623,17 +629,24 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     
     @Override
     public void onRequestComplete(OnRequestCompleteData data) {
-        BodyCacher cacher = data.state.getParcelable("body-cacher");
-        if (cacher == null)
-            return;
+        CacheData cacheData = data.state.getParcelable("cache-data");
+        if (cacheData != null && cacheData.snapshot != null)
+            cacheData.snapshot.close();
 
-        try {
-            if (data.exception != null)
-                cacher.abort();
-            else
-                cacher.commit();
-        }
-        catch (Exception e) {
+        CachedSocket cachedSocket = Util.getWrappedSocket(data.socket, CachedSocket.class);
+        if (cachedSocket != null)
+            ((SnapshotCacheResponse)cachedSocket.cacheResponse).getSnapshot().close();
+
+        BodyCacher cacher = data.state.getParcelable("body-cacher");
+        if (cacher != null) {
+            try {
+                if (data.exception != null)
+                    cacher.abort();
+                else
+                    cacher.commit();
+            }
+            catch (Exception e) {
+            }
         }
     }
     
@@ -901,10 +914,19 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         };
     }
 
-    static class EntryCacheResponse extends CacheResponse {
+    static interface SnapshotCacheResponse {
+        public DiskLruCache.Snapshot getSnapshot();
+    }
+
+    static class EntryCacheResponse extends CacheResponse implements SnapshotCacheResponse {
         private final Entry entry;
         private final DiskLruCache.Snapshot snapshot;
         private final InputStream in;
+
+        @Override
+        public DiskLruCache.Snapshot getSnapshot() {
+            return snapshot;
+        }
 
         public EntryCacheResponse(Entry entry, DiskLruCache.Snapshot snapshot) {
             this.entry = entry;
@@ -921,10 +943,16 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
     }
 
-    static class EntrySecureCacheResponse extends SecureCacheResponse {
+    static class EntrySecureCacheResponse extends SecureCacheResponse implements SnapshotCacheResponse {
         private final Entry entry;
         private final DiskLruCache.Snapshot snapshot;
         private final InputStream in;
+
+        @Override
+        public DiskLruCache.Snapshot getSnapshot() {
+            return snapshot;
+        }
+
 
         public EntrySecureCacheResponse(Entry entry, DiskLruCache.Snapshot snapshot) {
             this.entry = entry;

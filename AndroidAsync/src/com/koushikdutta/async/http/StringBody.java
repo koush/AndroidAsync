@@ -32,10 +32,10 @@ public class StringBody implements AsyncHttpRequestBody<String> {
     public static final String CONTENT_TYPE = "text/plain";
 
     @Override
-    public void write(AsyncHttpRequest request, DataSink sink) {
+    public void write(AsyncHttpRequest request, DataSink sink, final CompletedCallback completed) {
         if (mBodyBytes == null)
             mBodyBytes = string.getBytes();
-        Util.writeAll(sink, mBodyBytes, null);
+        Util.writeAll(sink, mBodyBytes, completed);
     }
 
     @Override

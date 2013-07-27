@@ -16,7 +16,12 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     public AsyncSocket getSocket() {
         return mSocket;
     }
-    
+
+    @Override
+    public AsyncHttpRequest getRequest() {
+        return mRequest;
+    }
+
     void setSocket(AsyncSocket exchange) {
         mSocket = exchange;
         
@@ -51,14 +56,26 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                if (mWriter != null)
-                    mWriter.write(mRequest, AsyncHttpResponseImpl.this);
+                if (mWriter != null) {
+                    mWriter.write(mRequest, AsyncHttpResponseImpl.this, new CompletedCallback() {
+                        @Override
+                        public void onCompleted(Exception ex) {
+                            onRequestCompleted(ex);
+                        }
+                    });
+                }
+                else {
+                    onRequestCompleted(null);
+                }
             }
         });
 
         LineEmitter liner = new LineEmitter();
         exchange.setDataCallback(liner);
         liner.setLineCallback(mHeaderCallback);
+    }
+
+    protected void onRequestCompleted(Exception ex) {
     }
     
     private CompletedCallback mReporter = new CompletedCallback() {
@@ -161,6 +178,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
     @Override
     public void end() {
+
         write(ByteBuffer.wrap(new byte[0]));
     }
 

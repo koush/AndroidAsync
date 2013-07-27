@@ -34,7 +34,7 @@ public class AsyncHttpRequest {
             
             @Override
             public String toString() {
-                String path = AsyncHttpRequest.this.getUri().getPath();
+                String path = AsyncHttpRequest.this.getUri().getRawPath();
                 if (path.length() == 0)
                     path = "/";
                 String query = AsyncHttpRequest.this.getUri().getRawQuery();
@@ -101,7 +101,8 @@ public class AsyncHttpRequest {
         mHeaders = new RequestHeaders(uri, mRawHeaders);
         mRawHeaders.setStatusLine(getRequestLine().toString());
         mHeaders.setHost(uri.getHost());
-        mHeaders.setUserAgent(getDefaultUserAgent());
+        if (mHeaders.getUserAgent() == null)
+            mHeaders.setUserAgent(getDefaultUserAgent());
         mHeaders.setAcceptEncoding("gzip, deflate");
         mHeaders.setConnection("keep-alive");
         mHeaders.getHeaders().set("Accept", "*/*");

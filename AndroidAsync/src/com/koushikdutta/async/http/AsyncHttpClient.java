@@ -81,6 +81,7 @@ public class AsyncHttpClient {
     private class FutureAsyncHttpResponse extends SimpleFuture<AsyncHttpResponse> {
         public AsyncSocket socket;
         public Object scheduled;
+        public Runnable timeoutRunnable;
 
         @Override
         public boolean cancel() {
@@ -135,6 +136,12 @@ public class AsyncHttpClient {
         }
     }
 
+    private static long getTimeoutRemaining(AsyncHttpRequest request) {
+        // need a better way to calculate this.
+        // a timer of sorts that stops/resumes.
+        return request.getTimeout();
+    }
+
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
         assert mServer.isAffinityThread();
         if (redirectCount > 5) {
@@ -148,9 +155,19 @@ public class AsyncHttpClient {
 
         request.logd("Executing request.");
 
-        final Object scheduled;
+        // flow:
+        // 1) set a connect timeout
+        // 2) wait for connect
+        // 3) on connect, cancel timeout
+        // 4) wait for request to be sent fully
+        // 5) after request is sent, set a header timeout
+        // 6) wait for headers
+        // 7) on headers, cancel timeout
+        // 8) TODO: response can take as long as it wants to arrive?
+
         if (request.getTimeout() > 0) {
-            cancel.scheduled = scheduled = mServer.postDelayed(new Runnable() {
+            // set connect timeout
+            cancel.timeoutRunnable = new Runnable() {
                 @Override
                 public void run() {
                     // we've timed out, kill the connections
@@ -161,12 +178,11 @@ public class AsyncHttpClient {
                     }
                     reportConnectedCompleted(cancel, new TimeoutException(), null, request, callback);
                 }
-            }, request.getTimeout());
-        }
-        else {
-            scheduled = null;
+            };
+            cancel.scheduled = mServer.postDelayed(cancel.timeoutRunnable, getTimeoutRemaining(request));
         }
 
+        // 2) wait for a connect
         data.connectCallback = new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
@@ -175,6 +191,10 @@ public class AsyncHttpClient {
                         socket.close();
                     return;
                 }
+
+                // 3) on connect, cancel timeout
+                if (cancel.timeoutRunnable != null)
+                    mServer.removeAllCallbacks(cancel.scheduled);
 
                 data.socket = socket;
                 for (AsyncHttpClientMiddleware middleware: mMiddleware) {
@@ -188,7 +208,21 @@ public class AsyncHttpClient {
                     return;
                 }
 
+                // 4) wait for request to be sent fully
+                // and
+                // 6) wait for headers
                 final AsyncHttpResponseImpl ret = new AsyncHttpResponseImpl(request) {
+                    @Override
+                    protected void onRequestCompleted(Exception ex) {
+                        if (cancel.isCancelled())
+                            return;
+                        // 5) after request is sent, set a header timeout
+                        if (cancel.timeoutRunnable != null && data.headers == null) {
+                            mServer.removeAllCallbacks(cancel.scheduled);
+                            cancel.scheduled = mServer.postDelayed(cancel.timeoutRunnable, getTimeoutRemaining(request));
+                        }
+                    }
+
                     @Override
                     public void setDataEmitter(DataEmitter emitter) {
                         data.bodyEmitter = emitter;
@@ -228,8 +262,9 @@ public class AsyncHttpClient {
                             if (cancel.isCancelled())
                                 return;
 
-                            if (scheduled != null)
-                                mServer.removeAllCallbacks(scheduled);
+                            // 7) on headers, cancel timeout
+                            if (cancel.timeoutRunnable != null)
+                                mServer.removeAllCallbacks(cancel.scheduled);
 
                             // allow the middleware to massage the headers before the body is decoded
                             request.logv("Received headers: " + mHeaders.getHeaders().toHeaderString());
@@ -600,7 +635,7 @@ public class AsyncHttpClient {
 
     public Future<WebSocket> websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
         assert callback != null;
-        final AsyncHttpGet get = new AsyncHttpGet(uri);
+        final AsyncHttpGet get = new AsyncHttpGet(uri.replace("ws://", "http://").replace("wss://", "https://"));
         return websocket(get, protocol, callback);
     }
 

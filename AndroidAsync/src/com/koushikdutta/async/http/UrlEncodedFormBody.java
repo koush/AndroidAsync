@@ -45,10 +45,10 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
     }
     
     @Override
-    public void write(AsyncHttpRequest request, final DataSink response) {
+    public void write(AsyncHttpRequest request, final DataSink response, final CompletedCallback completed) {
         if (mBodyBytes == null)
             buildData();
-        Util.writeAll(response, mBodyBytes, null);
+        Util.writeAll(response, mBodyBytes, completed);
     }
 
     public static final String CONTENT_TYPE = "application/x-www-form-urlencoded";

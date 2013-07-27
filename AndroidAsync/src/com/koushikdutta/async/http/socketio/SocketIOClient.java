@@ -174,6 +174,10 @@ public class SocketIOClient extends EventEmitter {
         connection.connect(new SocketIOClient(connection, endpoint, connectCallback));
     }
 
+    public void reconnect() {
+        connection.reconnect(null);
+    }
+
     public WebSocket getWebSocket() {
         return connection.webSocket;
     }
