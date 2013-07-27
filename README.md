@@ -136,19 +136,19 @@ SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2
         }
         client.setStringCallback(new StringCallback() {
             @Override
-            public void onString(String string) {
+            public void onString(String string, Acknowledge acknowledge) {
                 System.out.println(string);
             }
         });
-        client.setEventCallback(new EventCallback() {
+        client.addListener("eventName", new EventCallback() {
             @Override
-            public void onEvent(String event, JSONArray arguments) {
+            public void onEvent(String event, JSONArray arguments, Acknowledge acknowledge) {
                 System.out.println("event: " + event + " args: " + arguments.toString());
             }
         });
         client.setJSONCallback(new JSONCallback() {
             @Override
-            public void onJSON(JSONObject json) {
+            public void onJSON(JSONObject json, Acknowledge acknowledge) {
                 System.out.println("json: " + json.toString());
             }
         });
