@@ -248,7 +248,7 @@ public class AsyncHttpServer {
                         }
                     }
                 }
-                if (!"websocket".equals(request.getHeaders().getHeaders().get("Upgrade")) || !hasUpgrade) {
+                if (!"websocket".equalsIgnoreCase(request.getHeaders().getHeaders().get("Upgrade")) || !hasUpgrade) {
                     response.responseCode(404);
                     response.end();
                     return;
