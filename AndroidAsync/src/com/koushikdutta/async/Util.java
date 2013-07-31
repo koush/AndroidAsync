@@ -40,6 +40,10 @@ public class Util {
     }
 
     public static void pump(final InputStream is, final DataSink ds, final CompletedCallback callback) {
+        pump(is, Integer.MAX_VALUE, ds, callback);
+    }
+
+    public static void pump(final InputStream is, final int max, final DataSink ds, final CompletedCallback callback) {
         final CompletedCallback wrapper = new CompletedCallback() {
             boolean reported;
             @Override
@@ -52,6 +56,7 @@ public class Util {
         };
 
         final WritableCallback cb = new WritableCallback() {
+            int totalRead = 0;
             private void close() {
                 try {
                     is.close();
@@ -70,15 +75,16 @@ public class Util {
             public void onWriteable() {
                 try {
                     int remaining;
-//                    long start = System.currentTimeMillis();
                     do {
                         if (pending.remaining() == 0) {
-                            int read = is.read(buffer);
-                            if (read == -1) {
+                            int toRead = Math.min(max - totalRead, buffer.length);
+                            int read = is.read(buffer, 0, toRead);
+                            if (read == -1 || totalRead == max) {
                                 close();
                                 wrapper.onCompleted(null);
                                 return;
                             }
+                            totalRead += read;
                             pending.position(0);
                             pending.limit(read);
                         }

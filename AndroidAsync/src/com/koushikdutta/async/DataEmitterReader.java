@@ -11,7 +11,7 @@ public class DataEmitterReader implements com.koushikdutta.async.callback.DataCa
         assert mPendingRead == null;
         mPendingReadLength = count;
         mPendingRead = callback;
-        mPendingData = new ByteBufferList();
+        mPendingData.recycle();
     }
 
     private boolean handlePendingData(DataEmitter emitter) {

@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http.server;
 
+import android.text.TextUtils;
+
 import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -11,6 +13,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
@@ -159,18 +162,56 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
     
     public void sendFile(File file) {
+        int start = 0;
+        int end = (int)file.length();
+
+        String range = mRequest.getHeaders().getHeaders().get("Range");
+        if (range != null) {
+            String[] parts = range.split("=");
+            if (parts.length != 2 || !"bytes".equals(parts[0])) {
+                // Requested range not satisfiable
+                responseCode(416);
+                end();
+                return;
+            }
+
+            parts = parts[1].split("-");
+            try {
+                if (parts.length > 2)
+                    throw new Exception();
+                if (!TextUtils.isEmpty(parts[0]))
+                    start = Integer.parseInt(parts[0]);
+                if (parts.length == 2 && !TextUtils.isEmpty(parts[1]))
+                    end = Integer.parseInt(parts[1]);
+                else if (start != 0)
+                    end = (int)file.length();
+                else
+                    end = Math.min((int)file.length(), start + 50000);
+
+                responseCode(206);
+                getHeaders().getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end - 1, file.length()));
+            }
+            catch (Exception e) {
+                responseCode(416);
+                end();
+                return;
+            }
+        }
         try {
             FileInputStream fin = new FileInputStream(file);
+            if (start != fin.skip(start))
+                throw new Exception();
             mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
-            responseCode(200);
-            Util.pump(fin, this, new CompletedCallback() {
+            if (getHeaders().getHeaders().getStatusLine() == null)
+                responseCode(200);
+            Util.pump(fin, end - start, this, new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
                     end();
                 }
             });
         }
-        catch (FileNotFoundException e) {
+        catch (Exception e) {
             responseCode(404);
             end();
         }
