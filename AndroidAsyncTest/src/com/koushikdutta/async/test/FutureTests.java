@@ -348,14 +348,7 @@ public class FutureTests extends TestCase {
             assertEquals((int)results.get(i), i);
         }
     }
-    
-    
-    class TriggerFuture extends SimpleFuture<Integer> {
-        public void trigger() {
-            setComplete(2020);
-        }
-    }
-    
+
     public void testReentrancy() throws Exception {
         // verify reentrancy will work
         

@@ -122,7 +122,12 @@ class SocketIOConnection {
                 if (!set.contains("websocket"))
                     throw new Exception("websocket not supported");
 
-                final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
+                String query;
+                if (TextUtils.isEmpty(request.getQuery()))
+                    query = "?" + request.getQuery();
+                else
+                    query = "";
+                final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/" + query;
 
                 httpClient.websocket(sessionUrl, null, null)
                 .setCallback(getCompletionCallback());
