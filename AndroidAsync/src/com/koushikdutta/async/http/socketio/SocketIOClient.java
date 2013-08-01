@@ -5,6 +5,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
@@ -108,6 +109,15 @@ public class SocketIOClient extends EventEmitter {
         connection.reconnect(ret);
 
         return ret;
+    }
+
+    ExceptionCallback exceptionCallback;
+    public void setExceptionCallback(ExceptionCallback exceptionCallback) {
+        this.exceptionCallback = exceptionCallback;
+    }
+
+    public ExceptionCallback getExceptionCallback() {
+        return exceptionCallback;
     }
 
     ErrorCallback errorCallback;
