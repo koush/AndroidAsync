@@ -28,7 +28,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     AsyncSocket mSocket;
     BufferedDataEmitter mEmitter;
     BufferedDataSink mSink;
-    ByteBuffer mReadTmp = ByteBufferList.obtain(8192);
     boolean mUnwrapping = false;
     HostnameVerifier hostnameVerifier;
 
@@ -78,9 +77,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 try {
                     mUnwrapping = true;
 
-                    mReadTmp.position(0);
-                    mReadTmp.limit(mReadTmp.capacity());
-
                     ByteBuffer b = ByteBufferList.EMPTY_BYTEBUFFER;
                     while (true) {
                         if (b.remaining() == 0 && bb.size() > 0) {
@@ -88,10 +84,11 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         }
                         int remaining = b.remaining();
 
-                        SSLEngineResult res = engine.unwrap(b, mReadTmp);
+                        ByteBuffer read = ByteBufferList.obtain(remaining * 2);
+
+                        SSLEngineResult res = engine.unwrap(b, read);
+                        addToPending(transformed, read);
                         if (res.getStatus() == Status.BUFFER_OVERFLOW) {
-                            addToPending(transformed);
-                            mReadTmp = ByteBufferList.obtain(mReadTmp.remaining() * 2);
                             remaining = -1;
                         }
                         else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
@@ -109,7 +106,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         }
                     }
 
-                    addToPending(transformed);
                     Util.emitAllData(AsyncSSLSocketWrapper.this, transformed);
                 }
                 catch (Exception ex) {
@@ -123,12 +119,14 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         });
     }
 
-    void addToPending(ByteBufferList out) {
-        if (mReadTmp.position() > 0) {
-            mReadTmp.limit(mReadTmp.position());
-            mReadTmp.position(0);
-            out.add(mReadTmp);
-            mReadTmp = ByteBufferList.obtain(mReadTmp.capacity());
+    void addToPending(ByteBufferList out, ByteBuffer read) {
+        if (read.position() > 0) {
+            read.limit(read.position());
+            read.position(0);
+            out.add(read);
+        }
+        else {
+            ByteBufferList.reclaim(read);
         }
     }
 
