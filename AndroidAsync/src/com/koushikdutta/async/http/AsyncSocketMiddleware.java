@@ -236,7 +236,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             socket.setClosedCallback(new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
-                    synchronized (this) {
+                    synchronized (AsyncSocketMiddleware.this) {
                         ss.remove(socket);
                     }
                     socket.setClosedCallback(null);
