@@ -92,7 +92,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         addToPending(transformed, read);
                         if (res.getStatus() == Status.BUFFER_OVERFLOW) {
                             remaining = -1;
-                            read = ByteBufferList.obtain(read.remaining() * 2);
+                            read = ByteBufferList.obtain(read.capacity() * 2);
                         }
                         else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
                             read = null;
