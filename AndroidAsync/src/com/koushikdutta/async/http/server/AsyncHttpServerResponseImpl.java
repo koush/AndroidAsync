@@ -54,18 +54,22 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     boolean mHasWritten = false;
-    ChunkedOutputFilter mChunker;
+    BufferedDataSink mChunker;
     void initFirstWrite() {
         if (mHasWritten)
             return;
 
-        assert mContentLength < 0;
         assert null != mRawHeaders.getStatusLine();
-        mRawHeaders.set("Transfer-Encoding", "Chunked");
+        if (mContentLength < 0) {
+            mRawHeaders.set("Transfer-Encoding", "Chunked");
+            mChunker = new ChunkedOutputFilter(mSink);
+        }
+        else {
+            mChunker = mSink;
+        }
         writeHead();
         mSink.setMaxBuffer(0);
         mHasWritten = true;
-        mChunker = new ChunkedOutputFilter(mSink);
     }
 
     private void writeInternal(ByteBufferList bb) {
@@ -95,7 +99,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void end() {
-        if (null == mRawHeaders.get("Transfer-Encoding")) {
+        if (null == mRawHeaders.get("Transfer-Encoding") && !mHasWritten) {
             send("text/html", "");
             onEnd();
             return;
@@ -202,6 +206,8 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             if (start != fin.skip(start))
                 throw new Exception();
             mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
+            mContentLength = end - start;
+            mRawHeaders.set("Content-Length", "" + mContentLength);
             if (getHeaders().getHeaders().getStatusLine() == null)
                 responseCode(200);
             Util.pump(fin, end - start, this, new CompletedCallback() {
