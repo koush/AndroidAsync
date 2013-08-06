@@ -144,7 +144,7 @@ public class AsyncHttpClient {
 
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
         assert mServer.isAffinityThread();
-        if (redirectCount > 5) {
+        if (redirectCount > 15) {
             reportConnectedCompleted(cancel, new Exception("too many redirects"), null, request, callback);
             return;
         }

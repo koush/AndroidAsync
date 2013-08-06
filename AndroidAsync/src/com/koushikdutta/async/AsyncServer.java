@@ -363,6 +363,11 @@ public class AsyncServer {
                     key.attach(handler);
                     handler.onListening(new AsyncServerSocket() {
                         @Override
+                        public int getLocalPort() {
+                            return server.socket().getLocalPort();
+                        }
+
+                        @Override
                         public void stop() {
                             try {
                                 server.close();

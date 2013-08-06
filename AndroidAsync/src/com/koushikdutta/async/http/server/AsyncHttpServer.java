@@ -160,7 +160,7 @@ public class AsyncHttpServer {
             mListeners.add(socket);
         }
     };
-    
+
     public void listen(AsyncServer server, int port) {
         server.listen(null, port, mListenCallback);
     }
