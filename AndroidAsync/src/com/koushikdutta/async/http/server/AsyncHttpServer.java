@@ -51,7 +51,7 @@ public class AsyncHttpServer {
                     if (!hasContinued && "100-continue".equals(headers.get("Expect"))) {
                         pause();
 //                        System.out.println("continuing...");
-                        Util.writeAll(mSocket, "HTTP/1.1 100 Continue\r\n".getBytes(), new CompletedCallback() {
+                        Util.writeAll(mSocket, "HTTP/1.1 100 Continue\r\n\r\n".getBytes(), new CompletedCallback() {
                             @Override
                             public void onCompleted(Exception ex) {
                                 resume();
