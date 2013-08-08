@@ -22,7 +22,7 @@ public class EventEmitter {
         Iterator<EventCallback> iter = list.iterator();
         while (iter.hasNext()) {
             EventCallback cb = iter.next();
-            cb.onEvent(arguments, acknowledge);
+            cb.onEvent(event, arguments, acknowledge);
             if (cb instanceof OnceCallback)
                 iter.remove();
         }
@@ -35,8 +35,8 @@ public class EventEmitter {
     public void once(final String event, final EventCallback callback) {
         on(event, new OnceCallback() {
             @Override
-            public void onEvent(JSONArray arguments, Acknowledge acknowledge) {
-                callback.onEvent(arguments, acknowledge);
+            public void onEvent(String event, JSONArray arguments, Acknowledge acknowledge) {
+                callback.onEvent(event, arguments, acknowledge);
             }
         });
     }
