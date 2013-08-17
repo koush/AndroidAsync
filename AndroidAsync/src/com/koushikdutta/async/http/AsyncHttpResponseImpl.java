@@ -53,6 +53,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         });
 
         String rs = mRequest.getRequestString();
+        mRequest.logv(rs);
         com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
