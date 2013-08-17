@@ -152,8 +152,9 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     @Override
-    public <C extends TransformFuture<?, T>> C then(C callback) {
-        callback.setParent(this);
+    public <C extends FutureCallback<T>> C then(C callback) {
+        if (callback instanceof DependentCancellable)
+            ((DependentCancellable)callback).setParent(this);
         setCallback(callback);
         return callback;
     }
