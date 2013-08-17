@@ -572,7 +572,7 @@ public class AsyncServer {
 
     private boolean addMe() {
         synchronized (mServers) {
-            AsyncServer current = mServers.get(Thread.currentThread());
+            AsyncServer current = mServers.get(mAffinity);
             if (current != null) {
 //                Log.e(LOGTAG, "****AsyncServer already running on this thread.****");
                 return false;
