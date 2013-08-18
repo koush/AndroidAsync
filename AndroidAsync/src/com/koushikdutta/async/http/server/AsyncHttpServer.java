@@ -118,8 +118,15 @@ public class AsyncHttpServer {
                         return;
                     requestComplete = true;
                     super.onCompleted(e);
-                    mSocket.setDataCallback(null);
-                    mSocket.pause();
+                    // no http pipelining, gc trashing if the socket dies
+                    // while the request is being sent and is paused or something
+                    mSocket.setDataCallback(new NullDataCallback() {
+                        @Override
+                        public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                            super.onDataAvailable(emitter, bb);
+                            mSocket.close();
+                        }
+                    });
                     handleOnCompleted();
 
                     if (getBody().readFullyOnRequest()) {
