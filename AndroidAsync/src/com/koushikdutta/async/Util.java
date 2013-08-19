@@ -81,6 +81,7 @@ public class Util {
                             int read = is.read(buffer, 0, toRead);
                             if (read == -1 || totalRead == max) {
                                 close();
+                                ds.setWriteableCallback(null);
                                 wrapper.onCompleted(null);
                                 return;
                             }
@@ -129,6 +130,7 @@ public class Util {
             public void onCompleted(Exception ex) {
                 if (reported)
                     return;
+                sink.setWriteableCallback(null);
                 reported = true;
                 callback.onCompleted(ex);
             }
@@ -170,13 +172,14 @@ public class Util {
 
     public static void writeAll(final DataSink sink, final ByteBufferList bb, final CompletedCallback callback) {
         WritableCallback wc;
-        final int total = bb.remaining();
         sink.setWriteableCallback(wc = new WritableCallback() {
             @Override
             public void onWriteable() {
                 sink.write(bb);
-                if (bb.remaining() == 0 && callback != null)
+                if (bb.remaining() == 0 && callback != null) {
+                    sink.setWriteableCallback(null);
                     callback.onCompleted(null);
+                }
             }
         });
         wc.onWriteable();

@@ -32,11 +32,9 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     AsyncSocket mSocket;
-    BufferedDataSink mSink;
     AsyncHttpServerRequestImpl mRequest;
     AsyncHttpServerResponseImpl(AsyncSocket socket, AsyncHttpServerRequestImpl req) {
         mSocket = socket;
-        mSink = new BufferedDataSink(socket);
         mRequest = req;
         mRawHeaders.set("Connection", "Keep-Alive");
     }
@@ -48,36 +46,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         writeInternal(bb);
     }
 
-    private void writeInternal(ByteBuffer bb) {
-        initFirstWrite();
-        mChunker.write(bb);
-    }
-
-    boolean mHasWritten = false;
-    BufferedDataSink mChunker;
-    void initFirstWrite() {
-        if (mHasWritten)
-            return;
-
-        assert null != mRawHeaders.getStatusLine();
-        if (mContentLength < 0) {
-            mRawHeaders.set("Transfer-Encoding", "Chunked");
-            mChunker = new ChunkedOutputFilter(mSink);
-        }
-        else {
-            mChunker = mSink;
-        }
-        writeHead();
-        mSink.setMaxBuffer(0);
-        mHasWritten = true;
-    }
-
-    private void writeInternal(ByteBufferList bb) {
-        assert !mEnded;
-        initFirstWrite();
-        mChunker.write(bb);
-    }
-
     @Override
     public void write(ByteBufferList bb) {
         if (bb.remaining() == 0)
@@ -85,16 +53,52 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         writeInternal(bb);
     }
 
+    private void writeInternal(ByteBuffer bb) {
+        assert !mEnded;
+        if (!mHasWritten) {
+            initFirstWrite();
+            return;
+        }
+        mSink.write(bb);
+    }
+
+    private void writeInternal(ByteBufferList bb) {
+        assert !mEnded;
+        if (!mHasWritten) {
+            initFirstWrite();
+            return;
+        }
+        mSink.write(bb);
+    }
+
+    boolean mHasWritten = false;
+    DataSink mSink;
+    void initFirstWrite() {
+        if (mHasWritten)
+            return;
+
+        mHasWritten = true;
+        assert null != mRawHeaders.getStatusLine();
+        if (mContentLength < 0) {
+            mRawHeaders.set("Transfer-Encoding", "Chunked");
+            mSink = new ChunkedOutputFilter(mSocket);
+        }
+        else {
+            mSink = mSocket;
+        }
+        writeHead();
+    }
+
     @Override
     public void setWriteableCallback(WritableCallback handler) {
         initFirstWrite();
-        mChunker.setWriteableCallback(handler);
+        mSink.setWriteableCallback(handler);
     }
 
     @Override
     public WritableCallback getWriteableCallback() {
         initFirstWrite();
-        return mChunker.getWriteableCallback();
+        return mSink.getWriteableCallback();
     }
 
     @Override
@@ -105,9 +109,9 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             return;
         }
         initFirstWrite();
-        
-        mChunker.setMaxBuffer(Integer.MAX_VALUE);
-        mChunker.write(new ByteBufferList());
+
+        ((ChunkedOutputFilter)mSink).setMaxBuffer(Integer.MAX_VALUE);
+        mSink.write(new ByteBufferList());
 
         onEnd();
     }
@@ -117,7 +121,14 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     public void writeHead() {
         assert !mHeadWritten;
         mHeadWritten = true;
-        mSink.write(ByteBuffer.wrap(mRawHeaders.toHeaderString().getBytes()));
+        Util.writeAll(mSocket, mRawHeaders.toHeaderString().getBytes(), new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                WritableCallback writableCallback = getWriteableCallback();
+                if (writableCallback != null)
+                    writableCallback.onWriteable();
+            }
+        });
     }
 
     @Override
@@ -126,7 +137,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         mRawHeaders.set("Content-Type", contentType);
     }
     
-    public void send(String contentType, String string) {
+    public void send(String contentType, final String string) {
         try {
             if (mRawHeaders.getStatusLine() == null)
                 responseCode(200);
@@ -136,9 +147,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
             mRawHeaders.set("Content-Type", contentType);
 
-            writeHead();
-            mSink.write(ByteBuffer.wrap(string.getBytes()));
-            onEnd();
+            Util.writeAll(this, string.getBytes(), new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception ex) {
+                    onEnd();
+                }
+            });
         }
         catch (UnsupportedEncodingException e) {
             assert false;
@@ -252,13 +266,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void close() {
         end();
-        // if we're using the chunker, close that.
-        // there may be data pending. That will eventually call
-        // the close callback in the underlying mSink
-        if (mChunker != null)
-            mChunker.close();
-        else
-            mSink.close();
+        mSink.close();
     }
 
     @Override
