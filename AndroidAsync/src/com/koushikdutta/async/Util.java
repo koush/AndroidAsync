@@ -57,7 +57,10 @@ public class Util {
 
         final WritableCallback cb = new WritableCallback() {
             int totalRead = 0;
-            private void close() {
+            private void cleanup() {
+                ds.setClosedCallback(null);
+                ds.setWriteableCallback(null);
+                ByteBufferList.reclaim(pending);
                 try {
                     is.close();
                 }
@@ -65,38 +68,37 @@ public class Util {
                     e.printStackTrace();
                 }
             }
-            byte[] buffer = new byte[8192];
-            ByteBuffer pending = ByteBuffer.wrap(buffer);
-            {
-                pending.limit(pending.position());
-            }
+            ByteBuffer pending;
+            int mToAlloc = 0;
+            int maxAlloc = 256 * 1024;
 
             @Override
             public void onWriteable() {
                 try {
-                    int remaining;
                     do {
-                        if (pending.remaining() == 0) {
-                            int toRead = Math.min(max - totalRead, buffer.length);
-                            int read = is.read(buffer, 0, toRead);
+                        if (pending == null || pending.remaining() == 0) {
+                            ByteBufferList.reclaim(pending);
+                            pending = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
+
+                            int toRead = Math.min(max - totalRead, pending.capacity());
+                            int read = is.read(pending.array(), 0, toRead);
                             if (read == -1 || totalRead == max) {
-                                close();
-                                ds.setWriteableCallback(null);
+                                cleanup();
                                 wrapper.onCompleted(null);
                                 return;
                             }
+                            mToAlloc = read * 2;
                             totalRead += read;
                             pending.position(0);
                             pending.limit(read);
                         }
                         
-                        remaining = pending.remaining();
                         ds.write(pending);
                     }
-                    while (remaining != pending.remaining());
+                    while (!pending.hasRemaining());
                 }
                 catch (Exception e) {
-                    close();
+                    cleanup();
                     wrapper.onCompleted(e);
                 }
             }
