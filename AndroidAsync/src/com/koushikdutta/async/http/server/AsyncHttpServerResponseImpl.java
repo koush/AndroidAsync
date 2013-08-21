@@ -218,7 +218,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         try {
             FileInputStream fin = new FileInputStream(file);
             if (start != fin.skip(start))
-                throw new Exception();
+                throw new Exception("skip failed to skip requested amount");
             mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
             mContentLength = end - start;
             mRawHeaders.set("Content-Length", "" + mContentLength);
