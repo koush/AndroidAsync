@@ -61,6 +61,7 @@ public class Util {
                 ds.setClosedCallback(null);
                 ds.setWriteableCallback(null);
                 ByteBufferList.reclaim(pending);
+                pending = null;
                 try {
                     is.close();
                 }
