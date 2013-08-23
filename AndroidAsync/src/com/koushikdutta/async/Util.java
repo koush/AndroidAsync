@@ -112,17 +112,21 @@ public class Util {
     }
     
     public static void pump(final DataEmitter emitter, final DataSink sink, final CompletedCallback callback) {
-        emitter.setDataCallback(new DataCallback() {
+        final ByteBufferList pending = new ByteBufferList();
+        final DataCallback dataCallback = new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                sink.write(bb);
-                if (bb.remaining() > 0)
+                bb.get(pending);
+                sink.write(pending);
+                if (pending.remaining() > 0)
                     emitter.pause();
             }
-        });
+        };
+        emitter.setDataCallback(dataCallback);
         sink.setWriteableCallback(new WritableCallback() {
             @Override
             public void onWriteable() {
+                dataCallback.onDataAvailable(emitter, new ByteBufferList());
                 emitter.resume();
             }
         });
@@ -133,6 +137,8 @@ public class Util {
             public void onCompleted(Exception ex) {
                 if (reported)
                     return;
+                emitter.setEndCallback(null);
+                sink.setClosedCallback(null);
                 sink.setWriteableCallback(null);
                 reported = true;
                 callback.onCompleted(ex);

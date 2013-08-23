@@ -227,7 +227,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             Util.pump(fin, end - start, this, new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
-                    end();
+                    onEnd();
                 }
             });
         }
