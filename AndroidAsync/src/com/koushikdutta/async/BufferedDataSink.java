@@ -44,16 +44,22 @@ public class BufferedDataSink implements DataSink {
 
     @Override
     public void write(ByteBuffer bb) {
-        if (!mPendingWrites.hasRemaining())
-            mDataSink.write(bb);
+        if (remaining() >= getMaxBuffer())
+            return;
 
-        if (bb.remaining() > 0) {
-            int toRead = Math.min(bb.remaining(), mMaxBuffer);
-            if (toRead > 0) {
-                byte[] bytes = new byte[toRead];
-                bb.get(bytes);
-                mPendingWrites.add(ByteBuffer.wrap(bytes));
-            }
+        boolean needsWrite = true;
+        if (!mPendingWrites.hasRemaining()) {
+            needsWrite = false;
+            mDataSink.write(bb);
+        }
+
+        if (bb.hasRemaining()) {
+            ByteBuffer dup = ByteBufferList.obtain(bb.remaining());
+            dup.put(bb);
+            dup.flip();
+            mPendingWrites.add(dup);
+            if (needsWrite)
+                mDataSink.write(mPendingWrites);
         }
     }
 
