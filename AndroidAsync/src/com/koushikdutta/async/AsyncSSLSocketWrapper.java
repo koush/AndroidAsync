@@ -284,7 +284,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 res = engine.wrap(bb, mWriteTmp);
                 writeTmp(mWriteTmp);
                 if (res.getStatus() == Status.BUFFER_OVERFLOW) {
-                    System.out.println("overflow");
                     mWriteTmp = ByteBufferList.obtain(mWriteTmp.capacity() * 2);
                     remaining = -1;
                 }
@@ -327,7 +326,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 bb.addAll(arr);
                 writeTmp(mWriteTmp);
                 if (res.getStatus() == Status.BUFFER_OVERFLOW) {
-                    System.out.println("overflow");
                     mWriteTmp = ByteBufferList.obtain(mWriteTmp.capacity() * 2);
                     remaining = -1;
                 }
