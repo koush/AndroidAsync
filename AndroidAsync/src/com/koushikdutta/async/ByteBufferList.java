@@ -361,6 +361,14 @@ public class ByteBufferList {
     static int currentSize = 0;
     static int maxItem = 0;
 
+    private static boolean reclaimedContains(ByteBuffer b) {
+        for (ByteBuffer other: reclaimed) {
+            if (other == b)
+                return true;
+        }
+        return false;
+    }
+
     public static void reclaim(ByteBuffer b) {
         if (b == null || b.arrayOffset() != 0 || b.array().length != b.capacity()) {
             return;
@@ -386,9 +394,7 @@ public class ByteBufferList {
                 return;
             }
 
-            assert !r.contains(b);
-            if (r.contains(b))
-                return;
+            assert !reclaimedContains(b);
 
             b.position(0);
             b.limit(b.capacity());
