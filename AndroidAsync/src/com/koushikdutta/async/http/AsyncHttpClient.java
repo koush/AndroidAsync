@@ -46,7 +46,7 @@ public class AsyncHttpClient {
         return mDefaultInstance;
     }
 
-    ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
+    final ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
     public ArrayList<AsyncHttpClientMiddleware> getMiddleware() {
         return mMiddleware;
     }
@@ -197,8 +197,10 @@ public class AsyncHttpClient {
                     mServer.removeAllCallbacks(cancel.scheduled);
 
                 data.socket = socket;
-                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                    middleware.onSocket(data);
+                synchronized (mMiddleware) {
+                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                        middleware.onSocket(data);
+                    }
                 }
 
                 cancel.socket = socket;
@@ -226,8 +228,10 @@ public class AsyncHttpClient {
                     @Override
                     public void setDataEmitter(DataEmitter emitter) {
                         data.bodyEmitter = emitter;
-                        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                            middleware.onBodyDecoder(data);
+                        synchronized (mMiddleware) {
+                            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                                middleware.onBodyDecoder(data);
+                            }
                         }
                         mHeaders = data.headers;
 
@@ -270,8 +274,10 @@ public class AsyncHttpClient {
                             request.logv("Received headers: " + mHeaders.getHeaders().toHeaderString());
 
                             data.headers = mHeaders;
-                            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                                middleware.onHeadersReceived(data);
+                            synchronized (mMiddleware) {
+                                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                                    middleware.onHeadersReceived(data);
+                                }
                             }
                             mHeaders = data.headers;
 
@@ -304,8 +310,10 @@ public class AsyncHttpClient {
                         }
 
                         data.exception = ex;
-                        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                            middleware.onRequestComplete(data);
+                        synchronized (mMiddleware) {
+                            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                                middleware.onRequestComplete(data);
+                            }
                         }
                     }
 
@@ -329,12 +337,14 @@ public class AsyncHttpClient {
             }
         };
 
-        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-            Cancellable socketCancellable = middleware.getSocket(data);
-            if (socketCancellable != null) {
-                data.socketCancellable = socketCancellable;
-                cancel.setParent(socketCancellable);
-                return;
+        synchronized (mMiddleware) {
+            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                Cancellable socketCancellable = middleware.getSocket(data);
+                if (socketCancellable != null) {
+                    data.socketCancellable = socketCancellable;
+                    cancel.setParent(socketCancellable);
+                    return;
+                }
             }
         }
         assert false;
