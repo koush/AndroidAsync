@@ -63,6 +63,13 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         mPort = port;
         engine.setUseClientMode(clientMode);
         mSink = new BufferedDataSink(socket);
+        mSink.setWriteableCallback(new WritableCallback() {
+            @Override
+            public void onWriteable() {
+                if (mWriteableCallback != null)
+                    mWriteableCallback.onWriteable();
+            }
+        });
 
         // SSL needs buffering of data written during handshake.
         // aka exhcange.setDatacallback
