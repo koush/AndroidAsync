@@ -38,7 +38,7 @@ public class HttpUtil {
         return new UnknownRequestBody(contentType);
     }
     
-    private static class EndEmitter extends FilteredDataEmitter {
+    static class EndEmitter extends FilteredDataEmitter {
         private EndEmitter() {
         }
         
