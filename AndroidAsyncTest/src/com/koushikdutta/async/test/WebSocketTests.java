@@ -65,6 +65,24 @@ public class WebSocketTests extends TestCase {
         
         assertTrue(semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
     }
+
+//    public void testDisconnect() throws Exception {
+//        final Semaphore semaphore = new Semaphore(0);
+//
+//        AsyncHttpClient.getDefaultInstance().websocket("http://192.168.1.2:3005", null, new WebSocketConnectCallback() {
+//            @Override
+//            public void onCompleted(Exception ex, WebSocket webSocket) {
+//                webSocket.setClosedCallback(new CompletedCallback() {
+//                    @Override
+//                    public void onCompleted(Exception ex) {
+//                        semaphore.release();
+//                    }
+//                });
+//            }
+//        });
+//
+//        assertTrue(semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
+//    }
     
     @Override
     protected void tearDown() throws Exception {

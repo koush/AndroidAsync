@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http.server;
 
 import android.content.Context;
+import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.AsyncServer;
@@ -259,6 +260,10 @@ public class AsyncHttpServer {
     }
 
     public void websocket(String regex, final WebSocketRequestCallback callback) {
+        websocket(regex, null, callback);
+    }
+
+    public void websocket(String regex, final String protocol, final WebSocketRequestCallback callback) {
         get(regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
@@ -274,6 +279,12 @@ public class AsyncHttpServer {
                     }
                 }
                 if (!"websocket".equalsIgnoreCase(request.getHeaders().getHeaders().get("Upgrade")) || !hasUpgrade) {
+                    response.responseCode(404);
+                    response.end();
+                    return;
+                }
+                String peerProtocol = request.getHeaders().getHeaders().get("Sec-WebSocket-Protocol");
+                if (!TextUtils.equals(protocol, peerProtocol)) {
                     response.responseCode(404);
                     response.end();
                     return;
