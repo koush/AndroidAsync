@@ -172,6 +172,8 @@ public class PushParser {
                                 if (!different) {
                                     bb.addFirst(b);
                                     bb.get(cb, index);
+                                    // eat the one we're waiting on
+                                    bb.get();
                                     break;
                                 }
                                 else {
