@@ -86,7 +86,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         else {
             mSink = mSocket;
         }
-        writeHead();
+        writeHeadInternal();
     }
 
     @Override
@@ -119,6 +119,10 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private boolean mHeadWritten = false;
     @Override
     public void writeHead() {
+        initFirstWrite();
+    }
+
+    private void writeHeadInternal() {
         assert !mHeadWritten;
         mHeadWritten = true;
         Util.writeAll(mSocket, mRawHeaders.toHeaderString().getBytes(), new CompletedCallback() {
