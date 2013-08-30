@@ -55,7 +55,8 @@ class SocketIOConnection {
     }
 
     public void connect(SocketIOClient client) {
-        clients.add(client);
+        if (!clients.contains(client))
+            clients.add(client);
         webSocket.send(String.format("1::%s", client.endpoint));
     }
 
