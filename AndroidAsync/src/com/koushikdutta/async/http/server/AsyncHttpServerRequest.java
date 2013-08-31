@@ -2,7 +2,7 @@ package com.koushikdutta.async.http.server;
 
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.http.AsyncHttpRequestBody;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 

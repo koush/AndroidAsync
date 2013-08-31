@@ -3,13 +3,11 @@ package com.koushikdutta.async.test;
 import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpRequest;
-import com.koushikdutta.async.http.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.StringBody;
+import com.koushikdutta.async.http.body.StringBody;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;

@@ -1,7 +1,8 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.body;
 
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import org.apache.http.NameValuePair;
 

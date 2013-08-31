@@ -1,4 +1,6 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.body;
+
+import com.koushikdutta.async.http.body.StreamPart;
 
 import java.io.File;
 import java.io.FileInputStream;
