@@ -267,15 +267,15 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         idleSocket(data.socket);
 
         if (data.exception != null || !data.socket.isOpen()) {
+            data.request.logv("closing out socket (exception)");
             data.socket.close();
             return;
         }
-        String kas = data.headers.getConnection();
-        if (kas == null || !"keep-alive".toLowerCase().equals(kas.toLowerCase())) {
+        if (!HttpUtil.isKeepAlive(data.headers.getHeaders())) {
+            data.request.logv("closing out socket (not keep alive)");
             data.socket.close();
             return;
         }
-
         data.request.logd("Recycling keep-alive socket");
         recycleSocket(data.socket, data.request);
     }

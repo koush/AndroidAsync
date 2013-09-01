@@ -255,7 +255,7 @@ public class AsyncHttpClient {
                             return;
                         }
 
-                        request.logv("Final (post cache response) headers: " + mHeaders.getHeaders().toHeaderString());
+                        request.logv("Final (post cache response) headers:\n" + mHeaders.getHeaders().toHeaderString());
 
                         // at this point the headers are done being modified
                         reportConnectedCompleted(cancel, null, this, request, callback);
@@ -271,7 +271,7 @@ public class AsyncHttpClient {
                                 mServer.removeAllCallbacks(cancel.scheduled);
 
                             // allow the middleware to massage the headers before the body is decoded
-                            request.logv("Received headers: " + mHeaders.getHeaders().toHeaderString());
+                            request.logv("Received headers:\n" + mHeaders.getHeaders().toHeaderString());
 
                             data.headers = mHeaders;
                             synchronized (mMiddleware) {

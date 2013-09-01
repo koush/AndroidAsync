@@ -15,6 +15,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocketImpl;
@@ -155,7 +156,12 @@ public class AsyncHttpServer {
                 
                 private void handleOnCompleted() {
                     if (requestComplete && responseComplete) {
-                        onAccepted(socket);
+                        if (HttpUtil.isKeepAlive(getHeaders().getHeaders())) {
+                            onAccepted(socket);
+                        }
+                        else {
+                            socket.close();
+                        }
                     }
                 }
 

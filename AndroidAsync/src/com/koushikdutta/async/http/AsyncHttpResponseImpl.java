@@ -38,7 +38,8 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
         mWriter = mRequest.getBody();
         if (mWriter != null) {
-            mRequest.getHeaders().setContentType(mWriter.getContentType());
+            if (mRequest.getHeaders().getContentType() == null)
+                mRequest.getHeaders().setContentType(mWriter.getContentType());
             if (mWriter.length() != -1) {
                 mRequest.getHeaders().setContentLength(mWriter.length());
                 mSink = mSocket;
@@ -61,7 +62,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         });
 
         String rs = mRequest.getRequestString();
-        mRequest.logv(rs);
+        mRequest.logv("\n" + rs);
         com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {

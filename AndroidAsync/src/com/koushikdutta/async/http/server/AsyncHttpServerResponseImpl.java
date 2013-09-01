@@ -2,21 +2,24 @@ package com.koushikdutta.async.http.server;
 
 import android.text.TextUtils;
 
-import com.koushikdutta.async.*;
+import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataSink;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
+
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.sql.Connection;
 
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
@@ -37,7 +40,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     AsyncHttpServerResponseImpl(AsyncSocket socket, AsyncHttpServerRequestImpl req) {
         mSocket = socket;
         mRequest = req;
-        if ("Keep-Alive".equalsIgnoreCase(req.getHeaders().getHeaders().get(" Connection ")))
+        if (HttpUtil.isKeepAlive(req.getHeaders().getHeaders()))
             mRawHeaders.set("Connection", "Keep-Alive");
     }
     
@@ -189,7 +192,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     
     public void sendFile(File file) {
         int start = 0;
-        int end = (int)file.length();
+        int end = (int)file.length() - 1;
 
         String range = mRequest.getHeaders().getHeaders().get("Range");
         if (range != null) {
@@ -210,12 +213,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 if (parts.length == 2 && !TextUtils.isEmpty(parts[1]))
                     end = Integer.parseInt(parts[1]);
                 else if (start != 0)
-                    end = (int)file.length();
+                    end = (int)file.length() - 1;
                 else
-                    end = Math.min((int)file.length(), start + 50000);
+                    end = Math.min((int)file.length() - 1, 50000);
 
                 responseCode(206);
-                getHeaders().getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end - 1, file.length()));
+                getHeaders().getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, file.length()));
             }
             catch (Exception e) {
                 responseCode(416);
@@ -228,11 +231,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             if (start != fin.skip(start))
                 throw new Exception("skip failed to skip requested amount");
             mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
-            mContentLength = end - start;
+            mContentLength = end - start + 1;
             mRawHeaders.set("Content-Length", "" + mContentLength);
             if (getHeaders().getHeaders().getStatusLine() == null)
                 responseCode(200);
-            Util.pump(fin, end - start, this, new CompletedCallback() {
+            Util.pump(fin, mContentLength, this, new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
                     onEnd();

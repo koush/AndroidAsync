@@ -117,4 +117,17 @@ public class HttpUtil {
         // the close/end event until the server actually closes the connection.
         return emitter;
     }
+
+    public static boolean isKeepAlive(RawHeaders headers) {
+        boolean keepAlive;
+        String connection = headers.get("Connection");
+        if (connection != null) {
+            keepAlive = "keep-alive".equalsIgnoreCase(connection);
+        }
+        else {
+            keepAlive = headers.getHttpMinorVersion() >= 1;
+        }
+
+        return keepAlive;
+    }
 }
