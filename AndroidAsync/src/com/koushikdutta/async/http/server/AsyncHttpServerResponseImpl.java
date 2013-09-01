@@ -79,7 +79,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
         mHasWritten = true;
         assert null != mRawHeaders.getStatusLine();
-        if (mContentLength < 0) {
+        String currentEncoding = mRawHeaders.get("Transfer-Encoding");
+        if ("".equals(currentEncoding))
+            mRawHeaders.removeAll("Transfer-Encoding");
+        boolean canUseChunked = "Chunked".equalsIgnoreCase(currentEncoding) || currentEncoding == null;
+        if (mContentLength < 0 && canUseChunked) {
             mRawHeaders.set("Transfer-Encoding", "Chunked");
             mSink = new ChunkedOutputFilter(mSocket);
         }
@@ -103,16 +107,14 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void end() {
-        if (null == mRawHeaders.get("Transfer-Encoding") && !mHasWritten) {
-            send("text/html", "");
-            onEnd();
-            return;
+        if ("Chunked".equalsIgnoreCase(mRawHeaders.get("Transfer-Encoding"))) {
+            initFirstWrite();
+            ((ChunkedOutputFilter)mSink).setMaxBuffer(Integer.MAX_VALUE);
+            mSink.write(new ByteBufferList());
         }
-        initFirstWrite();
-
-        ((ChunkedOutputFilter)mSink).setMaxBuffer(Integer.MAX_VALUE);
-        mSink.write(new ByteBufferList());
-
+        else if (!mHasWritten) {
+            send("text/html", "");
+        }
         onEnd();
     }
 
