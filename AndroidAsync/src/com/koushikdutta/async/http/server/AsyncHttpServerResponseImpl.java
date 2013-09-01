@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.sql.Connection;
 
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
@@ -36,7 +37,8 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     AsyncHttpServerResponseImpl(AsyncSocket socket, AsyncHttpServerRequestImpl req) {
         mSocket = socket;
         mRequest = req;
-        mRawHeaders.set("Connection", "Keep-Alive");
+        if ("Keep-Alive".equalsIgnoreCase(req.getHeaders().getHeaders().get(" Connection ")))
+            mRawHeaders.set("Connection", "Keep-Alive");
     }
     
     @Override

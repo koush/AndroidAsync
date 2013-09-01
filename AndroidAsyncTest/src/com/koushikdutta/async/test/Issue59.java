@@ -27,6 +27,7 @@ public class Issue59 extends TestCase {
                 @Override
                 public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                     response.getHeaders().getHeaders().set("Transfer-Encoding", "");
+                    response.responseCode(200);
                     Util.writeAll(response, "foobarbeepboop".getBytes(), new CompletedCallback() {
                         @Override
                         public void onCompleted(Exception ex) {
@@ -40,6 +41,8 @@ public class Issue59 extends TestCase {
 
             AsyncHttpGet get = new AsyncHttpGet("http://localhost:5959/");
             get.setLogging("issue59", Log.VERBOSE);
+            get.getHeaders().getHeaders().removeAll("Connection");
+            get.getHeaders().getHeaders().removeAll("Accept-Encoding");
 
             assertEquals("foobarbeepboop", AsyncHttpClient.getDefaultInstance().executeString(get).get(1000, TimeUnit.MILLISECONDS));
         }
