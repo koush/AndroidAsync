@@ -322,25 +322,37 @@ public class AsyncServer {
 
     public void stop() {
 //        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
+        final Selector currentSelector;
+        final Semaphore semaphore;
         synchronized (this) {
-            if (mSelector == null)
+            currentSelector = mSelector;
+            if (currentSelector == null)
                 return;
-            // replace the current queue with a new queue
-            // and post a shutdown.
-            // this is guaranteed to be the last job on the queue.
-            final Selector currentSelector = mSelector;
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    shutdownEverything(currentSelector);
-                }
-            });
             synchronized (mServers) {
                 mServers.remove(mAffinity);
             }
+            semaphore = new Semaphore(0);
+
+            // force any existing connections to die
+            shutdownKeys(currentSelector);
+
+            // post a shutdown and wait
+            mQueue.add(new Scheduled(new Runnable() {
+                @Override
+                public void run() {
+                    shutdownEverything(currentSelector);
+                    semaphore.release();
+                }
+            }, 0));
+
             mQueue = new LinkedList<Scheduled>();
             mSelector = null;
             mAffinity = null;
+        }
+        try {
+            semaphore.acquire();
+        }
+        catch (Exception e) {
         }
     }
     
@@ -693,8 +705,8 @@ public class AsyncServer {
         }
 //        Log.i(LOGTAG, "****AsyncServer has shut down.****");
     }
-    
-    private static void shutdownEverything(Selector selector) {
+
+    private static void shutdownKeys(Selector selector) {
         try {
             for (SelectionKey key: selector.keys()) {
                 try {
@@ -711,7 +723,10 @@ public class AsyncServer {
         }
         catch (Exception ex) {
         }
+    }
 
+    private static void shutdownEverything(Selector selector) {
+        shutdownKeys(selector);
         // SHUT. DOWN. EVERYTHING.
         try {
             selector.close();
