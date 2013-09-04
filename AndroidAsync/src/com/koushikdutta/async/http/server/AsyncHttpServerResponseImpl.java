@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http.server;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
@@ -230,9 +231,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             FileInputStream fin = new FileInputStream(file);
             if (start != fin.skip(start))
                 throw new Exception("skip failed to skip requested amount");
-            mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
+            if (mRawHeaders.get("Content-Type") == null)
+                mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
             mContentLength = end - start + 1;
             mRawHeaders.set("Content-Length", "" + mContentLength);
+            mRawHeaders.set("Accept-Ranges", "bytes");
             if (getHeaders().getHeaders().getStatusLine() == null)
                 responseCode(200);
             Util.pump(fin, mContentLength, this, new CompletedCallback() {

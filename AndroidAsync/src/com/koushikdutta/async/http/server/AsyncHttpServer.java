@@ -335,6 +335,8 @@ public class AsyncHttpServer {
         mContentTypes.put("html", "text/html");
         mContentTypes.put("css", "text/css");
         mContentTypes.put("mp4", "video/mp4");
+        mContentTypes.put("mov", "video/quicktime");
+        mContentTypes.put("wmv", "video/x-ms-wmv");
     }
     
     public static String getContentType(String path) {
