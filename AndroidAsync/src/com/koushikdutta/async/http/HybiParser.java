@@ -162,6 +162,7 @@ abstract class HybiParser {
     DataCallback mStage4 = new DataCallback() {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            assert bb.remaining() == mLength;
             mPayload = new byte[mLength];
             bb.get(mPayload);
             try {

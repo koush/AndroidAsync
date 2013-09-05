@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.body;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
@@ -6,6 +6,8 @@ import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.http.Multimap;
 
 import org.apache.http.NameValuePair;
 

@@ -1,22 +1,41 @@
 package com.koushikdutta.async.http.server;
 
 import android.content.Context;
-import com.koushikdutta.async.*;
+import android.text.TextUtils;
+
+import com.koushikdutta.async.AsyncSSLSocketWrapper;
+import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncServerSocket;
+import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
-import com.koushikdutta.async.http.*;
+import com.koushikdutta.async.http.AsyncHttpGet;
+import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.HttpUtil;
+import com.koushikdutta.async.http.Multimap;
+import com.koushikdutta.async.http.WebSocket;
+import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
-import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import javax.net.ssl.SSLContext;
 
 public class AsyncHttpServer {
     ArrayList<AsyncServerSocket> mListeners = new ArrayList<AsyncServerSocket>();
@@ -51,7 +70,7 @@ public class AsyncHttpServer {
                     if (!hasContinued && "100-continue".equals(headers.get("Expect"))) {
                         pause();
 //                        System.out.println("continuing...");
-                        Util.writeAll(mSocket, "HTTP/1.1 100 Continue\r\n".getBytes(), new CompletedCallback() {
+                        Util.writeAll(mSocket, "HTTP/1.1 100 Continue\r\n\r\n".getBytes(), new CompletedCallback() {
                             @Override
                             public void onCompleted(Exception ex) {
                                 resume();
@@ -88,6 +107,7 @@ public class AsyncHttpServer {
                     res = new AsyncHttpServerResponseImpl(socket, this) {
                         @Override
                         protected void onEnd() {
+                            super.onEnd();
                             mSocket.setEndCallback(null);
                             responseComplete = true;
                             // reuse the socket for a subsequent request.
@@ -118,8 +138,15 @@ public class AsyncHttpServer {
                         return;
                     requestComplete = true;
                     super.onCompleted(e);
-                    mSocket.setDataCallback(null);
-                    mSocket.pause();
+                    // no http pipelining, gc trashing if the socket dies
+                    // while the request is being sent and is paused or something
+                    mSocket.setDataCallback(new NullDataCallback() {
+                        @Override
+                        public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                            super.onDataAvailable(emitter, bb);
+                            mSocket.close();
+                        }
+                    });
                     handleOnCompleted();
 
                     if (getBody().readFullyOnRequest()) {
@@ -129,7 +156,12 @@ public class AsyncHttpServer {
                 
                 private void handleOnCompleted() {
                     if (requestComplete && responseComplete) {
-                        onAccepted(socket);
+                        if (HttpUtil.isKeepAlive(getHeaders().getHeaders())) {
+                            onAccepted(socket);
+                        }
+                        else {
+                            socket.close();
+                        }
                     }
                 }
 
@@ -160,7 +192,7 @@ public class AsyncHttpServer {
             mListeners.add(socket);
         }
     };
-    
+
     public void listen(AsyncServer server, int port) {
         server.listen(null, port, mListenCallback);
     }
@@ -234,6 +266,10 @@ public class AsyncHttpServer {
     }
 
     public void websocket(String regex, final WebSocketRequestCallback callback) {
+        websocket(regex, null, callback);
+    }
+
+    public void websocket(String regex, final String protocol, final WebSocketRequestCallback callback) {
         get(regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
@@ -248,7 +284,13 @@ public class AsyncHttpServer {
                         }
                     }
                 }
-                if (!"websocket".equals(request.getHeaders().getHeaders().get("Upgrade")) || !hasUpgrade) {
+                if (!"websocket".equalsIgnoreCase(request.getHeaders().getHeaders().get("Upgrade")) || !hasUpgrade) {
+                    response.responseCode(404);
+                    response.end();
+                    return;
+                }
+                String peerProtocol = request.getHeaders().getHeaders().get("Sec-WebSocket-Protocol");
+                if (!TextUtils.equals(protocol, peerProtocol)) {
                     response.responseCode(404);
                     response.end();
                     return;
@@ -293,6 +335,8 @@ public class AsyncHttpServer {
         mContentTypes.put("html", "text/html");
         mContentTypes.put("css", "text/css");
         mContentTypes.put("mp4", "video/mp4");
+        mContentTypes.put("mov", "video/quicktime");
+        mContentTypes.put("wmv", "video/x-ms-wmv");
     }
     
     public static String getContentType(String path) {
@@ -393,6 +437,7 @@ public class AsyncHttpServer {
     private static Hashtable<Integer, String> mCodes = new Hashtable<Integer, String>();
     static {
         mCodes.put(200, "OK");
+        mCodes.put(206, "Partial Content");
         mCodes.put(101, "Switching Protocols");
         mCodes.put(404, "Not Found");
     }

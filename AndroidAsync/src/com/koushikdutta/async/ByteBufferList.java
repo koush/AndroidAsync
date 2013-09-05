@@ -152,6 +152,9 @@ public class ByteBufferList {
                 b.get(subset.array(), 0, need);
                 into.add(subset);
                 mBuffers.addFirst(b);
+                assert subset.capacity() >= need;
+                assert subset.position() == 0;
+                assert into.remaining() == length;
                 break;
             }
             else {
@@ -187,7 +190,7 @@ public class ByteBufferList {
             throw new IllegalArgumentException("count");
 
         ByteBuffer first = mBuffers.peek();
-        while (first != null && first.position() == first.limit()) {
+        while (first != null && !first.hasRemaining()) {
             reclaim(mBuffers.remove());
             first = mBuffers.peek();
         }
@@ -269,6 +272,7 @@ public class ByteBufferList {
     
     public void add(ByteBuffer b) {
         if (b.remaining() <= 0) {
+//            System.out.println("reclaiming remaining: " + b.remaining());
             reclaim(b);
             return;
         }
@@ -357,8 +361,16 @@ public class ByteBufferList {
     static int currentSize = 0;
     static int maxItem = 0;
 
+    private static boolean reclaimedContains(ByteBuffer b) {
+        for (ByteBuffer other: reclaimed) {
+            if (other == b)
+                return true;
+        }
+        return false;
+    }
+
     public static void reclaim(ByteBuffer b) {
-        if (b.arrayOffset() != 0 || b.array().length != b.capacity()) {
+        if (b == null || b.arrayOffset() != 0 || b.array().length != b.capacity()) {
             return;
         }
         if (b.capacity() < 8192)
@@ -370,7 +382,7 @@ public class ByteBufferList {
         if (r == null)
             return;
 
-        synchronized (r) {
+        synchronized (LOCK) {
             while (currentSize > MAX_SIZE && r.size() > 0 && r.peek().capacity() < b.capacity()) {
 //                System.out.println("removing for better: " + b.capacity());
                 ByteBuffer head = r.remove();
@@ -381,6 +393,8 @@ public class ByteBufferList {
 //                System.out.println("too full: " + b.capacity());
                 return;
             }
+
+            assert !reclaimedContains(b);
 
             b.position(0);
             b.limit(b.capacity());
@@ -393,12 +407,14 @@ public class ByteBufferList {
         }
     }
 
+    private static final Object LOCK = new Object();
+
     public static ByteBuffer obtain(int size) {
         if (size <= maxItem) {
             assert Thread.currentThread() != Looper.getMainLooper().getThread();
             PriorityQueue<ByteBuffer> r = getReclaimed();
             if (r != null) {
-                synchronized (r) {
+                synchronized (LOCK) {
                     while (r.size() > 0) {
                         ByteBuffer ret = r.remove();
                         if (r.size() == 0)
@@ -426,7 +442,7 @@ public class ByteBufferList {
         int total = 0;
 
         if (r != null) {
-            synchronized (r) {
+            synchronized (LOCK) {
                 while (r.size() > 0 && total < size && index < arr.length - 1) {
                     ByteBuffer b = r.remove();
                     currentSize -= b.capacity();

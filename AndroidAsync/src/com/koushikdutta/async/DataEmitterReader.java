@@ -11,7 +11,8 @@ public class DataEmitterReader implements com.koushikdutta.async.callback.DataCa
         assert mPendingRead == null;
         mPendingReadLength = count;
         mPendingRead = callback;
-        mPendingData = new ByteBufferList();
+        assert !mPendingData.hasRemaining();
+        mPendingData.recycle();
     }
 
     private boolean handlePendingData(DataEmitter emitter) {
@@ -21,6 +22,7 @@ public class DataEmitterReader implements com.koushikdutta.async.callback.DataCa
         DataCallback pendingRead = mPendingRead;
         mPendingRead = null;
         pendingRead.onDataAvailable(emitter, mPendingData);
+        assert !mPendingData.hasRemaining();
 
         return true;
     }
@@ -34,7 +36,9 @@ public class DataEmitterReader implements com.koushikdutta.async.callback.DataCa
         do {
             int need = Math.min(bb.remaining(), mPendingReadLength - mPendingData.remaining());
             bb.get(mPendingData, need);
+            bb.remaining();
         }
-        while (handlePendingData(emitter) && mPendingRead != null);        
+        while (handlePendingData(emitter) && mPendingRead != null);
+        bb.remaining();
     }
 }

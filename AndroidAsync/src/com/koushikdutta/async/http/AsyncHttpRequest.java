@@ -4,6 +4,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import com.koushikdutta.async.AsyncSSLException;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import org.apache.http.*;
@@ -70,7 +71,7 @@ public class AsyncHttpRequest {
         };
     }
 
-    protected final String getDefaultUserAgent() {
+    protected static String getDefaultUserAgent() {
         String agent = System.getProperty("http.agent");
         return agent != null ? agent : ("Java" + System.getProperty("java.version"));
     }
@@ -92,20 +93,28 @@ public class AsyncHttpRequest {
         this(uri, method, null);
     }
 
+    public static void setDefaultHeaders(RawHeaders ret, URI uri) {
+        String host = uri.getHost();
+        if (uri.getPort() != -1)
+            host = host + ":" + uri.getPort();
+        ret.set("Host", host);
+        ret.set("User-Agent", getDefaultUserAgent());
+        ret.set("Accept-Encoding", "gzip, deflate");
+        ret.set("Connection", "keep-alive");
+        ret.set("Accept", "*/*");
+    }
+
     public AsyncHttpRequest(URI uri, String method, RawHeaders headers) {
         assert uri != null;
         mMethod = method;
         if (headers == null)
-            headers = new RawHeaders();
-        mRawHeaders = headers;
+            mRawHeaders = new RawHeaders();
+        else
+            mRawHeaders = headers;
+        if (headers == null)
+            setDefaultHeaders(mRawHeaders, uri);
         mHeaders = new RequestHeaders(uri, mRawHeaders);
         mRawHeaders.setStatusLine(getRequestLine().toString());
-        mHeaders.setHost(uri.getHost());
-        if (mHeaders.getUserAgent() == null)
-            mHeaders.setUserAgent(getDefaultUserAgent());
-        mHeaders.setAcceptEncoding("gzip, deflate");
-        mHeaders.setConnection("keep-alive");
-        mHeaders.getHeaders().set("Accept", "*/*");
     }
 
     public URI getUri() {

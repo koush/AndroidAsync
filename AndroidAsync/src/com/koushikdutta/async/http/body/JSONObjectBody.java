@@ -1,46 +1,45 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.body;
 
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.async.parser.StringParser;
+import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.parser.JSONObjectParser;
 
-public class StringBody implements AsyncHttpRequestBody<String> {
-    public StringBody() {
+import org.json.JSONObject;
+
+public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
+    public JSONObjectBody() {
     }
-
+    
     byte[] mBodyBytes;
-    String string;
-    public StringBody(String string) {
+    JSONObject json;
+    public JSONObjectBody(JSONObject json) {
         this();
-        this.string = string;
+        this.json = json;
     }
 
     @Override
     public void parse(DataEmitter emitter, final CompletedCallback completed) {
-        new StringParser().parse(emitter).setCallback(new FutureCallback<String>() {
+        new JSONObjectParser().parse(emitter).setCallback(new FutureCallback<JSONObject>() {
             @Override
-            public void onCompleted(Exception e, String result) {
-                string = result;
+            public void onCompleted(Exception e, JSONObject result) {
+                json = result;
                 completed.onCompleted(e);
             }
         });
     }
 
-    public static final String CONTENT_TYPE = "text/plain";
-
     @Override
     public void write(AsyncHttpRequest request, DataSink sink, final CompletedCallback completed) {
-        if (mBodyBytes == null)
-            mBodyBytes = string.getBytes();
         Util.writeAll(sink, mBodyBytes, completed);
     }
 
     @Override
     public String getContentType() {
-        return "text/plain";
+        return CONTENT_TYPE;
     }
 
     @Override
@@ -50,18 +49,15 @@ public class StringBody implements AsyncHttpRequestBody<String> {
 
     @Override
     public int length() {
-        if (mBodyBytes == null)
-            mBodyBytes = string.getBytes();
+        mBodyBytes = json.toString().getBytes();
         return mBodyBytes.length;
     }
 
-    @Override
-    public String toString() {
-        return string;
-    }
+    public static final String CONTENT_TYPE = "application/json";
 
     @Override
-    public String get() {
-        return toString();
+    public JSONObject get() {
+        return json;
     }
 }
+

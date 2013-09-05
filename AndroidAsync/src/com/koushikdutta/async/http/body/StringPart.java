@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.body;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

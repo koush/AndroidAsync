@@ -81,7 +81,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
             handleRemaining(list.remaining());
         }
         catch (IOException e) {
-            close();
+            closeInternal();
             reportEndPending(e);
             reportClose(e);
         }
@@ -122,7 +122,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
             handleRemaining(b.remaining());
         }
         catch (IOException ex) {
-            close();
+            closeInternal();
             reportEndPending(ex);
             reportClose(ex);
         }

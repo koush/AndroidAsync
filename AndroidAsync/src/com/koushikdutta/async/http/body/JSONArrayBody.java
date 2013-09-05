@@ -1,30 +1,31 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.body;
 
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.async.parser.JSONObjectParser;
+import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.parser.JSONArrayParser;
 
-import org.json.JSONObject;
+import org.json.JSONArray;
 
-public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
-    public JSONObjectBody() {
+public class JSONArrayBody implements AsyncHttpRequestBody<JSONArray> {
+    public JSONArrayBody() {
     }
-    
+
     byte[] mBodyBytes;
-    JSONObject json;
-    public JSONObjectBody(JSONObject json) {
+    JSONArray json;
+    public JSONArrayBody(JSONArray json) {
         this();
         this.json = json;
     }
 
     @Override
     public void parse(DataEmitter emitter, final CompletedCallback completed) {
-        new JSONObjectParser().parse(emitter).setCallback(new FutureCallback<JSONObject>() {
+        new JSONArrayParser().parse(emitter).setCallback(new FutureCallback<JSONArray>() {
             @Override
-            public void onCompleted(Exception e, JSONObject result) {
+            public void onCompleted(Exception e, JSONArray result) {
                 json = result;
                 completed.onCompleted(e);
             }
@@ -38,7 +39,7 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
 
     @Override
     public String getContentType() {
-        return CONTENT_TYPE;
+        return "application/json";
     }
 
     @Override
@@ -55,7 +56,7 @@ public class JSONObjectBody implements AsyncHttpRequestBody<JSONObject> {
     public static final String CONTENT_TYPE = "application/json";
 
     @Override
-    public JSONObject get() {
+    public JSONArray get() {
         return json;
     }
 }

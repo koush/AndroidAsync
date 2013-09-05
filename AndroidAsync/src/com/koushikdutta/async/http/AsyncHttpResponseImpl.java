@@ -1,9 +1,17 @@
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.*;
+import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
+import com.koushikdutta.async.FilteredDataEmitter;
+import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
+import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
@@ -30,7 +38,8 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
         mWriter = mRequest.getBody();
         if (mWriter != null) {
-            mRequest.getHeaders().setContentType(mWriter.getContentType());
+            if (mRequest.getHeaders().getContentType() == null)
+                mRequest.getHeaders().setContentType(mWriter.getContentType());
             if (mWriter.length() != -1) {
                 mRequest.getHeaders().setContentLength(mWriter.length());
                 mSink = mSocket;
@@ -53,6 +62,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         });
 
         String rs = mRequest.getRequestString();
+        mRequest.logv("\n" + rs);
         com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
@@ -109,7 +119,15 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
                     // socket may get detached after headers (websocket)
                     if (mSocket == null)
                         return;
-                    DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, mRawHeaders, false);
+                    DataEmitter emitter;
+                    // HEAD requests must not return any data. They still may
+                    // return content length, etc, which will confuse the body decoder
+                    if (AsyncHttpHead.METHOD.equalsIgnoreCase(mRequest.getMethod())) {
+                        emitter = HttpUtil.EndEmitter.create(getServer(), null);
+                    }
+                    else {
+                        emitter = HttpUtil.getBodyDecoder(mSocket, mRawHeaders, false);
+                    }
                     setDataEmitter(emitter);
                 }
             }

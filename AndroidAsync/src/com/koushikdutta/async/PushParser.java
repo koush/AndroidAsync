@@ -172,6 +172,8 @@ public class PushParser {
                                 if (!different) {
                                     bb.addFirst(b);
                                     bb.get(cb, index);
+                                    // eat the one we're waiting on
+                                    bb.get();
                                     break;
                                 }
                                 else {
@@ -251,6 +253,12 @@ public class PushParser {
         Method found = mTable.get(callback.getClass());
         if (found != null)
             return found;
+        // try the proguard friendly route, take the first/only method
+        // in case "tap" has been renamed
+        Method[] candidates = callback.getClass().getDeclaredMethods();
+        if (candidates.length == 1)
+            return candidates[0];
+
         for (Method method : callback.getClass().getMethods()) {
             if ("tap".equals(method.getName())) {
                 mTable.put(callback.getClass(), method);

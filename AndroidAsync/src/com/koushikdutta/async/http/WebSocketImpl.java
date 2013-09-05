@@ -6,6 +6,7 @@ import java.security.MessageDigest;
 import java.util.LinkedList;
 import java.util.UUID;
 
+import android.text.TextUtils;
 import android.util.Base64;
 
 import com.koushikdutta.async.AsyncServer;
@@ -117,6 +118,10 @@ public class WebSocketImpl implements WebSocket {
         response.getHeaders().getHeaders().set("Upgrade", "WebSocket");
         response.getHeaders().getHeaders().set("Connection", "Upgrade");
         response.getHeaders().getHeaders().set("Sec-WebSocket-Accept", sha1);
+        String protocol = request.getHeaders().getHeaders().get("Sec-WebSocket-Protocol");
+        // match the protocol (sanity checking and enforcement is done in the caller)
+        if (!TextUtils.isEmpty(protocol))
+            response.getHeaders().getHeaders().set("Sec-WebSocket-Protocol", protocol);
 //        if (origin != null)
 //            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
         response.writeHead();

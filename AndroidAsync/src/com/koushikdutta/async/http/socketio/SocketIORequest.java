@@ -15,8 +15,18 @@ public class SocketIORequest extends AsyncHttpPost {
         return endpoint;
     }
 
+    String query;
+    public String getQuery() {
+        return query;
+    }
+
     public SocketIORequest(String uri, String endpoint) {
-        super(Uri.parse(uri).buildUpon().encodedPath("/socket.io/1/").build().toString());
+        this(uri, endpoint, null);
+    }
+
+    public SocketIORequest(String uri, String endpoint, String query) {
+        super(Uri.parse(uri + (query == null ? "" : "?" + query)).buildUpon().encodedPath("/socket.io/1/").build().toString());
         this.endpoint = endpoint;
+        this.query = query;
     }
 }

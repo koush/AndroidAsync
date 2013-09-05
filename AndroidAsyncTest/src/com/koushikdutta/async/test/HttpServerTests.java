@@ -4,10 +4,10 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpPost;
-import com.koushikdutta.async.http.JSONObjectBody;
-import com.koushikdutta.async.http.MultipartFormDataBody;
-import com.koushikdutta.async.http.StringBody;
-import com.koushikdutta.async.http.UrlEncodedFormBody;
+import com.koushikdutta.async.http.body.JSONObjectBody;
+import com.koushikdutta.async.http.body.MultipartFormDataBody;
+import com.koushikdutta.async.http.body.StringBody;
+import com.koushikdutta.async.http.body.UrlEncodedFormBody;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
@@ -48,6 +48,7 @@ public class HttpServerTests extends TestCase {
         httpServer.get("/hello", new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                assertNotNull(request.getHeaders().getHost());
                 response.send("hello");
             }
         });
@@ -56,6 +57,7 @@ public class HttpServerTests extends TestCase {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 try {
+                    assertNotNull(request.getHeaders().getHost());
                     JSONObject json = new JSONObject();
                     if (request.getBody() instanceof UrlEncodedFormBody) {
                         UrlEncodedFormBody body = (UrlEncodedFormBody)request.getBody();

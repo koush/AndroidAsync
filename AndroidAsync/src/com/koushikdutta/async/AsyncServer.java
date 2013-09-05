@@ -3,13 +3,12 @@ package com.koushikdutta.async;
 import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
+
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.future.TransformFuture;
 
@@ -17,13 +16,15 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedSelectorException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.Comparator;
-import java.util.Hashtable;
 import java.util.LinkedList;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
@@ -321,25 +322,37 @@ public class AsyncServer {
 
     public void stop() {
 //        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
+        final Selector currentSelector;
+        final Semaphore semaphore;
         synchronized (this) {
-            if (mSelector == null)
+            currentSelector = mSelector;
+            if (currentSelector == null)
                 return;
-            // replace the current queue with a new queue
-            // and post a shutdown.
-            // this is guaranteed to be the last job on the queue.
-            final Selector currentSelector = mSelector;
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    shutdownEverything(currentSelector);
-                }
-            });
             synchronized (mServers) {
                 mServers.remove(mAffinity);
             }
+            semaphore = new Semaphore(0);
+
+            // force any existing connections to die
+            shutdownKeys(currentSelector);
+
+            // post a shutdown and wait
+            mQueue.add(new Scheduled(new Runnable() {
+                @Override
+                public void run() {
+                    shutdownEverything(currentSelector);
+                    semaphore.release();
+                }
+            }, 0));
+
             mQueue = new LinkedList<Scheduled>();
             mSelector = null;
             mAffinity = null;
+        }
+        try {
+            semaphore.acquire();
+        }
+        catch (Exception e) {
         }
     }
     
@@ -362,6 +375,11 @@ public class AsyncServer {
                     final SelectionKey key = wrapper.register(mSelector);
                     key.attach(handler);
                     handler.onListening(new AsyncServerSocket() {
+                        @Override
+                        public int getLocalPort() {
+                            return server.socket().getLocalPort();
+                        }
+
                         @Override
                         public void stop() {
                             try {
@@ -567,7 +585,7 @@ public class AsyncServer {
 
     private boolean addMe() {
         synchronized (mServers) {
-            AsyncServer current = mServers.get(Thread.currentThread());
+            AsyncServer current = mServers.get(mAffinity);
             if (current != null) {
 //                Log.e(LOGTAG, "****AsyncServer already running on this thread.****");
                 return false;
@@ -687,8 +705,8 @@ public class AsyncServer {
         }
 //        Log.i(LOGTAG, "****AsyncServer has shut down.****");
     }
-    
-    private static void shutdownEverything(Selector selector) {
+
+    private static void shutdownKeys(Selector selector) {
         try {
             for (SelectionKey key: selector.keys()) {
                 try {
@@ -705,7 +723,10 @@ public class AsyncServer {
         }
         catch (Exception ex) {
         }
+    }
 
+    private static void shutdownEverything(Selector selector) {
+        shutdownKeys(selector);
         // SHUT. DOWN. EVERYTHING.
         try {
             selector.close();

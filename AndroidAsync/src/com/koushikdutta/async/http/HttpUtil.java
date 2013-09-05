@@ -4,6 +4,11 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
+import com.koushikdutta.async.http.body.JSONObjectBody;
+import com.koushikdutta.async.http.body.MultipartFormDataBody;
+import com.koushikdutta.async.http.body.StringBody;
+import com.koushikdutta.async.http.body.UrlEncodedFormBody;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
 import com.koushikdutta.async.http.filter.ContentLengthFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
@@ -38,7 +43,7 @@ public class HttpUtil {
         return new UnknownRequestBody(contentType);
     }
     
-    private static class EndEmitter extends FilteredDataEmitter {
+    static class EndEmitter extends FilteredDataEmitter {
         private EndEmitter() {
         }
         
@@ -111,5 +116,18 @@ public class HttpUtil {
         // conversely, if this is the client (http 1.0), and the server has not indicated a request body, we do not report
         // the close/end event until the server actually closes the connection.
         return emitter;
+    }
+
+    public static boolean isKeepAlive(RawHeaders headers) {
+        boolean keepAlive;
+        String connection = headers.get("Connection");
+        if (connection != null) {
+            keepAlive = "keep-alive".equalsIgnoreCase(connection);
+        }
+        else {
+            keepAlive = headers.getHttpMinorVersion() >= 1;
+        }
+
+        return keepAlive;
     }
 }

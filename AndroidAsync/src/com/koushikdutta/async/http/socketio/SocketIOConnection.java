@@ -55,7 +55,8 @@ class SocketIOConnection {
     }
 
     public void connect(SocketIOClient client) {
-        clients.add(client);
+        if (!clients.contains(client))
+            clients.add(client);
         webSocket.send(String.format("1::%s", client.endpoint));
     }
 
@@ -297,7 +298,7 @@ class SocketIOConnection {
         });
     }
 
-    private Acknowledge acknowledge(final String _messageId) {
+    private Acknowledge acknowledge(final String _messageId, final String endpoint) {
         if (TextUtils.isEmpty(_messageId))
             return null;
 
@@ -309,6 +310,19 @@ class SocketIOConnection {
                 String data = "";
                 if (arguments != null)
                     data += "+" + arguments.toString();
+                WebSocket webSocket = SocketIOConnection.this.webSocket;
+                if (webSocket == null) {
+                    final Exception e = new SocketIOException("websocket is not connected");
+                    select(endpoint, new SelectCallback() {
+                        @Override
+                        public void onSelect(SocketIOClient client) {
+                            ExceptionCallback callback = client.exceptionCallback;
+                            if (callback != null)
+                                callback.onException(e);
+                        }
+                    });
+                    return;
+                }
                 webSocket.send(String.format("6:::%s%s", messageId, data));
             }
         };
@@ -349,14 +363,14 @@ class SocketIOConnection {
                             break;
                         case 3: {
                             // message
-                            reportString(parts[2], parts[3], acknowledge(parts[1]));
+                            reportString(parts[2], parts[3], acknowledge(parts[1], parts[2]));
                             break;
                         }
                         case 4: {
                             //json message
                             final String dataString = parts[3];
                             final JSONObject jsonMessage = new JSONObject(dataString);
-                            reportJson(parts[2], jsonMessage, acknowledge(parts[1]));
+                            reportJson(parts[2], jsonMessage, acknowledge(parts[1], parts[2]));
                             break;
                         }
                         case 5: {
@@ -364,7 +378,7 @@ class SocketIOConnection {
                             final JSONObject data = new JSONObject(dataString);
                             final String event = data.getString("name");
                             final JSONArray args = data.optJSONArray("args");
-                            reportEvent(parts[2], event, args, acknowledge(parts[1]));
+                            reportEvent(parts[2], event, args, acknowledge(parts[1], parts[2]));
                             break;
                         }
                         case 6:

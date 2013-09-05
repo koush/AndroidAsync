@@ -46,7 +46,7 @@ public class AsyncHttpClient {
         return mDefaultInstance;
     }
 
-    ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
+    final ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
     public ArrayList<AsyncHttpClientMiddleware> getMiddleware() {
         return mMiddleware;
     }
@@ -144,7 +144,7 @@ public class AsyncHttpClient {
 
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
         assert mServer.isAffinityThread();
-        if (redirectCount > 5) {
+        if (redirectCount > 15) {
             reportConnectedCompleted(cancel, new Exception("too many redirects"), null, request, callback);
             return;
         }
@@ -197,8 +197,10 @@ public class AsyncHttpClient {
                     mServer.removeAllCallbacks(cancel.scheduled);
 
                 data.socket = socket;
-                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                    middleware.onSocket(data);
+                synchronized (mMiddleware) {
+                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                        middleware.onSocket(data);
+                    }
                 }
 
                 cancel.socket = socket;
@@ -226,8 +228,10 @@ public class AsyncHttpClient {
                     @Override
                     public void setDataEmitter(DataEmitter emitter) {
                         data.bodyEmitter = emitter;
-                        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                            middleware.onBodyDecoder(data);
+                        synchronized (mMiddleware) {
+                            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                                middleware.onBodyDecoder(data);
+                            }
                         }
                         mHeaders = data.headers;
 
@@ -251,7 +255,7 @@ public class AsyncHttpClient {
                             return;
                         }
 
-                        request.logv("Final (post cache response) headers: " + mHeaders.getHeaders().toHeaderString());
+                        request.logv("Final (post cache response) headers:\n" + mHeaders.getHeaders().toHeaderString());
 
                         // at this point the headers are done being modified
                         reportConnectedCompleted(cancel, null, this, request, callback);
@@ -267,11 +271,13 @@ public class AsyncHttpClient {
                                 mServer.removeAllCallbacks(cancel.scheduled);
 
                             // allow the middleware to massage the headers before the body is decoded
-                            request.logv("Received headers: " + mHeaders.getHeaders().toHeaderString());
+                            request.logv("Received headers:\n" + mHeaders.getHeaders().toHeaderString());
 
                             data.headers = mHeaders;
-                            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                                middleware.onHeadersReceived(data);
+                            synchronized (mMiddleware) {
+                                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                                    middleware.onHeadersReceived(data);
+                                }
                             }
                             mHeaders = data.headers;
 
@@ -304,8 +310,10 @@ public class AsyncHttpClient {
                         }
 
                         data.exception = ex;
-                        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                            middleware.onRequestComplete(data);
+                        synchronized (mMiddleware) {
+                            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                                middleware.onRequestComplete(data);
+                            }
                         }
                     }
 
@@ -329,12 +337,14 @@ public class AsyncHttpClient {
             }
         };
 
-        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-            Cancellable socketCancellable = middleware.getSocket(data);
-            if (socketCancellable != null) {
-                data.socketCancellable = socketCancellable;
-                cancel.setParent(socketCancellable);
-                return;
+        synchronized (mMiddleware) {
+            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                Cancellable socketCancellable = middleware.getSocket(data);
+                if (socketCancellable != null) {
+                    data.socketCancellable = socketCancellable;
+                    cancel.setParent(socketCancellable);
+                    return;
+                }
             }
         }
         assert false;
@@ -634,7 +644,7 @@ public class AsyncHttpClient {
     }
 
     public Future<WebSocket> websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
-        assert callback != null;
+//        assert callback != null;
         final AsyncHttpGet get = new AsyncHttpGet(uri.replace("ws://", "http://").replace("wss://", "https://"));
         return websocket(get, protocol, callback);
     }

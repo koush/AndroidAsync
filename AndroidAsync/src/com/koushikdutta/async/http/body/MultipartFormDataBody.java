@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.body;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
@@ -10,6 +10,8 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Continuation;
+import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.BoundaryEmitter;
 

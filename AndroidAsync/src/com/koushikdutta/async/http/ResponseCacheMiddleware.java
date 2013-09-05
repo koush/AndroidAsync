@@ -52,7 +52,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private static final int VERSION = 201105;
     private static final int ENTRY_METADATA = 0;
     private static final int ENTRY_BODY = 1;
-    private static final int ENTRY_COUNT = 2;
+    public static final int ENTRY_COUNT = 2;
     private AsyncHttpClient client;
 
     public static final String SERVED_FROM = "X-Served-From";
@@ -81,6 +81,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private void open() throws IOException {
         cache = DiskLruCache.open(cacheDir, VERSION, ENTRY_COUNT, size);
     }
+
+    public DiskLruCache getDiskLruCache() {
+        return cache;
+    }
     
     boolean caching = true;
     public void setCaching(boolean caching) {
@@ -91,10 +95,14 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         return caching;
     }
 
-    private static String uriToKey(URI uri) {
+    public static String uriToKey(URI uri) {
+        return toKeyString(uri.toString());
+    }
+
+    public static String toKeyString(String string) {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-            byte[] md5bytes = messageDigest.digest(uri.toString().getBytes());
+            byte[] md5bytes = messageDigest.digest(string.toString().getBytes());
             return new BigInteger(1, md5bytes).toString(16);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);

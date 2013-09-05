@@ -40,6 +40,10 @@ public class Util {
     }
 
     public static void pump(final InputStream is, final DataSink ds, final CompletedCallback callback) {
+        pump(is, Integer.MAX_VALUE, ds, callback);
+    }
+
+    public static void pump(final InputStream is, final int max, final DataSink ds, final CompletedCallback callback) {
         final CompletedCallback wrapper = new CompletedCallback() {
             boolean reported;
             @Override
@@ -52,7 +56,12 @@ public class Util {
         };
 
         final WritableCallback cb = new WritableCallback() {
-            private void close() {
+            int totalRead = 0;
+            private void cleanup() {
+                ds.setClosedCallback(null);
+                ds.setWriteableCallback(null);
+                ByteBufferList.reclaim(pending);
+                pending = null;
                 try {
                     is.close();
                 }
@@ -60,36 +69,37 @@ public class Util {
                     e.printStackTrace();
                 }
             }
-            byte[] buffer = new byte[8192];
-            ByteBuffer pending = ByteBuffer.wrap(buffer);
-            {
-                pending.limit(pending.position());
-            }
+            ByteBuffer pending;
+            int mToAlloc = 0;
+            int maxAlloc = 256 * 1024;
 
             @Override
             public void onWriteable() {
                 try {
-                    int remaining;
-//                    long start = System.currentTimeMillis();
                     do {
-                        if (pending.remaining() == 0) {
-                            int read = is.read(buffer);
-                            if (read == -1) {
-                                close();
+                        if (pending == null || pending.remaining() == 0) {
+                            ByteBufferList.reclaim(pending);
+                            pending = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
+
+                            int toRead = Math.min(max - totalRead, pending.capacity());
+                            int read = is.read(pending.array(), 0, toRead);
+                            if (read == -1 || totalRead == max) {
+                                cleanup();
                                 wrapper.onCompleted(null);
                                 return;
                             }
+                            mToAlloc = read * 2;
+                            totalRead += read;
                             pending.position(0);
                             pending.limit(read);
                         }
                         
-                        remaining = pending.remaining();
                         ds.write(pending);
                     }
-                    while (remaining != pending.remaining());
+                    while (!pending.hasRemaining());
                 }
                 catch (Exception e) {
-                    close();
+                    cleanup();
                     wrapper.onCompleted(e);
                 }
             }
@@ -102,17 +112,21 @@ public class Util {
     }
     
     public static void pump(final DataEmitter emitter, final DataSink sink, final CompletedCallback callback) {
-        emitter.setDataCallback(new DataCallback() {
+        final ByteBufferList pending = new ByteBufferList();
+        final DataCallback dataCallback = new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                sink.write(bb);
-                if (bb.remaining() > 0)
+                bb.get(pending);
+                sink.write(pending);
+                if (pending.remaining() > 0)
                     emitter.pause();
             }
-        });
+        };
+        emitter.setDataCallback(dataCallback);
         sink.setWriteableCallback(new WritableCallback() {
             @Override
             public void onWriteable() {
+                dataCallback.onDataAvailable(emitter, new ByteBufferList());
                 emitter.resume();
             }
         });
@@ -123,6 +137,9 @@ public class Util {
             public void onCompleted(Exception ex) {
                 if (reported)
                     return;
+                emitter.setEndCallback(null);
+                sink.setClosedCallback(null);
+                sink.setWriteableCallback(null);
                 reported = true;
                 callback.onCompleted(ex);
             }
@@ -164,13 +181,14 @@ public class Util {
 
     public static void writeAll(final DataSink sink, final ByteBufferList bb, final CompletedCallback callback) {
         WritableCallback wc;
-        final int total = bb.remaining();
         sink.setWriteableCallback(wc = new WritableCallback() {
             @Override
             public void onWriteable() {
                 sink.write(bb);
-                if (bb.remaining() == 0 && callback != null)
+                if (bb.remaining() == 0 && callback != null) {
+                    sink.setWriteableCallback(null);
                     callback.onCompleted(null);
+                }
             }
         });
         wc.onWriteable();
