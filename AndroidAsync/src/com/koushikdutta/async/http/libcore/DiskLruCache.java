@@ -155,6 +155,15 @@ public final class DiskLruCache implements Closeable {
     private int redundantOpCount;
 
     /**
+     * Returns whether the cache contains the given key, without performing any IO.
+     * @param key
+     * @return
+     */
+    public boolean containsKey(String key) {
+        return lruEntries.containsKey(key);
+    }
+
+    /**
      * To differentiate between old and current snapshots, each entry is given
      * a sequence number each time an edit is committed. A snapshot is stale if
      * its sequence number is not equal to its entry's sequence number.
