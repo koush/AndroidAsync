@@ -5,6 +5,7 @@ import com.koushikdutta.async.FileDataEmitter;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.parser.StringParser;
+import com.koushikdutta.async.util.StreamUtility;
 
 import junit.framework.TestCase;
 

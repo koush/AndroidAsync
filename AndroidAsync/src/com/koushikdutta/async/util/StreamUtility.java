@@ -1,12 +1,4 @@
-package com.koushikdutta.async.test;
-
-import android.net.http.AndroidHttpClient;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.json.JSONException;
-import org.json.JSONObject;
+package com.koushikdutta.async.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -18,10 +10,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
-class StreamUtility {
+public class StreamUtility {
     public static void fastChannelCopy(final ReadableByteChannel src, final WritableByteChannel dest) throws IOException {
         final ByteBuffer buffer = ByteBuffer.allocateDirect(16 * 1024);
         while (src.read(buffer) != -1) {
@@ -43,50 +36,11 @@ class StreamUtility {
 
 	public static void copyStream(InputStream input, OutputStream output) throws IOException
 	{
-//	    final ReadableByteChannel inputChannel = Channels.newChannel(input);
-//	    final WritableByteChannel outputChannel = Channels.newChannel(output);
-//	    // copy the channels
-//	    fastChannelCopy(inputChannel, outputChannel);
-//	    // closing the channels
-////	    inputChannel.close();
-////	    outputChannel.close();
-
-	    
-	    byte[] stuff = new byte[65536];
-		int read = 0;
-		int total = 0;
-		while ((read = input.read(stuff)) != -1)
-		{
-			output.write(stuff, 0, read);
-			total += read;
-		}
-//		return total;
+	    final ReadableByteChannel inputChannel = Channels.newChannel(input);
+	    final WritableByteChannel outputChannel = Channels.newChannel(output);
+	    // copy the channels
+	    fastChannelCopy(inputChannel, outputChannel);
 	}
-    
-    public static String downloadUriAsString(String uri) throws IOException {
-        HttpGet get = new HttpGet(uri);
-        return downloadUriAsString(get);
-    }
-
-    
-    public static String downloadUriAsString(final HttpUriRequest req) throws IOException {
-        AndroidHttpClient client = AndroidHttpClient.newInstance("Android");
-        try {
-            HttpResponse res = client.execute(req);
-            return readToEnd(res.getEntity().getContent());
-        }
-        finally {
-            client.close();
-        }
-    }
-
-    public static JSONObject downloadUriAsJSONObject(String uri) throws IOException, JSONException {
-        return new JSONObject(downloadUriAsString(uri));
-    }
-
-    public static JSONObject downloadUriAsJSONObject(HttpUriRequest req) throws IOException, JSONException {
-        return new JSONObject(downloadUriAsString(req));
-    }
 
     public static byte[] readToEndAsArray(InputStream input) throws IOException
     {
