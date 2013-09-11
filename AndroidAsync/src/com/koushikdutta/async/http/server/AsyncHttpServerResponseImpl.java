@@ -10,6 +10,7 @@ import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
@@ -117,11 +118,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             initFirstWrite();
             ((ChunkedOutputFilter)mSink).setMaxBuffer(Integer.MAX_VALUE);
             mSink.write(new ByteBufferList());
+            onEnd();
         }
         else if (!mHasWritten) {
             send("text/html", "");
         }
-        onEnd();
     }
 
     private boolean mHeadWritten = false;
@@ -213,10 +214,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                     start = Integer.parseInt(parts[0]);
                 if (parts.length == 2 && !TextUtils.isEmpty(parts[1]))
                     end = Integer.parseInt(parts[1]);
-                else if (start != 0)
-                    end = (int)file.length() - 1;
                 else
-                    end = Math.min((int)file.length() - 1, 50000);
+                    end = (int)file.length() - 1;
+//                else if (start != 0)
+//                    end = (int)file.length() - 1;
+//                else
+//                    end = Math.min((int)file.length() - 1, 50000);
 
                 responseCode(206);
                 getHeaders().getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, file.length()));
@@ -238,6 +241,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             mRawHeaders.set("Accept-Ranges", "bytes");
             if (getHeaders().getHeaders().getStatusLine() == null)
                 responseCode(200);
+            if (mRequest.getMethod().equals(AsyncHttpHead.METHOD)) {
+                writeHead();
+                onEnd();
+                return;
+            }
             Util.pump(fin, mContentLength, this, new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {

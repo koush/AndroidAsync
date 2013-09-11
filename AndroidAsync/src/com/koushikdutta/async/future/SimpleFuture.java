@@ -94,36 +94,26 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
 
     Exception exception;
     public boolean setComplete(Exception e) {
+        return setComplete(e, null);
+    }
+
+    T result;
+    public boolean setComplete(T value) {
+        return setComplete(null, value);
+    }
+
+    public boolean setComplete(Exception e, T value) {
         FutureCallback<T> callback;
         synchronized (this) {
             if (!super.setComplete())
                 return false;
+            result = value;
             exception = e;
             releaseWaiterLocked();
             callback = handleCompleteLocked();
         }
         handleCallbackUnlocked(callback);
         return true;
-    }
-
-    T result;
-    public boolean setComplete(T value) {
-        FutureCallback<T> callback;
-        synchronized (this) {
-            if (!super.setComplete())
-                return false;
-            result = value;
-            releaseWaiterLocked();
-            callback = handleCompleteLocked();
-        }
-        handleCallbackUnlocked(callback);
-        return true;
-    }
-
-    public boolean setComplete(Exception e, T value) {
-        if (e != null)
-            return setComplete(e);
-        return setComplete(value);
     }
 
     public FutureCallback<T> getCompletionCallback() {

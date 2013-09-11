@@ -11,7 +11,8 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
 public class OutputStreamDataSink implements DataSink {
-    public OutputStreamDataSink() {
+    public OutputStreamDataSink(AsyncServer server) {
+        this(server, null);
     }
 
     @Override
@@ -19,7 +20,15 @@ public class OutputStreamDataSink implements DataSink {
         close();
     }
 
-    public OutputStreamDataSink(OutputStream stream) {
+    public OutputStreamDataSink(AsyncServer server, OutputStream stream) {
+        this(server, stream, false);
+    }
+
+    AsyncServer server;
+    boolean blocking;
+    public OutputStreamDataSink(AsyncServer server, OutputStream stream, boolean blocking) {
+        this.server = server;
+        this.blocking = blocking;
         setOutputStream(stream);
     }
 
@@ -111,6 +120,6 @@ public class OutputStreamDataSink implements DataSink {
 
     @Override
     public AsyncServer getServer() {
-        return AsyncServer.getDefault();
+        return server;
     }
 }
