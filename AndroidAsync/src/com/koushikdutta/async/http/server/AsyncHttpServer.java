@@ -150,7 +150,8 @@ public class AsyncHttpServer {
                     handleOnCompleted();
 
                     if (getBody().readFullyOnRequest()) {
-                        match.callback.onRequest(this, res);
+                        if (match != null)
+                            match.callback.onRequest(this, res);
                     }
                 }
                 
@@ -439,6 +440,8 @@ public class AsyncHttpServer {
         mCodes.put(200, "OK");
         mCodes.put(206, "Partial Content");
         mCodes.put(101, "Switching Protocols");
+        mCodes.put(301, "Moved Permanently");
+        mCodes.put(302, "Found");
         mCodes.put(404, "Not Found");
     }
     
