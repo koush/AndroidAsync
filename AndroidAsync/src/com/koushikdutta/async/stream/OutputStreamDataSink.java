@@ -48,25 +48,28 @@ public class OutputStreamDataSink implements DataSink {
                 synchronized (pending) {
                     b = pending.remove();
                 }
+                int rem = b.remaining();
                 mStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                totalWritten += rem;
                 ByteBufferList.reclaim(b);
             }
             return true;
         }
         catch (Exception e) {
             pending.recycle();
-            reportClose(e);
+            closeReported = true;
+            closeException = e;
             return false;
         }
     }
 
     final ByteBufferList pending = new ByteBufferList();
     Runnable backgrounder;
+    int totalWritten;
     private void doBackground() {
         assert getServer().getAffinity() == Thread.currentThread();
+
         if (backgrounder != null)
-            return;
-        if (!pending.hasRemaining())
             return;
         backgrounder = new Runnable() {
             @Override
@@ -81,6 +84,14 @@ public class OutputStreamDataSink implements DataSink {
                         backgrounder = null;
                         if (outputStreamCallback != null && !pending.hasRemaining())
                             outputStreamCallback.onWriteable();
+
+                        if (closeReported && !pending.hasRemaining()) {
+                            System.out.println("TOTAL WRITEN: " + totalWritten);
+                            if (mClosedCallback != null)
+                                mClosedCallback.onCompleted(closeException);
+                            return;
+                        }
+
                         doBackground();
                     }
                 });
@@ -196,12 +207,13 @@ public class OutputStreamDataSink implements DataSink {
     }
 
     boolean closeReported;
+    Exception closeException;
     public void reportClose(Exception ex) {
         if (closeReported)
             return;
         closeReported = true;
-        if (mClosedCallback != null)
-            mClosedCallback.onCompleted(ex);
+        closeException = ex;
+        doBackground();
     }
     
     CompletedCallback mClosedCallback;
