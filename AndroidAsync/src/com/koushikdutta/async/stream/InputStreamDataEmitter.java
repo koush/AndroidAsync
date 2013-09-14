@@ -52,15 +52,21 @@ public class InputStreamDataEmitter implements DataEmitter {
         paused = false;
     }
 
-    private void report(Exception e) {
-        try {
-            inputStream.close();
-        }
-        catch (Exception ex) {
-            e = ex;
-        }
-        if (endCallback != null)
-            endCallback.onCompleted(e);
+    private void report(final Exception e) {
+        getServer().post(new Runnable() {
+            @Override
+            public void run() {
+                Exception ex = e;
+                try {
+                    inputStream.close();
+                }
+                catch (Exception e) {
+                    ex = e;
+                }
+                if (endCallback != null)
+                    endCallback.onCompleted(ex);
+            }
+        });
     }
 
     ByteBufferList pending = new ByteBufferList();
@@ -69,7 +75,12 @@ public class InputStreamDataEmitter implements DataEmitter {
         public void run() {
             try {
                 if (!pending.isEmpty()) {
-                    Util.emitAllData(InputStreamDataEmitter.this, pending);
+                    getServer().run(new Runnable() {
+                        @Override
+                        public void run() {
+                            Util.emitAllData(InputStreamDataEmitter.this, pending);
+                        }
+                    });
                     if (!pending.isEmpty())
                         return;
                 }
@@ -83,7 +94,12 @@ public class InputStreamDataEmitter implements DataEmitter {
                     }
                     b.limit(read);
                     pending.add(b);
-                    Util.emitAllData(InputStreamDataEmitter.this, pending);
+                    getServer().run(new Runnable() {
+                        @Override
+                        public void run() {
+                            Util.emitAllData(InputStreamDataEmitter.this, pending);
+                        }
+                    });
                 }
                 while (pending.remaining() == 0 && !isPaused());
             }
@@ -94,7 +110,7 @@ public class InputStreamDataEmitter implements DataEmitter {
     };
 
     private void doResume() {
-        server.post(pumper);
+        server.getExecutorService().execute(pumper);
     }
 
     @Override
