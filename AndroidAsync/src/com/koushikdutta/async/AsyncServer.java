@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.DatagramChannel;
@@ -24,7 +25,9 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Comparator;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
@@ -34,127 +37,6 @@ import java.util.concurrent.TimeUnit;
 
 public class AsyncServer {
     public static final String LOGTAG = "NIO";
-    
-    public static class AsyncSemaphore {
-        Semaphore semaphore = new Semaphore(0);
-        
-        public void acquire() throws InterruptedException {
-            ThreadQueue threadQueue = getOrCreateThreadQueue(Thread.currentThread());
-            AsyncSemaphore last = threadQueue.waiter;
-            threadQueue.waiter = this;
-            Semaphore queueSemaphore = threadQueue.queueSemaphore;
-            try {
-                if (semaphore.tryAcquire())
-                    return;
-                
-                while (true) {
-                    // run the queue
-                    while (true) {
-                        Runnable run = threadQueue.remove();
-                        if (run == null)
-                            break;
-//                        Log.i(LOGTAG, "Pumping for AsyncSemaphore");
-                        run.run();
-                    }
-
-                    int permits = Math.max(1, queueSemaphore.availablePermits());
-                    queueSemaphore.acquire(permits);
-                    if (semaphore.tryAcquire())
-                        break;
-                }
-            }
-            finally {
-                threadQueue.waiter = last;
-            }
-        }
-        
-        public boolean tryAcquire(long timeout, TimeUnit timeunit) throws InterruptedException {
-            long timeoutMs = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-            ThreadQueue threadQueue = getOrCreateThreadQueue(Thread.currentThread());
-            AsyncSemaphore last = threadQueue.waiter;
-            threadQueue.waiter = this;
-            Semaphore queueSemaphore = threadQueue.queueSemaphore;
-
-            try {
-                if (semaphore.tryAcquire())
-                    return true;
-
-                long start = System.currentTimeMillis();
-                do {
-                    // run the queue
-                    while (true) {
-                        Runnable run = threadQueue.remove();
-                        if (run == null)
-                            break;
-//                        Log.i(LOGTAG, "Pumping for AsyncSemaphore");
-                        run.run();
-                    }
-
-                    int permits = Math.max(1, queueSemaphore.availablePermits());
-                    if (!queueSemaphore.tryAcquire(permits, timeoutMs, TimeUnit.MILLISECONDS))
-                        return false;
-                    if (semaphore.tryAcquire())
-                        return true;
-                }
-                while (System.currentTimeMillis() - start < timeoutMs);
-                return false;
-            }
-            finally {
-                threadQueue.waiter = last;
-            }
-        }
-        
-        public void release() {
-            semaphore.release();
-            synchronized (mThreadQueues) {
-                for (ThreadQueue threadQueue: mThreadQueues.values()) {
-                    if (threadQueue.waiter == this)
-                        threadQueue.queueSemaphore.release();
-                }
-            }
-        }
-    }
-    
-    static ThreadQueue getOrCreateThreadQueue(Thread thread) {
-        ThreadQueue queue;
-        synchronized (mThreadQueues) {
-            queue = mThreadQueues.get(thread);
-            if (queue == null) {
-                queue = new ThreadQueue();
-                mThreadQueues.put(thread, queue);
-            }
-        }
-        
-        return queue;
-    }
-    
-    public static class ThreadQueue extends LinkedList<Runnable> {
-        AsyncSemaphore waiter;
-        Semaphore queueSemaphore = new Semaphore(0);
-
-        @Override
-        public boolean add(Runnable object) {
-            synchronized (this) {
-                return super.add(object);
-            }
-        }
-        
-        @Override
-        public boolean remove(Object object) {
-            synchronized (this) {
-                return super.remove(object);
-            }
-        }
-
-        @Override
-        public Runnable remove() {
-            synchronized (this) {
-                if (this.isEmpty())
-                    return null;
-                return super.remove();
-            }
-        }
-    }
 
     private static class RunnableWrapper implements Runnable {
         boolean hasRun;
@@ -181,10 +63,9 @@ public class AsyncServer {
             }
         }
     }
-    private static WeakHashMap<Thread, ThreadQueue> mThreadQueues = new WeakHashMap<Thread, ThreadQueue>();
     public static void post(Handler handler, Runnable runnable) {
         RunnableWrapper wrapper = new RunnableWrapper();
-        ThreadQueue threadQueue = getOrCreateThreadQueue(handler.getLooper().getThread());
+        ThreadQueue threadQueue = ThreadQueue.getOrCreateThreadQueue(handler.getLooper().getThread());
         wrapper.threadQueue = threadQueue;
         wrapper.handler = handler;
         wrapper.runnable = runnable;
@@ -261,9 +142,20 @@ public class AsyncServer {
     public Object postDelayed(Runnable runnable, long delay) {
         Scheduled s;
         synchronized (this) {
+            // Calculate when to run this queue item:
+            // If there is a delay (non-zero), add it to the current time
+            // When delay is zero, ensure that this follows all other
+            // zero-delay queue items. This is done by setting the
+            // "time" to the queue size. This will make sure it is before
+            // all time-delayed queue items (for all real world scenarios)
+            // as it will always be less than the current time and also remain
+            // behind all other immediately run queue items.
+            long time;
             if (delay != 0)
-                delay += System.currentTimeMillis();
-            mQueue.add(s = new Scheduled(runnable, delay));
+                time = System.currentTimeMillis() + delay;
+            else
+                time = mQueue.size();
+            mQueue.add(s = new Scheduled(runnable, time));
             // start the server up if necessary
             if (mSelector == null)
                 run(false, true);
@@ -318,7 +210,23 @@ public class AsyncServer {
         public Runnable runnable;
         public long time;
     }
-    LinkedList<Scheduled> mQueue = new LinkedList<Scheduled>();
+    PriorityQueue<Scheduled> mQueue = new PriorityQueue<Scheduled>(1, Scheduler.INSTANCE);
+
+    static class Scheduler implements Comparator<Scheduled> {
+        public static Scheduler INSTANCE = new Scheduler();
+        private Scheduler() {
+        }
+        @Override
+        public int compare(Scheduled s1, Scheduled s2) {
+            // keep the smaller ones at the head, so they get tossed out quicker
+            if (s1.time == s2.time)
+                return 0;
+            if (s1.time > s2.time)
+                return 1;
+            return -1;
+        }
+    }
+
 
     public void stop() {
 //        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
@@ -345,7 +253,7 @@ public class AsyncServer {
                 }
             }, 0));
 
-            mQueue = new LinkedList<Scheduled>();
+            mQueue = new PriorityQueue<Scheduled>(1, Scheduler.INSTANCE);
             mSelector = null;
             mAffinity = null;
         }
@@ -581,7 +489,7 @@ public class AsyncServer {
         return handler;
     }
     
-    static WeakHashMap<Thread, AsyncServer> mServers = new WeakHashMap<Thread, AsyncServer>();
+    final static WeakHashMap<Thread, AsyncServer> mServers = new WeakHashMap<Thread, AsyncServer>();
 
     private boolean addMe() {
         synchronized (mServers) {
@@ -605,7 +513,7 @@ public class AsyncServer {
     }
     public void run(final boolean keepRunning, boolean newThread) {
         final Selector selector;
-        final LinkedList<Scheduled> queue;
+        final PriorityQueue<Scheduled> queue;
         boolean reentrant = false;
         synchronized (this) {
             if (mSelector != null) {
@@ -668,7 +576,7 @@ public class AsyncServer {
         run(this, selector, queue, keepRunning);
     }
     
-    private static void run(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) {
+    private static void run(final AsyncServer server, final Selector selector, final PriorityQueue<Scheduled> queue, final boolean keepRunning) {
 //        Log.i(LOGTAG, "****AsyncServer is starting.****");
         // at this point, this local queue and selector are owned
         // by this thread.
@@ -693,7 +601,7 @@ public class AsyncServer {
 
                 shutdownEverything(selector);
                 if (server.mSelector == selector) {
-                    server.mQueue = new LinkedList<Scheduled>();
+                    server.mQueue = new PriorityQueue<Scheduled>(1, Scheduler.INSTANCE);
                     server.mSelector = null;
                     server.mAffinity = null;
                 }
@@ -736,7 +644,7 @@ public class AsyncServer {
     }
     
     private static final long QUEUE_EMPTY = Long.MAX_VALUE;
-    private static long lockAndRunQueue(AsyncServer server, LinkedList<Scheduled> queue) {
+    private static long lockAndRunQueue(final AsyncServer server, final PriorityQueue<Scheduled> queue) {
         long wait = QUEUE_EMPTY;
         
         // find the first item we can actually run
@@ -745,23 +653,17 @@ public class AsyncServer {
 
             synchronized (server) {
                 long now = System.currentTimeMillis();
-                LinkedList<Scheduled> later = null;
 
-                while (queue.size() > 0) {
+                if (queue.size() > 0) {
                     Scheduled s = queue.remove();
                     if (s.time <= now) {
                         run = s;
-                        break;
                     }
                     else {
-                        wait = Math.min(wait, s.time - now);
-                        if (later == null)
-                            later = new LinkedList<AsyncServer.Scheduled>();
-                        later.add(s);
+                        wait = s.time - now;
+                        queue.add(s);
                     }
                 }
-                if (later != null)
-                    queue.addAll(later);
             }
             
             if (run == null)
@@ -773,7 +675,7 @@ public class AsyncServer {
         return wait;
     }
 
-    private static void runLoop(AsyncServer server, Selector selector, LinkedList<Scheduled> queue, boolean keepRunning) throws IOException {
+    private static void runLoop(final AsyncServer server, final Selector selector, final PriorityQueue<Scheduled> queue, final boolean keepRunning) throws IOException {
 //        Log.i(LOGTAG, "Keys: " + selector.keys().size());
         boolean needsSelect = true;
 
