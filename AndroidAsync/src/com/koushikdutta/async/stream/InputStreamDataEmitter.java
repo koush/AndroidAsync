@@ -50,6 +50,7 @@ public class InputStreamDataEmitter implements DataEmitter {
     @Override
     public void resume() {
         paused = false;
+        doResume();
     }
 
     private void report(final Exception e) {
@@ -69,6 +70,7 @@ public class InputStreamDataEmitter implements DataEmitter {
         });
     }
 
+    int mToAlloc = 0;
     ByteBufferList pending = new ByteBufferList();
     Runnable pumper = new Runnable() {
         @Override
@@ -86,12 +88,13 @@ public class InputStreamDataEmitter implements DataEmitter {
                 }
                 ByteBuffer b;
                 do {
-                    b = ByteBufferList.obtain(8192);
+                    b = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), 256 * 1024));
                     int read;
                     if (-1 == (read = inputStream.read(b.array()))) {
                         report(null);
                         return;
                     }
+                    mToAlloc = read * 2;
                     b.limit(read);
                     pending.add(b);
                     getServer().run(new Runnable() {
