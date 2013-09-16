@@ -75,7 +75,7 @@ class SocketIOConnection {
             }
         }
 
-        if (needsEndpointDisconnect)
+        if (needsEndpointDisconnect && webSocket != null)
             webSocket.send(String.format("0::%s", client.endpoint));
 
         // and see if we can disconnect the socket completely
