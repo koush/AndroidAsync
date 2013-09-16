@@ -4,3 +4,4 @@ local.properties
 gen
 .gradle
 build
+obj
