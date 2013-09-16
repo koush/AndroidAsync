@@ -79,7 +79,7 @@ class SocketIOConnection {
             webSocket.send(String.format("0::%s", client.endpoint));
 
         // and see if we can disconnect the socket completely
-        if (clients.size() > 0)
+        if (clients.size() > 0 || webSocket == null)
             return;
 
         webSocket.setStringCallback(null);
