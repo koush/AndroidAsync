@@ -357,9 +357,13 @@ public class ByteBufferList {
         return reclaimed;
     }
 
-    private static final int MAX_SIZE = 1024 * 1024;
+    private static int MAX_SIZE = 1024 * 1024;
     static int currentSize = 0;
     static int maxItem = 0;
+
+    public static void setMaxPoolSize(int size) {
+        MAX_SIZE = size;
+    }
 
     private static boolean reclaimedContains(ByteBuffer b) {
         for (ByteBuffer other: reclaimed) {
