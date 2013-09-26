@@ -238,7 +238,8 @@ public class AsyncHttpClient {
                         super.setDataEmitter(data.bodyEmitter);
 
                         RawHeaders headers = mHeaders.getHeaders();
-                        if ((headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM || headers.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP) && request.getFollowRedirect()) {
+                        int responseCode = headers.getResponseCode();
+                        if ((responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == 307) && request.getFollowRedirect()) {
                             URI redirect = URI.create(headers.get("Location"));
                             if (redirect == null || redirect.getScheme() == null) {
                                 redirect = URI.create(uri.toString().substring(0, uri.toString().length() - uri.getPath().length()) + headers.get("Location"));
