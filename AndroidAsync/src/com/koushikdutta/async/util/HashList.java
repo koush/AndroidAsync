@@ -58,13 +58,16 @@ public class HashList<T> {
         ret.add(value);
     }
 
-    synchronized public void removeItem(String key, T value) {
-        ArrayList<T> values = get(key);
+    synchronized public Object removeItem(String key, T value) {
+        TaggedList<T> values = internal.get(key);
         if (values == null)
-            return;
+            return null;
 
         values.remove(value);
-        if (values.size() == 0)
+        if (values.size() == 0) {
             internal.remove(key);
+            return values.tag;
+        }
+        return null;
     }
 }
