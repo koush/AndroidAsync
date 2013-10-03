@@ -6,21 +6,65 @@ import java.util.Hashtable;
 /**
  * Created by koush on 5/27/13.
  */
-public class HashList<T> extends Hashtable<String, ArrayList<T>> {
+public class HashList<T> {
+    class TaggedList<T> extends ArrayList<T> {
+        Object tag;
+    }
+    Hashtable<String, TaggedList<T>> internal = new Hashtable<String, TaggedList<T>>();
+
     public HashList() {
     }
 
-    public boolean contains(String key) {
+    public synchronized <V> V tag(String key) {
+        TaggedList<T> list = internal.get(key);
+        if (list == null)
+            return null;
+        return (V)list.tag;
+    }
+
+    public synchronized <V> void tag(String key, V tag) {
+        TaggedList<T> list = internal.get(key);
+        if (list == null) {
+            list = new TaggedList<T>();
+            internal.put(key, list);
+        }
+        list.tag = tag;
+    }
+
+    public synchronized ArrayList<T> remove(String key) {
+        return internal.remove(key);
+    }
+
+    public synchronized int size() {
+        return internal.size();
+    }
+
+    public synchronized ArrayList<T> get(String key) {
+        return internal.get(key);
+    }
+
+    synchronized public boolean contains(String key) {
         ArrayList<T> check = get(key);
         return check != null && check.size() > 0;
     }
 
-    public void add(String key, T value) {
+    synchronized public void add(String key, T value) {
         ArrayList<T> ret = get(key);
         if (ret == null) {
-            ret = new ArrayList<T>();
-            put(key, ret);
+            TaggedList<T> put = new TaggedList<T>();
+            ret = put;
+            internal.put(key, put);
         }
         ret.add(value);
+    }
+
+    synchronized public void removeItem(String key, T value) {
+        ArrayList<T> values = get(key);
+        if (values == null)
+            return;
+
+        values.remove(value);
+        if (values.size() == 0)
+            internal.remove(key);
     }
 }
