@@ -173,8 +173,10 @@ public class WebSocketImpl implements WebSocket {
         if (extensions != null) {
             if (extensions.equals("x-webkit-deflate-frame"))
                 deflate = true;
-            else
-                return null;
+            // is this right? do we want to crap out here? Commenting out
+            // as I suspect this caused a regression.
+//            else
+//                return null;
         }
 
         WebSocketImpl ret = new WebSocketImpl(response.detachSocket());
