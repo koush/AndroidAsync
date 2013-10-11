@@ -27,7 +27,7 @@ import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.ResponseCacheMiddleware;
-import com.koushikdutta.async.http.UrlEncodedFormBody;
+import com.koushikdutta.async.http.body.UrlEncodedFormBody;
 
 public class MainActivity extends Activity {
     static ResponseCacheMiddleware cacher; 
