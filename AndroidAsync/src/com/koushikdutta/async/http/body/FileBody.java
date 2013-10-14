@@ -35,7 +35,7 @@ public class FileBody implements AsyncHttpRequestBody<File> {
 
     @Override
     public boolean readFullyOnRequest() {
-        return true;
+        throw new AssertionError("not implemented");
     }
 
     @Override
