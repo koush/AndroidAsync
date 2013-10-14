@@ -12,6 +12,11 @@ public class StreamBody implements AsyncHttpRequestBody<InputStream> {
     InputStream stream;
     int length;
 
+    /**
+     * Construct an http body from a stream
+     * @param stream
+     * @param length Length of stream to read, or value < 0 to read to end
+     */
     public StreamBody(InputStream stream, int length) {
         this.stream = stream;
         this.length = length;
@@ -19,7 +24,7 @@ public class StreamBody implements AsyncHttpRequestBody<InputStream> {
 
     @Override
     public void write(AsyncHttpRequest request, DataSink sink, CompletedCallback completed) {
-        Util.pump(stream, this.length, sink, completed);
+        Util.pump(stream, length < 0 ? Integer.MAX_VALUE : length, sink, completed);
     }
 
     @Override
