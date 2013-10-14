@@ -10,7 +10,7 @@ import java.io.InputStream;
 
 public class StreamBody implements AsyncHttpRequestBody<InputStream> {
     InputStream stream;
-	int length;
+    int length;
     String contentType;
 
     public StreamBody(InputStream stream, int length, String contentType) {
@@ -37,7 +37,7 @@ public class StreamBody implements AsyncHttpRequestBody<InputStream> {
 
     @Override
     public boolean readFullyOnRequest() {
-        return false;
+        throw new AssertionError("not implemented");
     }
 
     @Override
