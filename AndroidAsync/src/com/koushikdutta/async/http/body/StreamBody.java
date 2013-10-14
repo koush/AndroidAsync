@@ -11,12 +11,10 @@ import java.io.InputStream;
 public class StreamBody implements AsyncHttpRequestBody<InputStream> {
     InputStream stream;
     int length;
-    String contentType;
 
-    public StreamBody(InputStream stream, int length, String contentType) {
+    public StreamBody(InputStream stream, int length) {
         this.stream = stream;
         this.length = length;
-        this.contentType = contentType;
     }
 
     @Override
@@ -32,7 +30,7 @@ public class StreamBody implements AsyncHttpRequestBody<InputStream> {
     public static final String CONTENT_TYPE = "application/binary";
     @Override
     public String getContentType() {
-        return contentType != null ? contentType : CONTENT_TYPE;
+        return CONTENT_TYPE;
     }
 
     @Override
