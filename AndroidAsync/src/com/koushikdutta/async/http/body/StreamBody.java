@@ -21,7 +21,7 @@ public class StreamBody implements AsyncHttpRequestBody<InputStream> {
 
     @Override
     public void write(AsyncHttpRequest request, DataSink sink, CompletedCallback completed) {
-        Util.pump(stream, sink, completed);
+        Util.pump(stream, this.length, sink, completed);
     }
 
     @Override
