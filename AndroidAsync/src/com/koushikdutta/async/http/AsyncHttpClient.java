@@ -248,6 +248,8 @@ public class AsyncHttpClient {
                             newReq.executionTime = request.executionTime;
                             newReq.logLevel = request.logLevel;
                             newReq.LOGTAG = request.LOGTAG;
+                            newReq.proxyHost = request.proxyHost;
+                            newReq.proxyPort = request.proxyPort;
                             request.logi("Redirecting");
                             newReq.logi("Redirected");
                             execute(newReq, redirectCount + 1, cancel, callback);
