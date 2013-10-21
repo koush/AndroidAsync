@@ -239,7 +239,7 @@ public class ByteBufferList {
                 }
             }
             mBuffers.addFirst(ret);
-            return ret;
+            return ret.order(order);
         }
 
         ret = obtain(count);

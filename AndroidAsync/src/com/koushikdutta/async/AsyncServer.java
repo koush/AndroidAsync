@@ -447,6 +447,10 @@ public class AsyncServer {
     }
 
     public AsyncDatagramSocket openDatagram() throws IOException {
+        return openDatagram(null, false);
+    }
+
+    public AsyncDatagramSocket openDatagram(final SocketAddress address, final boolean reuseAddress) throws IOException {
         final DatagramChannel socket = DatagramChannel.open();
         final AsyncDatagramSocket handler = new AsyncDatagramSocket();
         handler.attach(socket);
@@ -457,7 +461,9 @@ public class AsyncServer {
             @Override
             public void run() {
                 try {
-                    socket.socket().bind(null);
+                    if (reuseAddress)
+                        socket.socket().setReuseAddress(reuseAddress);
+                    socket.socket().bind(address);
                     handleSocket(handler);
                 }
                 catch (Exception e) {
