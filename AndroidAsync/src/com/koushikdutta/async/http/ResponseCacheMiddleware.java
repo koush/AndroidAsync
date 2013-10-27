@@ -178,6 +178,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 assert buffer.position() == 0;
                 DataInputStream din = new DataInputStream(cacheResponse.getBody());
                 din.readFully(buffer.array(), buffer.arrayOffset(), (int)contentLength);
+                buffer.limit((int)contentLength);
                 pending.add(buffer);
                 com.koushikdutta.async.Util.emitAllData(CachedSocket.this, pending);
                 assert din.read() == -1;
@@ -486,6 +487,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 assert buffer.position() == 0;
                 DataInputStream din = new DataInputStream(cacheResponse.getBody());
                 din.readFully(buffer.array(), buffer.arrayOffset(), (int)contentLength);
+                buffer.limit((int)contentLength);
                 pending.add(buffer);
                 com.koushikdutta.async.Util.emitAllData(this, pending);
                 assert din.read() == -1;
