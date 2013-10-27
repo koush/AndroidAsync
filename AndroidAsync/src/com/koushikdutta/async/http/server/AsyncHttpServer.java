@@ -351,13 +351,13 @@ public class AsyncHttpServer {
         return "text/plain";
     }
 
-    public void directory(Context _context, String regex, final String assetPath) {
-        final Context context = _context.getApplicationContext();
+    public void directory(Context context, String regex, final String assetPath) {
+        final Context _context = context.getApplicationContext();
         addAction("GET", regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 String path = request.getMatcher().replaceAll("");
-                InputStream is = getAssetStream(context, assetPath + path);
+                InputStream is = getAssetStream(_context, assetPath + path);
                 if (is == null) {
                     response.responseCode(404);
                     response.end();

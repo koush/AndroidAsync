@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
@@ -89,7 +90,8 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         String currentEncoding = mRawHeaders.get("Transfer-Encoding");
         if ("".equals(currentEncoding))
             mRawHeaders.removeAll("Transfer-Encoding");
-        boolean canUseChunked = "Chunked".equalsIgnoreCase(currentEncoding) || currentEncoding == null;
+        boolean canUseChunked = ("Chunked".equalsIgnoreCase(currentEncoding) || currentEncoding == null)
+           && !"close".equalsIgnoreCase(mRawHeaders.get("Connection"));
         if (mContentLength < 0 && canUseChunked) {
             mRawHeaders.set("Transfer-Encoding", "Chunked");
             mSink = new ChunkedOutputFilter(mSocket);
@@ -137,6 +139,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         Util.writeAll(mSocket, mRawHeaders.toHeaderString().getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
+                // TODO: HACK!!!
+                // this really needs to be fixed. Not sure how to deal w/ writehead and
+                // first write
+                if (mSink instanceof BufferedDataSink)
+                    ((BufferedDataSink)mSink).setDataSink(mSocket);
                 WritableCallback writableCallback = getWriteableCallback();
                 if (writableCallback != null)
                     writableCallback.onWriteable();
@@ -149,7 +156,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         assert !mHeadWritten;
         mRawHeaders.set("Content-Type", contentType);
     }
-    
+
     public void send(String contentType, final String string) {
         try {
             if (mRawHeaders.getStatusLine() == null)

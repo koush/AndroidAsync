@@ -379,9 +379,10 @@ public class ByteBufferList {
     }
 
     public static void reclaim(ByteBuffer b) {
-        if (b == null || b.arrayOffset() != 0 || b.array().length != b.capacity()) {
+        if (b == null || b.isDirect())
             return;
-        }
+        if (b.arrayOffset() != 0 || b.array().length != b.capacity())
+            return;
         if (b.capacity() < 8192)
             return;
         if (b.capacity() > MAX_ITEM_SIZE)

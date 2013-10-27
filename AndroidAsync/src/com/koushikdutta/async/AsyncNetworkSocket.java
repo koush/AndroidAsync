@@ -46,7 +46,8 @@ public class AsyncNetworkSocket implements AsyncSocket {
     
     public void onDataWritable() {
         assert mWriteableHandler != null;
-        mWriteableHandler.onWriteable();
+        if (mWriteableHandler != null)
+            mWriteableHandler.onWriteable();
     }
     
     private ChannelWrapper mChannel;

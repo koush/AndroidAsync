@@ -8,13 +8,7 @@ import java.nio.ByteBuffer;
 public class BufferedDataSink implements DataSink {
     DataSink mDataSink;
     public BufferedDataSink(DataSink datasink) {
-        mDataSink = datasink;
-        mDataSink.setWriteableCallback(new WritableCallback() {
-            @Override
-            public void onWriteable() {
-                writePending();
-            }
-        });
+        setDataSink(datasink);
     }
 
     public boolean isBuffering() {
@@ -23,6 +17,16 @@ public class BufferedDataSink implements DataSink {
     
     public DataSink getDataSink() {
         return mDataSink;
+    }
+
+    public void setDataSink(DataSink datasink) {
+        mDataSink = datasink;
+        mDataSink.setWriteableCallback(new WritableCallback() {
+            @Override
+            public void onWriteable() {
+                writePending();
+            }
+        });
     }
 
     private void writePending() {
