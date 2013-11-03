@@ -20,10 +20,12 @@ import com.koushikdutta.async.http.callback.RequestCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.parser.AsyncParser;
 import com.koushikdutta.async.parser.ByteBufferListParser;
+import com.koushikdutta.async.parser.JSONArrayParser;
 import com.koushikdutta.async.parser.JSONObjectParser;
 import com.koushikdutta.async.parser.StringParser;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
@@ -378,6 +380,9 @@ public class AsyncHttpClient {
 
     public static abstract class JSONObjectCallback extends RequestCallbackBase<JSONObject> {
     }
+    
+    public static abstract class JSONArrayCallback extends RequestCallbackBase<JSONArray> {
+    }
 
     public static abstract class FileCallback extends RequestCallbackBase<File> {
     }
@@ -442,6 +447,29 @@ public class AsyncHttpClient {
     }
     public Future<JSONObject> executeJSONObject(AsyncHttpRequest req, final JSONObjectCallback callback) {
         return execute(req, new JSONObjectParser(), callback);
+    }
+
+    @Deprecated
+    public Future<JSONArray> get(String uri, final JSONArrayCallback callback) {
+        return executeJSONArray(new AsyncHttpGet(uri), callback);
+    }
+    @Deprecated
+    public Future<JSONArray> execute(AsyncHttpRequest req, final JSONArrayCallback callback) {
+        return executeJSONArray(req, callback);
+    }
+
+    public Future<JSONArray> getJSONArray(String uri) {
+        return getJSONArray(uri, null);
+    }
+    public Future<JSONArray> getJSONArray(String uri, final JSONArrayCallback callback) {
+        return executeJSONArray(new AsyncHttpGet(uri), callback);
+    }
+
+    public Future<JSONArray> executeJSONArray(AsyncHttpRequest req) {
+        return executeJSONArray(req, null);
+    }
+    public Future<JSONArray> executeJSONArray(AsyncHttpRequest req, final JSONArrayCallback callback) {
+        return execute(req, new JSONArrayParser(), callback);
     }
 
     private <T> void invokeWithAffinity(final RequestCallback<T> callback, SimpleFuture<T> future, final AsyncHttpResponse response, final Exception e, final T result) {
