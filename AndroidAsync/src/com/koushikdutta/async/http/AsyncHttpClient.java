@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http;
 
 import android.os.Handler;
+import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.AsyncServer;
@@ -252,6 +253,9 @@ public class AsyncHttpClient {
                             newReq.LOGTAG = request.LOGTAG;
                             newReq.proxyHost = request.proxyHost;
                             newReq.proxyPort = request.proxyPort;
+                            String userAgent = request.getHeaders().getHeaders().get("User-Agent");
+                            if (!TextUtils.isEmpty(userAgent))
+                                newReq.getHeaders().getHeaders().set("User-Agent", userAgent);
                             request.logi("Redirecting");
                             newReq.logi("Redirected");
                             execute(newReq, redirectCount + 1, cancel, callback);
