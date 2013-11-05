@@ -260,7 +260,7 @@ public class AsyncHttpClient {
 
                                 redirect = URI.create(builder.toString());
                             }
-                            AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
+                            AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, AsyncHttpGet.METHOD);
                             newReq.executionTime = request.executionTime;
                             newReq.logLevel = request.logLevel;
                             newReq.LOGTAG = request.LOGTAG;
