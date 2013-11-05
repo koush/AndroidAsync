@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import android.net.Uri;
 import android.os.Handler;
 import android.text.TextUtils;
 
@@ -243,9 +244,21 @@ public class AsyncHttpClient {
                         RawHeaders headers = mHeaders.getHeaders();
                         int responseCode = headers.getResponseCode();
                         if ((responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == 307) && request.getFollowRedirect()) {
-                            URI redirect = URI.create(headers.get("Location"));
+                            String location = headers.get("Location");
+                            URI redirect = URI.create(location);
                             if (redirect == null || redirect.getScheme() == null) {
-                                redirect = URI.create(uri.toString().substring(0, uri.toString().length() - uri.getPath().length()) + headers.get("Location"));
+                                Uri builder;
+                                if (location.startsWith("/")) {
+                                    builder = Uri.parse(uri.toString()).buildUpon().path(location).build();
+                                }
+                                else {
+                                    String full = uri.toString();
+                                    int lastIndex = full.lastIndexOf("/");
+                                    String relative = full.substring(0, lastIndex);
+                                    builder = Uri.parse(relative).buildUpon().appendPath(location).build();
+                                }
+
+                                redirect = URI.create(builder.toString());
                             }
                             AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
                             newReq.executionTime = request.executionTime;
