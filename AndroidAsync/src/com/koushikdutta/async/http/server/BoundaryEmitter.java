@@ -95,7 +95,8 @@ public class BoundaryEmitter extends FilteredDataEmitter {
                     state = -4;
                     int len = i - last - boundary.length;
                     if (last != 0 || len != 0) {
-                        ByteBuffer b = ByteBuffer.wrap(buf, last, len);
+                        ByteBuffer b = ByteBufferList.obtain(len).put(buf, last, len);
+                        b.flip();
                         ByteBufferList list = new ByteBufferList();
                         list.add(b);
                         super.onDataAvailable(this, list);
@@ -123,7 +124,8 @@ public class BoundaryEmitter extends FilteredDataEmitter {
             else if (state == -3) {
                 if (buf[i] == '\r') {
                     state = -4;
-                    ByteBuffer b = ByteBuffer.wrap(buf, last, i - last - boundary.length - 2);
+                    ByteBuffer b = ByteBufferList.obtain(i - last - boundary.length - 2).put(buf, last, i - last - boundary.length - 2);
+                    b.flip();
                     ByteBufferList list = new ByteBufferList();
                     list.add(b);
                     super.onDataAvailable(this, list);
@@ -155,7 +157,8 @@ public class BoundaryEmitter extends FilteredDataEmitter {
 //            System.out.println("State: " + state);
 //            System.out.println(state);
             int keep = Math.max(state, 0);
-            ByteBuffer b = ByteBuffer.wrap(buf, last, buf.length - last - keep);
+            ByteBuffer b = ByteBufferList.obtain(buf.length - last - keep).put(buf, last, buf.length - last - keep);
+            b.flip();
             ByteBufferList list = new ByteBufferList();
             list.add(b);
             super.onDataAvailable(this, list);
