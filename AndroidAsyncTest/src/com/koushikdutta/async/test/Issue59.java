@@ -21,8 +21,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class Issue59 extends TestCase {
     public void testIssue() throws Exception {
+        AsyncHttpServer httpServer = new AsyncHttpServer();
         try {
-            AsyncHttpServer httpServer = new AsyncHttpServer();
             httpServer.get("/", new HttpServerRequestCallback() {
                 @Override
                 public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
@@ -49,6 +49,7 @@ public class Issue59 extends TestCase {
             assertEquals("foobarbeepboop", AsyncHttpClient.getDefaultInstance().executeString(get).get(1000, TimeUnit.MILLISECONDS));
         }
         finally {
+            httpServer.stop();
             AsyncServer.getDefault().stop();
         }
     }
