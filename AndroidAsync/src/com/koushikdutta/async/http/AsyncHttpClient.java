@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
@@ -247,18 +248,13 @@ public class AsyncHttpClient {
                             String location = headers.get("Location");
                             URI redirect = URI.create(location);
                             if (redirect == null || redirect.getScheme() == null) {
-                                Uri builder;
-                                if (location.startsWith("/")) {
-                                    builder = Uri.parse(uri.toString()).buildUpon().path(location).build();
+                                try {
+                                    redirect = new URL(uri.toURL(), location).toURI();
                                 }
-                                else {
-                                    String full = uri.toString();
-                                    int lastIndex = full.lastIndexOf("/");
-                                    String relative = full.substring(0, lastIndex);
-                                    builder = Uri.parse(relative).buildUpon().appendPath(location).build();
+                                catch (Exception e) {
+                                    reportConnectedCompleted(cancel, e, this, request, callback);
+                                    return;
                                 }
-
-                                redirect = URI.create(builder.toString());
                             }
                             AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, AsyncHttpGet.METHOD);
                             newReq.executionTime = request.executionTime;

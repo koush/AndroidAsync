@@ -32,7 +32,18 @@ public class RedirectTests extends TestCase {
             }
         });
 
-
+        server.get("/foo/poo", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                response.redirect("../poo");
+            }
+        });
+        server.get("/poo", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                response.send("SWEET!");
+            }
+        });
         server.get("/foo/bar", new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
@@ -64,6 +75,10 @@ public class RedirectTests extends TestCase {
         .executeString(new AsyncHttpGet("http://localhost:5555/foo"))
         .get();
 
-        assertEquals(ret, "BORAT!");
+        ret = AsyncHttpClient.getDefaultInstance()
+        .executeString(new AsyncHttpGet("http://localhost:5555/foo/poo"))
+        .get();
+
+        assertEquals(ret, "SWEET!");
     }
 }
