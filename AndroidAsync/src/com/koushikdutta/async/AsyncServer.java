@@ -706,7 +706,7 @@ public class AsyncServer {
 
         if (needsSelect) {
             if (wait == QUEUE_EMPTY)
-                wait = 100;
+                wait = 5;
             // nothing to select immediately but there so let's block and wait.
             selector.select(wait);
         }

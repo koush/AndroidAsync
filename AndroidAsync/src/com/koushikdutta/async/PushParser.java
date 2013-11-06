@@ -1,5 +1,7 @@
 package com.koushikdutta.async;
 
+import android.util.Log;
+
 import com.koushikdutta.async.callback.DataCallback;
 
 import java.lang.reflect.Method;
@@ -242,7 +244,7 @@ public class PushParser {
                 }
                 catch (Exception ex) {
                     assert false;
-                    ex.printStackTrace();
+                    Log.e("PushParser", "error during parse", ex);
                 }
             }
         };
