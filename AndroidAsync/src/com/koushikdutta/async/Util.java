@@ -194,7 +194,9 @@ public class Util {
         wc.onWriteable();
     }
     public static void writeAll(DataSink sink, byte[] bytes, CompletedCallback callback) {
-        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        ByteBuffer bb = ByteBufferList.obtain(bytes.length);
+        bb.put(bytes);
+        bb.flip();
         ByteBufferList bbl = new ByteBufferList();
         bbl.add(bb);
         writeAll(sink, bbl, callback);

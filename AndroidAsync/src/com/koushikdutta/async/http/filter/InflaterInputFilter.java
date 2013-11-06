@@ -11,7 +11,7 @@ import java.util.zip.Inflater;
 
 public class InflaterInputFilter extends FilteredDataEmitter {
     private Inflater mInflater;
-    
+
     @Override
     protected void report(Exception e) {
         if (e != null && mInflater.getRemaining() > 0) {

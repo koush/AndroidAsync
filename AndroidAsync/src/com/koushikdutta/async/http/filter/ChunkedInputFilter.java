@@ -37,6 +37,13 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
     }
 
     @Override
+    protected void report(Exception e) {
+        if (e == null && mState != State.COMPLETE)
+            e = new Exception("chunked input ended before final chunk");
+        super.report(e);
+    }
+
+    @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         try {
             while (bb.remaining() > 0) {

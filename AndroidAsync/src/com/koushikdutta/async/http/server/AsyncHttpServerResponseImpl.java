@@ -1,7 +1,6 @@
 package com.koushikdutta.async.http.server;
 
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
@@ -92,6 +91,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             mRawHeaders.removeAll("Transfer-Encoding");
         boolean canUseChunked = ("Chunked".equalsIgnoreCase(currentEncoding) || currentEncoding == null)
            && !"close".equalsIgnoreCase(mRawHeaders.get("Connection"));
+        if (mContentLength < 0) {
+            String contentLength = mRawHeaders.get("Content-Length");
+            if (!TextUtils.isEmpty(contentLength))
+                mContentLength = Integer.valueOf(contentLength);
+        }
         if (mContentLength < 0 && canUseChunked) {
             mRawHeaders.set("Transfer-Encoding", "Chunked");
             mSink = new ChunkedOutputFilter(mSocket);

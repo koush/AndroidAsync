@@ -86,7 +86,6 @@ public class OutputStreamDataSink implements DataSink {
                             outputStreamCallback.onWriteable();
 
                         if (closeReported && !pending.hasRemaining()) {
-                            System.out.println("TOTAL WRITEN: " + totalWritten);
                             if (mClosedCallback != null)
                                 mClosedCallback.onCompleted(closeException);
                             return;
@@ -213,7 +212,18 @@ public class OutputStreamDataSink implements DataSink {
             return;
         closeReported = true;
         closeException = ex;
-        doBackground();
+        if (blocking) {
+            getServer().post(new Runnable() {
+                @Override
+                public void run() {
+                    doBackground();
+                }
+            });
+            return;
+        }
+
+        if (mClosedCallback != null)
+            mClosedCallback.onCompleted(closeException);
     }
     
     CompletedCallback mClosedCallback;

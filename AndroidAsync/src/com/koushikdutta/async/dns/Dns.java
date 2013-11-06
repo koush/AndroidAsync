@@ -9,6 +9,8 @@ import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -175,8 +177,8 @@ public class Dns {
         packet.putShort((short)0);
 
         addName(packet, host);
-        // A query
-        packet.putShort((short)1);
+        // query
+        packet.putShort(multicast ? (short)12 : (short)1);
         // request internet address
         packet.putShort((short)1);
 
@@ -194,10 +196,16 @@ public class Dns {
             final AsyncDatagramSocket dgram;
             // todo, use the dns server...
             if (!multicast) {
-                dgram = server.connectDatagram(new InetSocketAddress("8.8.8.8", 53));
+                dgram = server .connectDatagram(new InetSocketAddress("8.8.8.8", 53));
             }
             else {
-                dgram = AsyncServer.getDefault().openDatagram(new InetSocketAddress(Inet4Address.getByAddress(new byte[] { 0, 0, 0, 0}), 5353), true);
+                dgram = AsyncServer.getDefault().openDatagram(new InetSocketAddress(5353), true);
+                Field field = DatagramSocket.class.getDeclaredField("impl");
+                field.setAccessible(true);
+                Object impl = field.get(dgram.getSocket());
+                Method method = impl.getClass().getMethod("join", InetAddress.class);
+                method.setAccessible(true);
+                method.invoke(impl, InetAddress.getByName("224.0.0.251"));
                 ((DatagramSocket)dgram.getSocket()).setBroadcast(true);
             }
             dgram.setDataCallback(new DataCallback() {
