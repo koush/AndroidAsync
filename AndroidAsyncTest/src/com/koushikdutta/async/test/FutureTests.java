@@ -398,4 +398,16 @@ public class FutureTests extends TestCase {
         // trigger.get will do a reentrant block.
         assertEquals((int)trigger.get(5000, TimeUnit.MILLISECONDS), 2020);
     }
+
+    public void testCancelCallback() throws Exception {
+        SimpleFuture<String> future = new SimpleFuture<String>();
+        future.cancel();
+        future.setCallback(new FutureCallback<String>() {
+            @Override
+            public void onCompleted(Exception e, String result) {
+                fail();
+            }
+        });
+        assertNull(future.getCallback());
+    }
 }

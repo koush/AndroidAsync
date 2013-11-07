@@ -131,6 +131,8 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     public SimpleFuture<T> setCallback(FutureCallback<T> callback) {
         // callback can only be changed or read/used inside a sync block
         synchronized (this) {
+            if (isCancelled())
+                return this;
             this.callback = callback;
             if (isDone())
                 callback = handleCompleteLocked();
@@ -139,6 +141,10 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         }
         handleCallbackUnlocked(callback);
         return this;
+    }
+
+    public FutureCallback<T> getCallback() {
+        return callback;
     }
 
     @Override
