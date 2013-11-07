@@ -410,4 +410,17 @@ public class FutureTests extends TestCase {
         });
         assertNull(future.getCallback());
     }
+
+    public void testCancelCallbackCleared() throws Exception {
+        SimpleFuture<String> future = new SimpleFuture<String>();
+        future.setCallback(new FutureCallback<String>() {
+            @Override
+            public void onCompleted(Exception e, String result) {
+                fail();
+            }
+        });
+        assertNotNull(future.getCallback());
+        future.cancel();
+        assertNull(future.getCallback());
+    }
 }

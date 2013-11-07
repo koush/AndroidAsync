@@ -20,6 +20,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         // still need to release any pending waiters
         synchronized (this) {
             exception = new CancellationException();
+            callback = null;
             releaseWaiterLocked();
         }
         return true;
