@@ -309,6 +309,8 @@ public class AsyncHttpClient {
 
                     @Override
                     protected void report(Exception ex) {
+                        if (ex != null)
+                            request.loge("exception during response", ex);
                         if (cancel.isCancelled())
                             return;
                         if (ex instanceof AsyncSSLException) {
