@@ -18,14 +18,11 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         if (!super.cancel())
             return false;
         // still need to release any pending waiters
-        FutureCallback<T> callback;
         synchronized (this) {
             exception = new CancellationException();
             callback = null;
             releaseWaiterLocked();
-            callback = handleCompleteLocked();
         }
-        handleCallbackUnlocked(callback);
         return true;
     }
 
