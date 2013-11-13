@@ -412,11 +412,13 @@ public class FutureTests extends TestCase {
     }
 
     public void testCancelCallbackCleared() throws Exception {
+        final Semaphore semaphore = new Semaphore(0);
         SimpleFuture<String> future = new SimpleFuture<String>();
         future.setCallback(new FutureCallback<String>() {
             @Override
             public void onCompleted(Exception e, String result) {
-                fail();
+                assertTrue(e instanceof CancellationException);
+                semaphore.release();
             }
         });
         assertNotNull(future.getCallback());
