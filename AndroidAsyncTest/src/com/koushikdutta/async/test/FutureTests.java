@@ -423,6 +423,7 @@ public class FutureTests extends TestCase {
         });
         assertNotNull(future.getCallback());
         future.cancel();
+        semaphore.tryAcquire(1000, TimeUnit.MILLISECONDS);
         assertNull(future.getCallback());
     }
 }
