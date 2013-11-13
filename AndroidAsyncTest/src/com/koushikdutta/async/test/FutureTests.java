@@ -399,19 +399,22 @@ public class FutureTests extends TestCase {
         assertEquals((int)trigger.get(5000, TimeUnit.MILLISECONDS), 2020);
     }
 
-    public void testCancelCallback() throws Exception {
+    public void testPostCancelCallback() throws Exception {
         SimpleFuture<String> future = new SimpleFuture<String>();
+        final Semaphore semaphore = new Semaphore(0);
         future.cancel();
         future.setCallback(new FutureCallback<String>() {
             @Override
             public void onCompleted(Exception e, String result) {
-                fail();
+                assertTrue(e instanceof CancellationException);
+                semaphore.release();
             }
         });
+        semaphore.tryAcquire(1000, TimeUnit.MILLISECONDS);
         assertNull(future.getCallback());
     }
 
-    public void testCancelCallbackCleared() throws Exception {
+    public void testPreCancelCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         SimpleFuture<String> future = new SimpleFuture<String>();
         future.setCallback(new FutureCallback<String>() {
