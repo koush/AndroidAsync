@@ -53,7 +53,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private static final int ENTRY_METADATA = 0;
     private static final int ENTRY_BODY = 1;
     public static final int ENTRY_COUNT = 2;
-    private AsyncHttpClient client;
+    private AsyncServer server;
 
     public static final String SERVED_FROM = "X-Served-From";
     public static final String CONDITIONAL_CACHE = "conditional-cache";
@@ -71,13 +71,13 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
         ResponseCacheMiddleware ret = new ResponseCacheMiddleware();
         ret.size = size;
-        ret.client = client;
+        ret.server = client.getServer();
         ret.cacheDir = cacheDir;
         ret.open();
         client.insertMiddleware(ret);
         return ret;
     }
-    
+
     private void open() throws IOException {
         cache = DiskLruCache.open(cacheDir, VERSION, ENTRY_COUNT, size);
     }
@@ -255,7 +255,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         @Override
         public AsyncServer getServer() {
-            return client.getServer();
+            return server;
         }
     }
     
@@ -350,7 +350,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             rawResponseHeaders.set("Content-Length", String.valueOf(contentLength));
             socket.pending.add(ByteBuffer.wrap(rawResponseHeaders.toHeaderString().getBytes()));
 
-            client.getServer().post(new Runnable() {
+            server.post(new Runnable() {
                 @Override
                 public void run() {
                     data.connectCallback.onConnectCompleted(null, socket);
