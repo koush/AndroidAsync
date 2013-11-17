@@ -128,6 +128,11 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         };
     }
 
+    public SimpleFuture<T> setComplete(Future<T> future) {
+        future.setCallback(getCompletionCallback());
+        return this;
+    }
+
     FutureCallback<T> callback;
 
     @Override
@@ -144,6 +149,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         return this;
     }
 
+    // TEST USE ONLY!
     public FutureCallback<T> getCallback() {
         return callback;
     }

@@ -125,8 +125,7 @@ class SocketIOConnection {
 
                 final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
 
-                httpClient.websocket(sessionUrl, null, null)
-                .setCallback(getCompletionCallback());
+                setComplete(httpClient.websocket(sessionUrl, null, null));
             }
         })
         .setCallback(new FutureCallback<WebSocket>() {

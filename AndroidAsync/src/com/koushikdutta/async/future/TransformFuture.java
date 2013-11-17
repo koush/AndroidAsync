@@ -18,14 +18,9 @@ public abstract class TransformFuture<T, F> extends SimpleFuture<T> implements F
         }
     }
 
-    public TransformFuture<T, F> from(Future<F> future) {
-        setParent(future);
-        future.setCallback(this);
-        return this;
-    }
-
     protected void error(Exception e) {
         setComplete(e);
     }
+
     protected abstract void transform(F result) throws Exception;
 }

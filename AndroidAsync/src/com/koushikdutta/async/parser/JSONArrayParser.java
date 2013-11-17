@@ -15,13 +15,13 @@ import org.json.JSONObject;
 public class JSONArrayParser implements AsyncParser<JSONArray> {
     @Override
     public Future<JSONArray> parse(DataEmitter emitter) {
-        return new TransformFuture<JSONArray, String>() {
+        return new StringParser().parse(emitter)
+        .then(new TransformFuture<JSONArray, String>() {
             @Override
             protected void transform(String result) throws Exception {
                 setComplete(new JSONArray(result));
             }
-        }
-        .from(new StringParser().parse(emitter));
+        });
     }
 
     @Override

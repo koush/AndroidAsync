@@ -13,13 +13,13 @@ import com.koushikdutta.async.future.TransformFuture;
 public class StringParser implements AsyncParser<String> {
     @Override
     public Future<String> parse(DataEmitter emitter) {
-        return new TransformFuture<String, ByteBufferList>() {
+        return new ByteBufferListParser().parse(emitter)
+        .then(new TransformFuture<String, ByteBufferList>() {
             @Override
             protected void transform(ByteBufferList result) throws Exception {
                 setComplete(result.readString());
             }
-        }
-        .from(new ByteBufferListParser().parse(emitter));
+        });
     }
 
     @Override

@@ -146,7 +146,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
         // try to connect to everything...
         data.request.logv("Resolving domain and connecting to all available addresses");
-        return new TransformFuture<AsyncSocket, InetAddress[]>() {
+        return mClient.getServer().getAllByName(uri.getHost())
+        .then(new TransformFuture<AsyncSocket, InetAddress[]>() {
             Exception lastException;
 
             @Override
@@ -202,8 +203,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
                 keepTrying.start();
             }
-        }
-        .from(mClient.getServer().getAllByName(uri.getHost()));
+        });
     }
 
     public int getConnectionPoolCount() {
