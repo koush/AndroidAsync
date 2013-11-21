@@ -22,15 +22,15 @@ import javax.xml.parsers.DocumentBuilderFactory;
 public class DocumentParser implements AsyncParser<Document> {
     @Override
     public Future<Document> parse(DataEmitter emitter) {
-        return new TransformFuture<Document, ByteBufferList>() {
+        return new ByteBufferListParser().parse(emitter)
+        .then(new TransformFuture<Document, ByteBufferList>() {
             @Override
             protected void transform(ByteBufferList result) throws Exception {
                 DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                 DocumentBuilder db = dbf.newDocumentBuilder();
                 setComplete(db.parse(new ByteBufferListInputStream(result)));
             }
-        }
-        .from(new ByteBufferListParser().parse(emitter));
+        });
     }
 
     @Override

@@ -13,13 +13,13 @@ import org.json.JSONObject;
 public class JSONObjectParser implements AsyncParser<JSONObject> {
     @Override
     public Future<JSONObject> parse(DataEmitter emitter) {
-        return new TransformFuture<JSONObject, String>() {
+        return new StringParser().parse(emitter)
+        .then(new TransformFuture<JSONObject, String>() {
             @Override
             protected void transform(String result) throws Exception {
                 setComplete(new JSONObject(result));
             }
-        }
-        .from(new StringParser().parse(emitter));
+        });
     }
 
     @Override

@@ -367,13 +367,13 @@ public class AsyncServer {
         if (!remote.isUnresolved())
             return connectResolvedInetSocketAddress(remote, callback);
 
-        return new TransformFuture<AsyncSocket, InetAddress>() {
+        return getByName(remote.getHostName())
+        .then(new TransformFuture<AsyncSocket, InetAddress>() {
             @Override
             protected void transform(InetAddress result) throws Exception {
                 setParent(connectResolvedInetSocketAddress(new InetSocketAddress(remote.getHostName(), remote.getPort()), callback));
             }
-        }
-        .from(getByName(remote.getHostName()));
+        });
     }
 
     public Cancellable connectSocket(final String host, final int port, final ConnectCallback callback) {
@@ -414,13 +414,13 @@ public class AsyncServer {
     }
 
     public Future<InetAddress> getByName(String host) {
-        return new TransformFuture<InetAddress, InetAddress[]>() {
+        return getAllByName(host)
+        .then(new TransformFuture<InetAddress, InetAddress[]>() {
             @Override
             protected void transform(InetAddress[] result) throws Exception {
                 setComplete(result[0]);
             }
-        }
-        .from(getAllByName(host));
+        });
     }
 
     public AsyncDatagramSocket connectDatagram(final String host, final int port) throws IOException {
