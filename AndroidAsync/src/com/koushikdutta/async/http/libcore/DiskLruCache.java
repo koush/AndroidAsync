@@ -163,6 +163,10 @@ public final class DiskLruCache implements Closeable {
         return lruEntries.containsKey(key);
     }
 
+    public int getValueCount() {
+        return valueCount;
+    }
+
     /**
      * To differentiate between old and current snapshots, each entry is given
      * a sequence number each time an edit is committed. A snapshot is stale if
