@@ -143,7 +143,7 @@ AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocket
 ### AndroidAsync also supports socket.io
 
 ```java
-SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000", new SocketIOConnectCallback() {
+SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000", new ConnectCallback() {
     @Override
     public void onConnectCompleted(Exception ex, SocketIOClient client) {
         if (ex != null) {
