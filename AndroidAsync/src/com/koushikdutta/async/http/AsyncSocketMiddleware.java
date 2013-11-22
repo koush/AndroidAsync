@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import com.koushikdutta.async.ArrayDeque;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
@@ -15,6 +16,7 @@ import com.koushikdutta.async.future.TransformFuture;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 
@@ -87,6 +89,44 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         return uri.getScheme() + "//" + uri.getHost() + ":" + port + "?proxy=" + proxy;
     }
 
+    static class ConnectionInfo {
+        int openCount;
+        ArrayDeque<GetSocketData> queue = new ArrayDeque<GetSocketData>();
+    }
+    Hashtable<String, ConnectionInfo> connectionInfo = new Hashtable<String, ConnectionInfo>();
+
+    private static String getConnectionKey(String scheme, String host, int port) {
+        return scheme + "://" + host + ":" + port;
+    }
+
+    public int getOpenConnectionCount(String scheme, String host, int port) {
+        String key = getConnectionKey(scheme, host, port);
+        ConnectionInfo info = connectionInfo.get(key);
+        if (info == null)
+            return 0;
+        return info.openCount;
+    }
+
+    private ConnectionInfo getConnectionInfo(String scheme, String host, int port) {
+        String key = getConnectionKey(scheme, host, port);
+        ConnectionInfo info = connectionInfo.get(key);
+        if (info == null) {
+            info = new ConnectionInfo();
+            connectionInfo.put(key, info);
+        }
+        return info;
+    }
+
+    int maxConnectionCount = Integer.MAX_VALUE;
+
+    public int getMaxConnectionCount() {
+        return maxConnectionCount;
+    }
+
+    public void setMaxConnectionCount(int maxConnectionCount) {
+        this.maxConnectionCount = maxConnectionCount;
+    }
+
     @Override
     public Cancellable getSocket(final GetSocketData data) {
         final URI uri = data.request.getUri();
@@ -94,6 +134,16 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         if (port == -1) {
             return null;
         }
+
+        ConnectionInfo info = getConnectionInfo(uri.getScheme(), uri.getHost(), port);
+        if (info.openCount >= maxConnectionCount) {
+            // wait for a connection queue to free up
+            SimpleCancellable queueCancel = new SimpleCancellable();
+            info.queue.add(data);
+            return queueCancel;
+        }
+
+        info.openCount++;
 
         final String lookup = computeLookup(uri, port, data.request);
         
@@ -258,25 +308,44 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         });
     }
 
+    private void nextConnection(URI uri) {
+        final int port = getSchemePort(uri);
+        ConnectionInfo info = getConnectionInfo(uri.getScheme(), uri.getHost(), port);
+        --info.openCount;
+        while (info.openCount < maxConnectionCount && info.queue.size() > 0) {
+            GetSocketData gsd = info.queue.remove();
+            SimpleCancellable socketCancellable = (SimpleCancellable)gsd.socketCancellable;
+            if (socketCancellable.isCancelled())
+                continue;
+            Cancellable connect = getSocket(gsd);
+            socketCancellable.setParent(connect);
+        }
+    }
+
     @Override
     public void onRequestComplete(final OnRequestCompleteData data) {
         if (!data.state.getBoolean(getClass().getCanonicalName() + ".owned", false)) {
             return;
         }
 
-        idleSocket(data.socket);
+        try {
+            idleSocket(data.socket);
 
-        if (data.exception != null || !data.socket.isOpen()) {
-            data.request.logv("closing out socket (exception)");
-            data.socket.close();
-            return;
+            if (data.exception != null || !data.socket.isOpen()) {
+                data.request.logv("closing out socket (exception)");
+                data.socket.close();
+                return;
+            }
+            if (!HttpUtil.isKeepAlive(data.headers.getHeaders())) {
+                data.request.logv("closing out socket (not keep alive)");
+                data.socket.close();
+                return;
+            }
+            data.request.logd("Recycling keep-alive socket");
+            recycleSocket(data.socket, data.request);
         }
-        if (!HttpUtil.isKeepAlive(data.headers.getHeaders())) {
-            data.request.logv("closing out socket (not keep alive)");
-            data.socket.close();
-            return;
+        finally {
+            nextConnection(data.request.getUri());
         }
-        data.request.logd("Recycling keep-alive socket");
-        recycleSocket(data.socket, data.request);
     }
 }
