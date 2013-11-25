@@ -1,7 +1,5 @@
 package com.koushikdutta.async.dns;
 
-import android.net.wifi.p2p.WifiP2pManager;
-
 import com.koushikdutta.async.AsyncDatagramSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
