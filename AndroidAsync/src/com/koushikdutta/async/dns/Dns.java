@@ -1,10 +1,13 @@
 package com.koushikdutta.async.dns;
 
+import android.net.wifi.p2p.WifiP2pManager;
+
 import com.koushikdutta.async.AsyncDatagramSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
@@ -146,19 +149,15 @@ public class Dns {
         return lookup(server, host, false, null);
     }
 
-    public static Future<DnsResponse> multicastLookup(AsyncServer server, String host, FutureCallback<DnsResponse> callback) {
+    public static Cancellable multicastLookup(AsyncServer server, String host, FutureCallback<DnsResponse> callback) {
         return lookup(server, host, true, callback);
     }
 
-    public static Future<DnsResponse> multicastLookup(String host, FutureCallback<DnsResponse> callback) {
+    public static Cancellable multicastLookup(String host, FutureCallback<DnsResponse> callback) {
         return multicastLookup(AsyncServer.getDefault(), host, callback);
     }
 
-    public static Future<DnsResponse> lookup(AsyncServer server, String host, boolean multicast, FutureCallback<DnsResponse> callback) {
-        SimpleFuture<DnsResponse> ret = new SimpleFuture<DnsResponse>();
-        if (!multicast)
-            callback = ret.getCompletionCallback();
-
+    public static Future<DnsResponse> lookup(AsyncServer server, String host, final boolean multicast, final FutureCallback<DnsResponse> callback) {
         ByteBuffer packet = ByteBufferList.obtain(1024).order(ByteOrder.BIG_ENDIAN);
         short id = (short)new Random().nextInt();
         short flags = (short)setQuery(0);
@@ -192,11 +191,12 @@ public class Dns {
 
         packet.flip();
 
+
         try {
             final AsyncDatagramSocket dgram;
             // todo, use the dns server...
             if (!multicast) {
-                dgram = server .connectDatagram(new InetSocketAddress("8.8.8.8", 53));
+                dgram = server.connectDatagram(new InetSocketAddress("8.8.8.8", 53));
             }
             else {
                 dgram = AsyncServer.getDefault().openDatagram(new InetSocketAddress(5353), true);
@@ -208,12 +208,29 @@ public class Dns {
                 method.invoke(impl, InetAddress.getByName("224.0.0.251"));
                 ((DatagramSocket)dgram.getSocket()).setBroadcast(true);
             }
+            final SimpleFuture<DnsResponse> ret = new SimpleFuture<DnsResponse>() {
+                @Override
+                protected void cleanup() {
+                    super.cleanup();
+                    dgram.close();
+                }
+            };
             dgram.setDataCallback(new DataCallback() {
                 @Override
                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                     try {
                         System.out.println(dgram.getRemoteAddress());
-                        System.out.println(parse(bb));
+                        DnsResponse response;
+                        System.out.println(response = parse(bb));
+                        response.source = dgram.getRemoteAddress();
+
+                        if (!multicast) {
+                            dgram.close();
+                            ret.setComplete(response);
+                        }
+                        else {
+                            callback.onCompleted(null, response);
+                        }
                     }
                     catch (Exception e) {
                     }
@@ -224,11 +241,14 @@ public class Dns {
                 dgram.write(packet);
             else
                 dgram.send(new InetSocketAddress("224.0.0.251", 5353), packet);
+            return ret;
         }
         catch (Exception e) {
+            SimpleFuture<DnsResponse> ret = new SimpleFuture<DnsResponse>();
             ret.setComplete(e);
+            if (multicast)
+                callback.onCompleted(e, null);
+            return ret;
         }
-
-        return ret;
     }
 }
