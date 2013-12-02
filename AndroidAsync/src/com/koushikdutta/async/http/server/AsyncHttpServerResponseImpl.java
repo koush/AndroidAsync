@@ -20,6 +20,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
@@ -202,10 +203,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     public void send(JSONObject json) {
         send("application/json; charset=utf8", json.toString());
     }
-    
-    public void sendFile(File file) {
+
+    @Override
+    public void sendStream(InputStream inputStream, int totalLength) {
         int start = 0;
-        int end = (int)file.length() - 1;
+        int end = totalLength - 1;
 
         String range = mRequest.getHeaders().getHeaders().get("Range");
         if (range != null) {
@@ -226,14 +228,14 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 if (parts.length == 2 && !TextUtils.isEmpty(parts[1]))
                     end = Integer.parseInt(parts[1]);
                 else
-                    end = (int)file.length() - 1;
+                    end = totalLength - 1;
 //                else if (start != 0)
 //                    end = (int)file.length() - 1;
 //                else
 //                    end = Math.min((int)file.length() - 1, 50000);
 
                 responseCode(206);
-                getHeaders().getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, file.length()));
+                getHeaders().getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, totalLength));
             }
             catch (Exception e) {
                 responseCode(416);
@@ -242,11 +244,8 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             }
         }
         try {
-            FileInputStream fin = new FileInputStream(file);
-            if (start != fin.skip(start))
+            if (start != inputStream.skip(start))
                 throw new Exception("skip failed to skip requested amount");
-            if (mRawHeaders.get("Content-Type") == null)
-                mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
             mContentLength = end - start + 1;
             mRawHeaders.set("Content-Length", "" + mContentLength);
             mRawHeaders.set("Accept-Ranges", "bytes");
@@ -257,12 +256,26 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 onEnd();
                 return;
             }
-            Util.pump(fin, mContentLength, this, new CompletedCallback() {
+            Util.pump(inputStream, mContentLength, this, new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
                     onEnd();
                 }
             });
+        }
+        catch (Exception e) {
+            responseCode(404);
+            end();
+        }
+    }
+
+    @Override
+    public void sendFile(File file) {
+        try {
+            if (mRawHeaders.get("Content-Type") == null)
+                mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
+            FileInputStream fin = new FileInputStream(file);
+            sendStream(fin, (int) file.length());
         }
         catch (Exception e) {
             responseCode(404);

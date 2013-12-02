@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http.server;
 
 import java.io.File;
+import java.io.InputStream;
 
 import org.json.JSONObject;
 
@@ -15,6 +16,7 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void send(String string);
     public void send(JSONObject json);
     public void sendFile(File file);
+    public void sendStream(InputStream inputStream, int totalLength);
     public void responseCode(int code);
     public ResponseHeaders getHeaders();
     public void writeHead();
