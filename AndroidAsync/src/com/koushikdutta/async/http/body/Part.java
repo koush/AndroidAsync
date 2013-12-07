@@ -46,6 +46,10 @@ public class Part {
         return mHeaders.get("Content-Type");
     }
 
+    public void setContentType(String contentType) {
+        mHeaders.set("Content-Type", contentType);
+    }
+
     public String getFilename() {
         String file = mContentDisposition.getString("filename");
         if (file == null)

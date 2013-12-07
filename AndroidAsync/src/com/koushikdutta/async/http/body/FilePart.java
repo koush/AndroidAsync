@@ -17,9 +17,9 @@ public class FilePart extends StreamPart {
                 add(new BasicNameValuePair("filename", file.getName()));
             }
         });
-        
+
 //        getRawHeaders().set("Content-Type", "application/xml");
-        
+
         this.file = file;
     }
 
