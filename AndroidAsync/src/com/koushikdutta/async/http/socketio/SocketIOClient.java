@@ -69,6 +69,20 @@ public class SocketIOClient extends EventEmitter {
         emitRaw(4, jsonMessage.toString(), acknowledge);
     }
 
+    public void emitEvent(final String name) {
+        emitEvent(name, null);
+    }
+
+    public void emitEvent(final String name, Acknowledge acknowledge) {
+        final JSONObject event = new JSONObject();
+        try {
+            event.put("name", name);
+            emitRaw(5, event.toString(), acknowledge);
+        } catch (Exception e) {
+
+        }
+    }
+
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, final ConnectCallback callback) {
         return connect(client, new SocketIORequest(uri), callback);
     }
@@ -151,7 +165,7 @@ public class SocketIOClient extends EventEmitter {
     public void setJSONCallback(JSONCallback callback) {
         jsonCallback = callback;
     }
-    
+
     StringCallback stringCallback;
     public StringCallback getStringCallback() {
         return stringCallback;
@@ -167,11 +181,11 @@ public class SocketIOClient extends EventEmitter {
         this.connection = connection;
         this.connectCallback = callback;
     }
-    
+
     public boolean isConnected() {
         return connected && !disconnected && connection.isConnected();
     }
-    
+
     public void disconnect() {
         connection.disconnect(this);
         DisconnectCallback disconnectCallback = this.disconnectCallback;

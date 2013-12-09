@@ -339,8 +339,15 @@ public class AsyncHttpServer {
         mContentTypes.put("mov", "video/quicktime");
         mContentTypes.put("wmv", "video/x-ms-wmv");
     }
-    
+
     public static String getContentType(String path) {
+        String type = tryGetContentType(path);
+        if (type != null)
+            return type;
+        return "text/plain";
+    }
+
+    public static String tryGetContentType(String path) {
         int index = path.lastIndexOf(".");
         if (index != -1) {
             String e = path.substring(index + 1);
@@ -348,7 +355,7 @@ public class AsyncHttpServer {
             if (ct != null)
                 return ct;
         }
-        return "text/plain";
+        return null;
     }
 
     public void directory(Context context, String regex, final String assetPath) {
