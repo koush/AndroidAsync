@@ -94,10 +94,12 @@ public class AsyncHttpRequest {
     }
 
     public static void setDefaultHeaders(RawHeaders ret, URI uri) {
-        String host = uri.getHost();
-        if (uri.getPort() != -1)
-            host = host + ":" + uri.getPort();
-        ret.set("Host", host);
+        if (uri != null) {
+            String host = uri.getHost();
+            if (uri.getPort() != -1)
+                host = host + ":" + uri.getPort();
+            ret.set("Host", host);
+        }
         ret.set("User-Agent", getDefaultUserAgent());
         ret.set("Accept-Encoding", "gzip, deflate");
         ret.set("Connection", "keep-alive");
@@ -347,6 +349,12 @@ public class AsyncHttpRequest {
     // request level logging
     String LOGTAG;
     int logLevel;
+    public int getLogLevel() {
+        return logLevel;
+    }
+    public String getLogTag() {
+        return LOGTAG;
+    }
     long executionTime;
     private String getLogMessage(String message) {
         long elapsed;
