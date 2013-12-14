@@ -7,8 +7,6 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.body.DocumentBody;
-import com.koushikdutta.async.parser.AsyncParser;
-import com.koushikdutta.async.parser.ByteBufferListParser;
 import com.koushikdutta.async.stream.ByteBufferListInputStream;
 
 import org.w3c.dom.Document;

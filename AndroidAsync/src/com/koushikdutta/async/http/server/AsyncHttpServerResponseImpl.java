@@ -232,10 +232,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                     end = Integer.parseInt(parts[1]);
                 else
                     end = totalLength - 1;
-//                else if (start != 0)
-//                    end = (int)file.length() - 1;
-//                else
-//                    end = Math.min((int)file.length() - 1, 50000);
 
                 responseCode(206);
                 getHeaders().getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, totalLength));
@@ -301,21 +297,23 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void onCompleted(Exception ex) {
-        if (ex != null) {
-            ex.printStackTrace();
-        }
         end();
     }
 
     @Override
     public boolean isOpen() {
-        return mSink.isOpen();
+        if (mSink != null)
+            return mSink.isOpen();
+        return mSocket.isOpen();
     }
 
     @Override
     public void close() {
         end();
-        mSink.close();
+        if (mSink != null)
+            mSink.close();
+        else
+            mSocket.close();
     }
 
     @Override
