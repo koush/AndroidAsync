@@ -197,6 +197,7 @@ public class Dns {
                 dgram = server.connectDatagram(new InetSocketAddress("8.8.8.8", 53));
             }
             else {
+                System.out.println("multicast dns...");
                 dgram = AsyncServer.getDefault().openDatagram(new InetSocketAddress(5353), true);
                 Field field = DatagramSocket.class.getDeclaredField("impl");
                 field.setAccessible(true);
@@ -217,9 +218,9 @@ public class Dns {
                 @Override
                 public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                     try {
-                        System.out.println(dgram.getRemoteAddress());
-                        DnsResponse response;
-                        System.out.println(response = parse(bb));
+//                        System.out.println(dgram.getRemoteAddress());
+                        DnsResponse response = parse(bb);
+//                        System.out.println(response);
                         response.source = dgram.getRemoteAddress();
 
                         if (!multicast) {

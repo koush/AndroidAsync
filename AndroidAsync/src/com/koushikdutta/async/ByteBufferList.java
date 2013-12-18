@@ -154,7 +154,6 @@ public class ByteBufferList {
                 mBuffers.addFirst(b);
                 assert subset.capacity() >= need;
                 assert subset.position() == 0;
-                assert into.remaining() == length;
                 break;
             }
             else {
@@ -187,7 +186,7 @@ public class ByteBufferList {
 
     private ByteBuffer read(int count) {
         if (remaining() < count)
-            throw new IllegalArgumentException("count");
+            throw new IllegalArgumentException("count : " + remaining() + "/" + count);
 
         ByteBuffer first = mBuffers.peek();
         while (first != null && !first.hasRemaining()) {
@@ -421,7 +420,6 @@ public class ByteBufferList {
 
     public static ByteBuffer obtain(int size) {
         if (size <= maxItem) {
-            assert Thread.currentThread() != Looper.getMainLooper().getThread();
             PriorityQueue<ByteBuffer> r = getReclaimed();
             if (r != null) {
                 synchronized (LOCK) {

@@ -271,7 +271,7 @@ public class HttpClientTests extends TestCase {
         .setCallback(new FutureCallback<File>() {
             @Override
             public void onCompleted(Exception e, File result) {
-                fail();
+                assertTrue(e instanceof CancellationException);
             }
         });
 

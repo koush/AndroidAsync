@@ -45,7 +45,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
     
     public void onDataWritable() {
-        assert mWriteableHandler != null;
+//        assert mWriteableHandler != null;
         if (mWriteableHandler != null)
             mWriteableHandler.onWriteable();
     }
@@ -295,6 +295,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
         
         if (mPaused)
             return;
+
         mPaused = true;
         try {
             mKey.interestOps(~SelectionKey.OP_READ & mKey.interestOps());

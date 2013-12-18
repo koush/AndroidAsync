@@ -61,14 +61,14 @@ public class DnsTests extends TestCase {
 //        ((DatagramSocket)dgram.getSocket()).setBroadcast(true);
 
 
-        final Semaphore semaphore = new Semaphore(0);
-        Dns.multicastLookup("_airplay._tcp.local", new FutureCallback<DnsResponse>() {
-            @Override
-            public void onCompleted(Exception e, DnsResponse result) {
-//                semaphore.release();
-            }
-        });
-
-        semaphore.tryAcquire(1000000, TimeUnit.MILLISECONDS);
+//        final Semaphore semaphore = new Semaphore(0);
+//        Dns.multicastLookup("_airplay._tcp.local", new FutureCallback<DnsResponse>() {
+//            @Override
+//            public void onCompleted(Exception e, DnsResponse result) {
+////                semaphore.release();
+//            }
+//        });
+//
+//        semaphore.tryAcquire(1000000, TimeUnit.MILLISECONDS);
     }
 }

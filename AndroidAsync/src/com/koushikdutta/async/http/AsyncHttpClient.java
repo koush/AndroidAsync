@@ -116,7 +116,7 @@ public class AsyncHttpClient {
         }
         if (complete) {
             callback.onConnectCompleted(ex, response);
-            assert ex != null || response.getSocket() == null || response.getDataCallback() != null;
+            assert ex != null || response.getSocket() == null || response.getDataCallback() != null || response.isPaused();
             return;
         }
 
@@ -191,6 +191,7 @@ public class AsyncHttpClient {
         data.connectCallback = new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
+                request.logv("socket connected");
                 if (cancel.isCancelled()) {
                     if (socket != null)
                         socket.close();
@@ -221,6 +222,7 @@ public class AsyncHttpClient {
                 final AsyncHttpResponseImpl ret = new AsyncHttpResponseImpl(request) {
                     @Override
                     protected void onRequestCompleted(Exception ex) {
+                        request.logv("request completed");
                         if (cancel.isCancelled())
                             return;
                         // 5) after request is sent, set a header timeout

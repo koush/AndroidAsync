@@ -3,6 +3,7 @@ package com.koushikdutta.async.http.server;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
@@ -13,9 +14,18 @@ public class UnknownRequestBody implements AsyncHttpRequestBody<Void> {
         mContentType = contentType;
     }
 
+    int length = -1;
+    public UnknownRequestBody(DataEmitter emitter, String contentType, int length) {
+        mContentType = contentType;
+        this.emitter = emitter;
+        this.length = length;
+    }
+
     @Override
-    public void write(AsyncHttpRequest request, DataSink sink, final CompletedCallback completed) {
-        assert false;
+    public void write(final AsyncHttpRequest request, DataSink sink, final CompletedCallback completed) {
+        Util.pump(emitter, sink, completed);
+        if (emitter.isPaused())
+            emitter.resume();
     }
 
     private String mContentType;
@@ -31,7 +41,7 @@ public class UnknownRequestBody implements AsyncHttpRequestBody<Void> {
 
     @Override
     public int length() {
-        return -1;
+        return length;
     }
 
     @Override

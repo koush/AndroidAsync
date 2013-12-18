@@ -22,7 +22,7 @@ public class Util {
                 // not all the data was consumed...
                 // call byteBufferList.recycle() or read all the data to prevent this assertion.
                 // this is nice to have, as it identifies protocol or parsing errors.
-                System.out.println("Data: " + list.peekString());
+//                System.out.println("Data: " + list.peekString());
                 System.out.println("handler: " + handler);
                 assert false;
                 throw new RuntimeException("mDataHandler failed to consume data, yet remains the mDataHandler.");
@@ -32,8 +32,9 @@ public class Util {
             // not all the data was consumed...
             // call byteBufferList.recycle() or read all the data to prevent this assertion.
             // this is nice to have, as it identifies protocol or parsing errors.
-            System.out.println("Data: " + list.peekString());
+//            System.out.println("Data: " + list.peekString());
             System.out.println("handler: " + handler);
+            System.out.println("emitter: " + emitter);
             assert false;
             throw new RuntimeException("mDataHandler failed to consume data, yet remains the mDataHandler.");
         }
@@ -112,13 +113,11 @@ public class Util {
     }
     
     public static void pump(final DataEmitter emitter, final DataSink sink, final CompletedCallback callback) {
-        final ByteBufferList pending = new ByteBufferList();
         final DataCallback dataCallback = new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                bb.get(pending);
-                sink.write(pending);
-                if (pending.remaining() > 0)
+                sink.write(bb);
+                if (bb.remaining() > 0)
                     emitter.pause();
             }
         };
