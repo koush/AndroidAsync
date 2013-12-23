@@ -113,7 +113,7 @@ public class InputStreamDataEmitter implements DataEmitter {
     };
 
     private void doResume() {
-        server.getExecutorService().execute(pumper);
+        new Thread(pumper).start();
     }
 
     @Override

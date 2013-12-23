@@ -128,10 +128,8 @@ public class AsyncServer {
         }
     }
 
-    private static void wakeup(ExecutorService service, final Selector selector) {
-        if (selector == null)
-            return;
-        service.execute(new Runnable() {
+    private static void wakeup(final Selector selector) {
+        synchronousWorkers.execute(new Runnable() {
             @Override
             public void run() {
                 selector.wakeup();
@@ -160,7 +158,7 @@ public class AsyncServer {
             if (mSelector == null)
                 run(false, true);
             if (!isAffinityThread()) {
-                wakeup(getExecutorService(), mSelector);
+                wakeup(mSelector);
             }
         }
         return s;
@@ -380,11 +378,7 @@ public class AsyncServer {
         return connectSocket(InetSocketAddress.createUnresolved(host, port), callback);
     }
 
-    public ExecutorService getExecutorService() {
-        return synchronousWorkers;
-    }
-
-    ExecutorService synchronousWorkers = Executors.newFixedThreadPool(4);
+    private static ExecutorService synchronousWorkers = Executors.newFixedThreadPool(4);
     public Future<InetAddress[]> getAllByName(final String host) {
         final SimpleFuture<InetAddress[]> ret = new SimpleFuture<InetAddress[]>();
         synchronousWorkers.execute(new Runnable() {
