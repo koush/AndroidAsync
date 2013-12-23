@@ -14,6 +14,7 @@ import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
+import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.Multimap;
@@ -308,8 +309,8 @@ public class AsyncHttpServer {
     public void post(String regex, HttpServerRequestCallback callback) {
         addAction(AsyncHttpPost.METHOD, regex, callback);
     }
-    
-    public static InputStream getAssetStream(final Context context, String asset) {
+
+    public static android.util.Pair<Integer, InputStream> getAssetStream(final Context context, String asset) {
         String apkPath = context.getPackageResourcePath();
         String assetPath = "assets/" + asset;
         try {
@@ -318,7 +319,7 @@ public class AsyncHttpServer {
             while (entries.hasMoreElements()) {
                 ZipEntry entry = (ZipEntry) entries.nextElement();
                 if (entry.getName().equals(assetPath)) {
-                    return zip.getInputStream(entry);
+                    return new android.util.Pair<Integer, InputStream>((int)entry.getSize(), zip.getInputStream(entry));
                 }
             }
         }
@@ -360,24 +361,44 @@ public class AsyncHttpServer {
 
     public void directory(Context context, String regex, final String assetPath) {
         final Context _context = context.getApplicationContext();
-        addAction("GET", regex, new HttpServerRequestCallback() {
+        addAction(AsyncHttpGet.METHOD, regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 String path = request.getMatcher().replaceAll("");
-                InputStream is = getAssetStream(_context, assetPath + path);
+                android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
+                InputStream is = pair.second;
+                response.getHeaders().getHeaders().set("Content-Length", String.valueOf(pair.first));
                 if (is == null) {
                     response.responseCode(404);
                     response.end();
                     return;
                 }
                 response.responseCode(200);
-                response.getHeaders().getHeaders().add("Content-Type", getContentType(path));
+                response.getHeaders().getHeaders().add("Content-Type", getContentType(assetPath + path));
                 Util.pump(is, response, new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
                         response.end();
                     }
                 });
+            }
+        });
+        addAction(AsyncHttpHead.METHOD, regex, new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+                String path = request.getMatcher().replaceAll("");
+                android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
+                InputStream is = pair.second;
+                response.getHeaders().getHeaders().set("Content-Length", String.valueOf(pair.first));
+                if (is == null) {
+                    response.responseCode(404);
+                    response.end();
+                    return;
+                }
+                response.responseCode(200);
+                response.getHeaders().getHeaders().add("Content-Type", getContentType(assetPath + path));
+                response.writeHead();
+                response.end();
             }
         });
     }
