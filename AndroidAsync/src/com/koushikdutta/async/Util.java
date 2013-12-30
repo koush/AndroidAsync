@@ -18,10 +18,16 @@ public class Util {
         DataCallback handler = null;
         while (!emitter.isPaused() && (handler = emitter.getDataCallback()) != null && (remaining = list.remaining()) > 0) {
             handler.onDataAvailable(emitter, list);
-            if (remaining == list.remaining() && handler == emitter.getDataCallback()) {
-                // not all the data was consumed...
+            if (remaining == list.remaining() && handler == emitter.getDataCallback() && !emitter.isPaused()) {
+                // this is generally indicative of failure...
+
+                // 1) The data callback has not changed
+                // 2) no data was consumed
+                // 3) the data emitter was not paused
+
                 // call byteBufferList.recycle() or read all the data to prevent this assertion.
                 // this is nice to have, as it identifies protocol or parsing errors.
+
 //                System.out.println("Data: " + list.peekString());
                 System.out.println("handler: " + handler);
                 assert false;
@@ -36,7 +42,7 @@ public class Util {
             System.out.println("handler: " + handler);
             System.out.println("emitter: " + emitter);
             assert false;
-            throw new RuntimeException("mDataHandler failed to consume data, yet remains the mDataHandler.");
+            throw new RuntimeException("Not all data was consumed by Util.emitAllData");
         }
     }
 
