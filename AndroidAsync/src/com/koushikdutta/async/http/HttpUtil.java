@@ -40,7 +40,7 @@ public class HttpUtil {
             }
         }
 
-        return new UnknownRequestBody(contentType);
+        return null;
     }
     
     static class EndEmitter extends FilteredDataEmitter {

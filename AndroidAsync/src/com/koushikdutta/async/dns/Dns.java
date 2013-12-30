@@ -197,7 +197,7 @@ public class Dns {
                 dgram = server.connectDatagram(new InetSocketAddress("8.8.8.8", 53));
             }
             else {
-                System.out.println("multicast dns...");
+//                System.out.println("multicast dns...");
                 dgram = AsyncServer.getDefault().openDatagram(new InetSocketAddress(5353), true);
                 Field field = DatagramSocket.class.getDeclaredField("impl");
                 field.setAccessible(true);
@@ -211,6 +211,7 @@ public class Dns {
                 @Override
                 protected void cleanup() {
                     super.cleanup();
+//                    System.out.println("multicast dns cleanup...");
                     dgram.close();
                 }
             };

@@ -264,8 +264,12 @@ public class AsyncServer {
     
     protected void onDataTransmitted(int transmitted) {
     }
-    
-    public void listen(final InetAddress host, final int port, final ListenCallback handler) {
+
+    private static class ObjectHolder<T> {
+        T held;
+    }
+    public AsyncServerSocket listen(final InetAddress host, final int port, final ListenCallback handler) {
+        final ObjectHolder<AsyncServerSocket> holder = new ObjectHolder<AsyncServerSocket>();
         run(new Runnable() {
             @Override
             public void run() {
@@ -280,7 +284,7 @@ public class AsyncServer {
                     server.socket().bind(isa);
                     final SelectionKey key = wrapper.register(mSelector);
                     key.attach(handler);
-                    handler.onListening(new AsyncServerSocket() {
+                    handler.onListening(holder.held = new AsyncServerSocket() {
                         @Override
                         public int getLocalPort() {
                             return server.socket().getLocalPort();
@@ -306,6 +310,7 @@ public class AsyncServer {
                 }
             }
         });
+        return holder.held;
     }
 
     private class ConnectFuture extends SimpleFuture<AsyncNetworkSocket> {

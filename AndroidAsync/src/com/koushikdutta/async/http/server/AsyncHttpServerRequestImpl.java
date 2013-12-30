@@ -39,6 +39,10 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         System.out.println("not http: " + mRawHeaders.getStatusLine());
         System.out.println("not http: " + mRawHeaders.getStatusLine().length());
     }
+
+    protected AsyncHttpRequestBody onUnknownBody(RawHeaders headers) {
+        return null;
+    }
     
     StringCallback mHeaderCallback = new StringCallback() {
         @Override
@@ -58,6 +62,11 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                     DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, mRawHeaders, true);
 //                    emitter.setEndCallback(mReporter);
                     mBody = HttpUtil.getBody(emitter, mReporter, mRawHeaders);
+                    if (mBody == null) {
+                        mBody = onUnknownBody(mRawHeaders);
+                        if (mBody == null)
+                            mBody = new UnknownRequestBody(mRawHeaders.get("Content-Type"));
+                    }
                     mBody.parse(emitter, mReporter);
                     mHeaders = new RequestHeaders(null, mRawHeaders);
                     onHeadersReceived();
