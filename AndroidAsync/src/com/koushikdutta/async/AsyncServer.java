@@ -2,6 +2,7 @@ package com.koushikdutta.async;
 
 import android.os.Build;
 import android.os.Handler;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -239,9 +240,6 @@ public class AsyncServer {
             }
             semaphore = new Semaphore(0);
 
-            // force any existing connections to die
-            shutdownKeys(currentSelector);
-
             // post a shutdown and wait
             mQueue.add(new Scheduled(new Runnable() {
                 @Override
@@ -250,6 +248,10 @@ public class AsyncServer {
                     semaphore.release();
                 }
             }, 0));
+            currentSelector.wakeup();
+
+            // force any existing connections to die
+            shutdownKeys(currentSelector);
 
             mQueue = new PriorityQueue<Scheduled>(1, Scheduler.INSTANCE);
             mSelector = null;
