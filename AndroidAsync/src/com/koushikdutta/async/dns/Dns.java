@@ -10,6 +10,9 @@ import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.DatagramSocket;
@@ -19,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Random;
 
 /**
@@ -55,10 +59,10 @@ public class Dns {
         String ret = "";
 
         int len;
-        while (0 != (len = bb.get())) {
+        while (0 != (len = bb.get() & 0x00FF)) {
             // compressed
-            if ((len & 0x00c0) != 0) {
-                int offset = ((len & ~0xFFFFFFc0) << 16) | (bb.get() & 0x00FF);
+            if ((len & 0x00c0) == 0x00c0) {
+                int offset = ((len & ~0xFFFFFFc0) << 8) | (bb.get() & 0x00FF);
                 if (ret.length() > 0)
                     ret += ".";
                 ByteBufferList sub = new ByteBufferList();
@@ -98,9 +102,9 @@ public class Dns {
         // number answer rr
         int answers = bb.getShort();
         // number authority rr
-        bb.getShort();
+        int authorities = bb.getShort();
         // number additional rr
-        bb.getShort();
+        int additionals = bb.getShort();
 
         for (int i = 0; i < questions; i++) {
             parseName(bb, b);
@@ -130,6 +134,56 @@ public class Dns {
                 }
                 else if (type == 0x000c) {
                     response.names.add(parseName(bb, b));
+                }
+                else if (type == 16) {
+                    ByteBufferList txt = new ByteBufferList();
+                    bb.get(txt, length);
+                    response.parseTxt(txt);
+                }
+                else {
+                    bb.get(new byte[length]);
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        // authorities
+        for (int i = 0; i < authorities; i++) {
+            String name = parseName(bb, b);
+            // type
+            int type = bb.getShort();
+            // class
+            int clazz = bb.getShort();
+            // ttl
+            int ttl = bb.getInt();
+            // length of address
+            int length = bb.getShort();
+            try {
+                bb.get(new byte[length]);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        // additionals
+        for (int i = 0; i < additionals; i++) {
+            String name = parseName(bb, b);
+            // type
+            int type = bb.getShort();
+            // class
+            int clazz = bb.getShort();
+            // ttl
+            int ttl = bb.getInt();
+            // length of address
+            int length = bb.getShort();
+            try {
+                if (type == 16) {
+                    ByteBufferList txt = new ByteBufferList();
+                    bb.get(txt, length);
+                    response.parseTxt(txt);
                 }
                 else {
                     bb.get(new byte[length]);
