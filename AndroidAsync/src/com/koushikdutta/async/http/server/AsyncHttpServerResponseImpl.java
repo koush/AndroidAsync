@@ -130,8 +130,10 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         else if (!mHasWritten) {
             if (!mRequest.getMethod().equalsIgnoreCase(AsyncHttpHead.METHOD))
                 send("text/html", "");
-            else
+            else {
+                writeHead();
                 onEnd();
+            }
         }
     }
 
