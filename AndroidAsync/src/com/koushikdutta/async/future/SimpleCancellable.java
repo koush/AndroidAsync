@@ -66,7 +66,9 @@ public class SimpleCancellable implements DependentCancellable {
 
     @Override
     public boolean isCancelled() {
-        return cancelled || (parent != null && parent.isCancelled());
+        synchronized (this) {
+            return cancelled || (parent != null && parent.isCancelled());
+        }
     }
 
     public static final Cancellable COMPLETED = new SimpleCancellable() {
