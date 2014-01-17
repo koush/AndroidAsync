@@ -412,6 +412,10 @@ public final class DiskLruCache implements Closeable {
         }
     }
 
+    public File getFile(String key, int index) {
+        return new Entry(key).getCleanFile(index);
+    }
+
     /**
      * Returns a snapshot of the entry named {@code key}, or null if it doesn't
      * exist is not currently readable. If a value is returned, it is moved to
