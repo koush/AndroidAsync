@@ -1,11 +1,11 @@
 package com.koushikdutta.async.future;
 
-import com.koushikdutta.async.AsyncSemaphore;
-
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import com.koushikdutta.async.AsyncSemaphore;
 
 public class SimpleFuture<T> extends SimpleCancellable implements DependentFuture<T> {
     @Override

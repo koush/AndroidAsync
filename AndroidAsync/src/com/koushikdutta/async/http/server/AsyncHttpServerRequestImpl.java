@@ -9,8 +9,8 @@ import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.HttpUtil;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
@@ -40,7 +40,7 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         System.out.println("not http: " + mRawHeaders.getStatusLine().length());
     }
 
-    protected AsyncHttpRequestBody onUnknownBody(RawHeaders headers) {
+    protected AsyncHttpRequestBody<?> onUnknownBody(RawHeaders headers) {
         return null;
     }
     
@@ -127,9 +127,9 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         return mMatcher;
     }
 
-    AsyncHttpRequestBody mBody;
+    AsyncHttpRequestBody<?> mBody;
     @Override
-    public AsyncHttpRequestBody getBody() {
+    public AsyncHttpRequestBody<?> getBody() {
         return mBody;
     }
 

@@ -1,38 +1,20 @@
 package com.koushikdutta.async.http.socketio;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 public class SocketIOClient extends EventEmitter {
     boolean connected;
     boolean disconnected;
-
-    private static void reportError(SimpleFuture<SocketIOClient> future, Handler handler, final ConnectCallback callback, final Exception e) {
-        if (!future.setComplete(e))
-            return;
-        if (handler != null) {
-            AsyncServer.post(handler, new Runnable() {
-                @Override
-                public void run() {
-                    callback.onConnectCompleted(e, null);
-                }
-            });
-        }
-        else {
-            callback.onConnectCompleted(e, null);
-        }
-    }
 
     private void emitRaw(int type, String message, Acknowledge acknowledge) {
         connection.emitRaw(type, this, message, acknowledge);
@@ -86,10 +68,15 @@ public class SocketIOClient extends EventEmitter {
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, String uri, final ConnectCallback callback) {
         return connect(client, new SocketIORequest(uri), callback);
     }
+    
+    @SuppressWarnings("deprecation")
+    private static Handler getHandler(SocketIORequest request) {
+        return request.getHandler();
+    }
 
     ConnectCallback connectCallback;
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, final SocketIORequest request, final ConnectCallback callback) {
-        final Handler handler = Looper.myLooper() == null ? null : request.getHandler();
+        final Handler handler = Looper.myLooper() == null ? null : getHandler(request);
         final SimpleFuture<SocketIOClient> ret = new SimpleFuture<SocketIOClient>();
 
         final SocketIOConnection connection = new SocketIOConnection(handler, client, request);

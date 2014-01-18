@@ -113,6 +113,7 @@ public class WebSocketImpl implements WebSocket {
         String key = request.getHeaders().getHeaders().get("Sec-WebSocket-Key");
         String concat = key + MAGIC;
         String sha1 = SHA1(concat);
+        @SuppressWarnings("unused")
         String origin = request.getHeaders().getHeaders().get("Origin");
         
         response.responseCode(101);

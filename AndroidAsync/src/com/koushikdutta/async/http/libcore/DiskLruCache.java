@@ -16,8 +16,6 @@
 
 package com.koushikdutta.async.http.libcore;
 
-import com.koushikdutta.async.Util;
-
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.EOFException;
@@ -32,7 +30,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;

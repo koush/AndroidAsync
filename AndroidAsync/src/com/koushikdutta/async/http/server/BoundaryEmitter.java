@@ -1,11 +1,10 @@
 package com.koushikdutta.async.http.server;
 
-import android.util.Log;
+import java.nio.ByteBuffer;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
-
-import java.nio.ByteBuffer;
 
 public class BoundaryEmitter extends FilteredDataEmitter {
     private byte[] boundary;

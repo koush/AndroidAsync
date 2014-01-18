@@ -1,5 +1,11 @@
 package com.koushikdutta.async.http.body;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.List;
+
+import org.apache.http.NameValuePair;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
@@ -8,12 +14,6 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.Multimap;
-
-import org.apache.http.NameValuePair;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.List;
 
 public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
     private Multimap mParameters;

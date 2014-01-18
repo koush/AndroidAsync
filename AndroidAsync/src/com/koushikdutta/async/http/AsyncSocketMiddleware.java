@@ -1,5 +1,11 @@
 package com.koushikdutta.async.http;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.util.HashSet;
+import java.util.Hashtable;
+
 import com.koushikdutta.async.ArrayDeque;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
@@ -12,13 +18,6 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.TransformFuture;
-
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Hashtable;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
     String scheme;

@@ -1,5 +1,10 @@
 package com.koushikdutta.async.parser;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
@@ -8,11 +13,6 @@ import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.body.DocumentBody;
 import com.koushikdutta.async.stream.ByteBufferListInputStream;
-
-import org.w3c.dom.Document;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 /**
  * Created by koush on 8/3/13.

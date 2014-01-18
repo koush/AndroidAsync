@@ -1,5 +1,16 @@
 package com.koushikdutta.async.http;
 
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import org.apache.http.Header;
+import org.apache.http.HeaderIterator;
+import org.apache.http.HttpRequest;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.RequestLine;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.params.HttpParams;
+import android.annotation.SuppressLint;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -7,13 +18,6 @@ import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
-import org.apache.http.*;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.params.HttpParams;
-
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
 
 public class AsyncHttpRequest {
     public RequestLine getRequestLine() {
@@ -155,12 +159,12 @@ public class AsyncHttpRequest {
         return this;
     }
     
-    private AsyncHttpRequestBody mBody;
-    public void setBody(AsyncHttpRequestBody body) {
+    private AsyncHttpRequestBody<?> mBody;
+    public void setBody(AsyncHttpRequestBody<?> body) {
         mBody = body;
     }
     
-    public AsyncHttpRequestBody getBody() {
+    public AsyncHttpRequestBody<?> getBody() {
         return mBody;
     }
     
@@ -356,6 +360,7 @@ public class AsyncHttpRequest {
         return LOGTAG;
     }
     long executionTime;
+    @SuppressLint("DefaultLocale")
     private String getLogMessage(String message) {
         long elapsed;
         if (executionTime != 0)

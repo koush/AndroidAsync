@@ -1,13 +1,12 @@
 package com.koushikdutta.async.http.filter;
 
+import java.nio.ByteBuffer;
+import java.util.zip.Inflater;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.Util;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.zip.Inflater;
 
 public class InflaterInputFilter extends FilteredDataEmitter {
     private Inflater mInflater;

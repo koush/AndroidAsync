@@ -1,9 +1,9 @@
 package com.koushikdutta.async.stream;
 
-import com.koushikdutta.async.ByteBufferList;
-
 import java.io.IOException;
 import java.io.InputStream;
+
+import com.koushikdutta.async.ByteBufferList;
 
 /**
  * Created by koush on 6/1/13.

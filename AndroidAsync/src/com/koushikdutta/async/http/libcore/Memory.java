@@ -17,9 +17,6 @@
 
 package com.koushikdutta.async.http.libcore;
 
-import java.io.FileDescriptor;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**

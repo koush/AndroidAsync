@@ -1,16 +1,16 @@
 package com.koushikdutta.async;
 
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.callback.WritableCallback;
-import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
-import com.koushikdutta.async.wrapper.DataEmitterWrapper;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
+import com.koushikdutta.async.wrapper.DataEmitterWrapper;
 
 public class Util {
     public static void emitAllData(DataEmitter emitter, ByteBufferList list) {
@@ -209,16 +209,16 @@ public class Util {
 
     public static <T extends AsyncSocket> T getWrappedSocket(AsyncSocket socket, Class<T> wrappedClass) {
         if (wrappedClass.isInstance(socket))
-            return (T)socket;
+            return wrappedClass.cast(socket);
         while (socket instanceof AsyncSocketWrapper) {
             socket = ((AsyncSocketWrapper)socket).getSocket();
             if (wrappedClass.isInstance(socket))
-                return (T)socket;
+                return wrappedClass.cast(socket);
         }
         return null;
     }
 
-    public static DataEmitter getWrappedDataEmitter(DataEmitter emitter, Class wrappedClass) {
+    public static DataEmitter getWrappedDataEmitter(DataEmitter emitter, Class<?> wrappedClass) {
         if (wrappedClass.isInstance(emitter))
             return emitter;
         while (emitter instanceof DataEmitterWrapper) {

@@ -35,28 +35,6 @@ public class OutputStreamDataSink implements DataSink {
         return mStream;
     }
 
-    private boolean doPending() {
-        try {
-            while (pending.size() > 0) {
-                ByteBuffer b;
-                synchronized (pending) {
-                    b = pending.remove();
-                }
-                int rem = b.remaining();
-                mStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
-                totalWritten += rem;
-                ByteBufferList.reclaim(b);
-            }
-            return true;
-        }
-        catch (Exception e) {
-            pending.recycle();
-            closeReported = true;
-            closeException = e;
-            return false;
-        }
-    }
-
     final ByteBufferList pending = new ByteBufferList();
     int totalWritten;
 

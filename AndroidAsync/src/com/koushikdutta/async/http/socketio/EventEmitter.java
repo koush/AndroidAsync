@@ -1,11 +1,11 @@
 package com.koushikdutta.async.http.socketio;
 
-import com.koushikdutta.async.util.HashList;
+import java.util.Iterator;
+import java.util.List;
 
 import org.json.JSONArray;
 
-import java.util.Iterator;
-import java.util.List;
+import com.koushikdutta.async.util.HashList;
 
 /**
  * Created by koush on 7/1/13.

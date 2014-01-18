@@ -1,23 +1,9 @@
 package com.koushikdutta.async;
 
-import android.os.Build;
-import android.os.Handler;
-import android.provider.MediaStore;
-import android.util.Log;
-
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.ListenCallback;
-import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.SimpleFuture;
-import com.koushikdutta.async.future.TransformFuture;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.DatagramChannel;
@@ -27,14 +13,24 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+
+import android.os.Build;
+import android.os.Handler;
+import android.util.Log;
+
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.Future;
+import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.future.TransformFuture;
 
 public class AsyncServer {
     public static final String LOGTAG = "NIO";

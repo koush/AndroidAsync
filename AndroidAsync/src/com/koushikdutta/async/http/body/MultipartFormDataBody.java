@@ -1,5 +1,9 @@
 package com.koushikdutta.async.http.body;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.UUID;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
@@ -14,10 +18,6 @@ import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.BoundaryEmitter;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.UUID;
 
 public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpRequestBody<Multimap> {
     LineEmitter liner;

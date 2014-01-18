@@ -1,5 +1,20 @@
 package com.koushikdutta.async.http.server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+import javax.net.ssl.SSLContext;
+
 import android.content.Context;
 import android.text.TextUtils;
 
@@ -24,21 +39,6 @@ import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import javax.net.ssl.SSLContext;
-
 public class AsyncHttpServer {
     ArrayList<AsyncServerSocket> mListeners = new ArrayList<AsyncServerSocket>();
     public void stop() {
@@ -52,7 +52,7 @@ public class AsyncHttpServer {
     protected void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
     }
 
-    protected AsyncHttpRequestBody onUnknownBody(RawHeaders headers) {
+    protected AsyncHttpRequestBody<?> onUnknownBody(RawHeaders headers) {
         return new UnknownRequestBody(headers.get("Content-Type"));
     }
 
@@ -69,7 +69,7 @@ public class AsyncHttpServer {
                 boolean hasContinued;
 
                 @Override
-                protected AsyncHttpRequestBody onUnknownBody(RawHeaders headers) {
+                protected AsyncHttpRequestBody<?> onUnknownBody(RawHeaders headers) {
                     return AsyncHttpServer.this.onUnknownBody(headers);
                 }
 

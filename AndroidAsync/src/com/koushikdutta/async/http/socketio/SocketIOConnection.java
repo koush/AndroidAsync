@@ -1,5 +1,13 @@
 package com.koushikdutta.async.http.socketio;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Hashtable;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import android.os.Handler;
 import android.text.TextUtils;
 
@@ -10,16 +18,8 @@ import com.koushikdutta.async.future.DependentCancellable;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.AsyncHttpResponse;
+import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.WebSocket;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Hashtable;
 
 /**
  * Created by koush on 7/1/13.
@@ -88,6 +88,11 @@ class SocketIOConnection {
         webSocket = null;
     }
 
+    @SuppressWarnings("deprecation")
+    private static void setHandler(AsyncHttpRequest request, Handler handler) {
+        request.setHandler(handler);
+    }
+    
     Cancellable connecting;
     void reconnect(final DependentCancellable child) {
         if (isConnected()) {
@@ -104,7 +109,7 @@ class SocketIOConnection {
         request.logi("Reconnecting socket.io");
 
         // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
-        request.setHandler(null);
+       setHandler(request, null);
 
         Cancellable connecting = httpClient.executeString(request)
         .then(new TransformFuture<WebSocket, String>() {

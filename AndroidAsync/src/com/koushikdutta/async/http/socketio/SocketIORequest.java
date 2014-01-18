@@ -1,7 +1,6 @@
 package com.koushikdutta.async.http.socketio;
 
 import android.net.Uri;
-import android.text.TextUtils;
 
 import com.koushikdutta.async.http.AsyncHttpPost;
 

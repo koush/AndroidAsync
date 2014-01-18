@@ -1,17 +1,17 @@
 package com.koushikdutta.async;
 
-import android.util.Log;
-
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.callback.WritableCallback;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+
+import android.util.Log;
+
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.WritableCallback;
 
 public class AsyncNetworkSocket implements AsyncSocket {
     AsyncNetworkSocket() {
