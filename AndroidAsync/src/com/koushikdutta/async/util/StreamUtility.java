@@ -1,6 +1,7 @@
 package com.koushikdutta.async.util;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -72,13 +73,7 @@ public class StreamUtility {
             input = new DataInputStream(new FileInputStream(file));
             input.readFully(buffer);
         } finally {
-            if (input != null) {
-                try {
-                    input.close();
-                } catch (IOException e) {
-                    // http://stackoverflow.com/a/156525/9636
-                }
-            }
+            closeQuietly(input);
         }
         return new String(buffer);
     }
@@ -92,6 +87,19 @@ public class StreamUtility {
     
     public static void writeFile(String file, String string) throws IOException {
         writeFile(new File(file), string);
+    }
+    
+    public static void closeQuietly(Closeable... closeables) {
+        for (Closeable closeable : closeables) {
+            if (closeable != null) {
+                try {
+                    closeable.close();
+                } catch (IOException e) {
+                    // http://stackoverflow.com/a/156525/9636
+                }
+                return;
+            }
+        }
     }
 }
 

@@ -46,6 +46,7 @@ import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 import com.koushikdutta.async.http.libcore.ResponseSource;
 import com.koushikdutta.async.http.libcore.StrictLineReader;
+import com.koushikdutta.async.util.StreamUtility;
 
 public class ResponseCacheMiddleware extends SimpleMiddleware {
     private DiskLruCache cache;
@@ -807,15 +808,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                     localCertificates = null;
 //                }
             } finally {
-                try {
-                    if (reader != null) {
-                        reader.close();
-                    } else if (in != null) {
-                        in.close();
-                    }
-                } catch (IOException e) {
-                    // http://stackoverflow.com/a/156525/9636
-                }
+                StreamUtility.closeQuietly(reader, in);
             }
         }
 

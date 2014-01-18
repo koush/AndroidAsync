@@ -23,6 +23,7 @@ import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
+import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -343,15 +344,7 @@ public class AsyncHttpServer {
                 }
             } while (entry != null);
         } catch (Exception ex) {
-            try {
-                if (zipInputStream != null) {
-                    zipInputStream.close();
-                } else if (fileInputStream != null) {
-                    fileInputStream.close();
-                }
-            } catch (IOException e) {
-                // http://stackoverflow.com/a/156525/9636
-            }
+            StreamUtility.closeQuietly(zipInputStream, fileInputStream);
         }
         return null;
     }

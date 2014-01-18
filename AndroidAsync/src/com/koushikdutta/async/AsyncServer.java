@@ -12,6 +12,7 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.future.TransformFuture;
+import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -299,11 +300,7 @@ public class AsyncServer {
 
                         @Override
                         public void stop() {
-                            try {
-                                wrapper.close();
-                            }
-                            catch (Exception e) {
-                            }
+                            StreamUtility.closeQuietly(wrapper);
                             try {
                                 key.cancel();
                             }
@@ -313,15 +310,7 @@ public class AsyncServer {
                     });
                 }
                 catch (Exception e) {
-                    try {
-                        if (closeableWrapper != null) {
-                            closeableWrapper.close();
-                        } else if (closeableServer != null) {
-                            closeableServer.close();
-                        }
-                    } catch (IOException ioException) {
-                        // http://stackoverflow.com/a/156525/9636
-                    }
+                    StreamUtility.closeQuietly(closeableWrapper, closeableServer);
                     handler.onCompleted(e);
                 }
             }
