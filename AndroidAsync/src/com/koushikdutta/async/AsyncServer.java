@@ -275,9 +275,14 @@ public class AsyncServer {
         run(new Runnable() {
             @Override
             public void run() {
+                ServerSocketChannel closeableServer = null;
+                ServerSocketChannelWrapper closeableWrapper = null;
                 try {
-                    final ServerSocketChannel server = ServerSocketChannel.open();
-                    final ServerSocketChannelWrapper wrapper = new ServerSocketChannelWrapper(server);
+                    closeableServer = ServerSocketChannel.open();
+                    closeableWrapper = new ServerSocketChannelWrapper(
+                            closeableServer);
+                    final ServerSocketChannel server = closeableServer;
+                    final ServerSocketChannelWrapper wrapper = closeableWrapper;
                     InetSocketAddress isa;
                     if (host == null)
                         isa = new InetSocketAddress(port);
@@ -295,7 +300,7 @@ public class AsyncServer {
                         @Override
                         public void stop() {
                             try {
-                                server.close();
+                                wrapper.close();
                             }
                             catch (Exception e) {
                             }
@@ -308,6 +313,15 @@ public class AsyncServer {
                     });
                 }
                 catch (Exception e) {
+                    try {
+                        if (closeableWrapper != null) {
+                            closeableWrapper.close();
+                        } else if (closeableServer != null) {
+                            closeableServer.close();
+                        }
+                    } catch (IOException ioException) {
+                        // http://stackoverflow.com/a/156525/9636
+                    }
                     handler.onCompleted(e);
                 }
             }

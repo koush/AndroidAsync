@@ -16,7 +16,11 @@ class Streams {
             }
             return writer.toString();
         } finally {
-            reader.close();
+            try {
+                reader.close();
+            } catch (IOException e) {
+                // http://stackoverflow.com/a/156525/9636
+            }
         }
     }
 }

@@ -26,6 +26,7 @@ import com.koushikdutta.async.http.libcore.RequestHeaders;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 import javax.net.ssl.SSLContext;
 
@@ -324,21 +326,42 @@ public class AsyncHttpServer {
     public static android.util.Pair<Integer, InputStream> getAssetStream(final Context context, String asset) {
         String apkPath = context.getPackageResourcePath();
         String assetPath = "assets/" + asset;
+        FileInputStream fileInputStream = null;
+        ZipInputStream zipInputStream = null;
         try {
-            ZipFile zip = new ZipFile(apkPath);
-            Enumeration<?> entries = zip.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry entry = (ZipEntry) entries.nextElement();
+            fileInputStream = new FileInputStream(apkPath);
+            zipInputStream = newZipInputStream(fileInputStream);
+            ZipEntry entry = null;
+            do {
+                entry = zipInputStream.getNextEntry();
                 if (entry.getName().equals(assetPath)) {
-                    return new android.util.Pair<Integer, InputStream>((int)entry.getSize(), zip.getInputStream(entry));
+                    // if we don't have #newZipInputStream we need to add
+                    // @SuppressWarnings("resource") on this whole method
+                    // which isn't granular enough.
+                    return new android.util.Pair<Integer, InputStream>(
+                            (int) entry.getSize(), zipInputStream);
                 }
+            } while (entry != null);
+        } catch (Exception ex) {
+            try {
+                if (zipInputStream != null) {
+                    zipInputStream.close();
+                } else if (fileInputStream != null) {
+                    fileInputStream.close();
+                }
+            } catch (IOException e) {
+                // http://stackoverflow.com/a/156525/9636
             }
-        }
-        catch (Exception ex) {
         }
         return null;
     }
-    
+
+    // just to stop Eclipse from whining about not closing ZipInputSteam
+    private static ZipInputStream newZipInputStream(InputStream inputStream)
+            throws IOException {
+        return new ZipInputStream(inputStream);
+    }
+
     static Hashtable<String, String> mContentTypes = new Hashtable<String, String>();
     {
         mContentTypes.put("js", "application/javascript");

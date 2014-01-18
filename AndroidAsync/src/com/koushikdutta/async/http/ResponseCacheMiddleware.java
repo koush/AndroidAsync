@@ -775,8 +775,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
          * line. A length of -1 is used to encode a null array.
          */
         public Entry(InputStream in) throws IOException {
+            StrictLineReader reader = null;
             try {
-                StrictLineReader reader = new StrictLineReader(in, Charsets.US_ASCII);
+                reader = new StrictLineReader(in, Charsets.US_ASCII);
                 uri = reader.readLine();
                 requestMethod = reader.readLine();
                 varyHeaders = new RawHeaders();
@@ -806,7 +807,15 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                     localCertificates = null;
 //                }
             } finally {
-                in.close();
+                try {
+                    if (reader != null) {
+                        reader.close();
+                    } else if (in != null) {
+                        in.close();
+                    }
+                } catch (IOException e) {
+                    // http://stackoverflow.com/a/156525/9636
+                }
             }
         }
 

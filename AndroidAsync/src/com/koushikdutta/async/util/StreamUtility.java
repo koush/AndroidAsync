@@ -67,8 +67,19 @@ public class StreamUtility {
     
     static public String readFile(File file) throws IOException {
         byte[] buffer = new byte[(int) file.length()];
-        DataInputStream input = new DataInputStream(new FileInputStream(file));
-        input.readFully(buffer);
+        DataInputStream input = null;
+        try {
+            input = new DataInputStream(new FileInputStream(file));
+            input.readFully(buffer);
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    // http://stackoverflow.com/a/156525/9636
+                }
+            }
+        }
         return new String(buffer);
     }
     
