@@ -1,15 +1,5 @@
 package com.koushikdutta.async.http.body;
 
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataSink;
-import com.koushikdutta.async.Util;
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.async.http.AsyncHttpRequest;
-import com.koushikdutta.async.parser.DocumentParser;
-
-import org.w3c.dom.Document;
-
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 
@@ -17,6 +7,16 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Document;
+
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
+import com.koushikdutta.async.Util;
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.parser.DocumentParser;
 
 /**
  * Created by koush on 8/30/13.

@@ -1,15 +1,15 @@
 package com.koushikdutta.async;
 
-import android.util.Log;
-
-import com.koushikdutta.async.callback.DataCallback;
-
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedList;
+
+import android.util.Log;
+
+import com.koushikdutta.async.callback.DataCallback;
 
 public class PushParser {
     private LinkedList<Object> mWaiting = new LinkedList<Object>();
@@ -250,7 +250,7 @@ public class PushParser {
         };
     }
 
-    static Hashtable<Class, Method> mTable = new Hashtable<Class, Method>();
+    static Hashtable<Class<?>, Method> mTable = new Hashtable<Class<?>, Method>();
     static Method getTap(TapCallback callback) {
         Method found = mTable.get(callback.getClass());
         if (found != null)
@@ -267,10 +267,10 @@ public class PushParser {
                 return method;
             }
         }
-        String fail =
-        "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
-        "    *;\n" +
-        "}\n";
+//        String fail =
+//        "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
+//        "    *;\n" +
+//        "}\n";
 
         //null != "AndroidAsync: tap callback could not be found. Proguard? Use this in your proguard config:\n" + fail;
         assert false;

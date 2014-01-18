@@ -1,13 +1,11 @@
 package com.koushikdutta.async;
 
-import android.os.Looper;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
+
+import android.os.Looper;
 
 public class ByteBufferList {
     ArrayDeque<ByteBuffer> mBuffers = new ArrayDeque<ByteBuffer>();

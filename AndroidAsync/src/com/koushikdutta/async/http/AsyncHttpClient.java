@@ -1,6 +1,20 @@
 package com.koushikdutta.async.http;
 
-import android.net.Uri;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.concurrent.TimeoutException;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import android.os.Handler;
 import android.text.TextUtils;
 
@@ -26,21 +40,6 @@ import com.koushikdutta.async.parser.JSONArrayParser;
 import com.koushikdutta.async.parser.JSONObjectParser;
 import com.koushikdutta.async.parser.StringParser;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.concurrent.TimeoutException;
 
 public class AsyncHttpClient {
     private static AsyncHttpClient mDefaultInstance;
@@ -82,7 +81,6 @@ public class AsyncHttpClient {
         return ret;
     }
 
-    private static final String LOGTAG = "AsyncHttp";
     private class FutureAsyncHttpResponse extends SimpleFuture<AsyncHttpResponse> {
         public AsyncSocket socket;
         public Object scheduled;
@@ -514,12 +512,12 @@ public class AsyncHttpClient {
             AsyncServer.post(handler, runnable);
     }
 
-    private void invokeProgress(final RequestCallback callback, final AsyncHttpResponse response, final int downloaded, final int total) {
+    private void invokeProgress(final RequestCallback<?> callback, final AsyncHttpResponse response, final int downloaded, final int total) {
         if (callback != null)
             callback.onProgress(response, downloaded, total);
     }
 
-    private void invokeConnect(final RequestCallback callback, final AsyncHttpResponse response) {
+    private void invokeConnect(final RequestCallback<?> callback, final AsyncHttpResponse response) {
         if (callback != null)
             callback.onConnect(response);
     }
@@ -543,8 +541,14 @@ public class AsyncHttpClient {
     public Future<File> executeFile(AsyncHttpRequest req, final String filename) {
         return executeFile(req, filename, null);
     }
+    
+    @SuppressWarnings("deprecation")
+    private static Handler getHandler(AsyncHttpRequest req) {
+        return req.getHandler();
+    }
+    
     public Future<File> executeFile(AsyncHttpRequest req, final String filename, final FileCallback callback) {
-        final Handler handler = req.getHandler();
+        final Handler handler = getHandler(req);
         final File file = new File(filename);
         file.getParentFile().mkdirs();
         final OutputStream fout;
@@ -628,7 +632,7 @@ public class AsyncHttpClient {
     private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final AsyncParser<T> parser, final RequestCallback<T> callback) {
         final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
         final SimpleFuture<T> ret = new SimpleFuture<T>();
-        final Handler handler = req.getHandler();
+        final Handler handler = getHandler(req);
         execute(req, 0, cancel, new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
@@ -638,6 +642,7 @@ public class AsyncHttpClient {
                 }
                 invokeConnect(callback, response);
 
+                @SuppressWarnings("unused")
                 final int contentLength = response.getHeaders().getContentLength();
 
                 Future<T> parsed = parser.parse(response)

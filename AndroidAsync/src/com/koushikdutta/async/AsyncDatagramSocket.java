@@ -55,6 +55,7 @@ public class AsyncDatagramSocket extends AsyncNetworkSocket {
         }
 
         try {
+            @SuppressWarnings("unused")
             int sent = ((DatagramChannelWrapper)getChannel()).mChannel.send(buffer, new InetSocketAddress(address.getHostName(), address.getPort()));
         }
         catch (IOException e) {

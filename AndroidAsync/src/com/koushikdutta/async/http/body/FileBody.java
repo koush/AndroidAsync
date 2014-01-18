@@ -1,12 +1,12 @@
 package com.koushikdutta.async.http.body;
 
+import java.io.File;
+
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
-
-import java.io.File;
 
 /**
  * Created by koush on 10/14/13.

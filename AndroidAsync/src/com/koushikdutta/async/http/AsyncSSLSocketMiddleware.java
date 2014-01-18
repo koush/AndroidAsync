@@ -1,13 +1,14 @@
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.AsyncSSLSocketWrapper;
-import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.callback.ConnectCallback;
+import java.net.URI;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
-import java.net.URI;
+
+import com.koushikdutta.async.AsyncSSLSocketWrapper;
+import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.callback.ConnectCallback;
 
 public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
     public AsyncSSLSocketMiddleware(AsyncHttpClient client) {

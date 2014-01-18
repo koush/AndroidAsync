@@ -1,5 +1,14 @@
 package com.koushikdutta.async.dns;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Random;
+
 import com.koushikdutta.async.AsyncDatagramSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
@@ -9,21 +18,6 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
-
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.net.DatagramSocket;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Random;
 
 /**
  * Created by koush on 10/20/13.
@@ -82,10 +76,7 @@ public class Dns {
         return ret;
     }
 
-    private static InetAddress parseAddress(ByteBufferList bb) {
-        return null;
-    }
-
+    // Left unused locals because they're probably useful when debugging.
     private static DnsResponse parse(ByteBufferList bb) {
         ByteBuffer b = bb.getAll();
         bb.add(b.duplicate());
@@ -116,12 +107,15 @@ public class Dns {
 
         DnsResponse response = new DnsResponse();
         for (int i = 0; i < answers; i++) {
+            @SuppressWarnings("unused")
             String name = parseName(bb, b);
             // type
             int type = bb.getShort();
             // class
+            @SuppressWarnings("unused")
             int clazz = bb.getShort();
             // ttl
+            @SuppressWarnings("unused")
             int ttl = bb.getInt();
             // length of address
             int length = bb.getShort();
@@ -151,12 +145,16 @@ public class Dns {
 
         // authorities
         for (int i = 0; i < authorities; i++) {
+            @SuppressWarnings("unused")
             String name = parseName(bb, b);
             // type
+            @SuppressWarnings("unused")
             int type = bb.getShort();
             // class
+            @SuppressWarnings("unused")
             int clazz = bb.getShort();
             // ttl
+            @SuppressWarnings("unused")
             int ttl = bb.getInt();
             // length of address
             int length = bb.getShort();
@@ -170,12 +168,15 @@ public class Dns {
 
         // additionals
         for (int i = 0; i < additionals; i++) {
+            @SuppressWarnings("unused")
             String name = parseName(bb, b);
             // type
             int type = bb.getShort();
             // class
+            @SuppressWarnings("unused")
             int clazz = bb.getShort();
             // ttl
+            @SuppressWarnings("unused")
             int ttl = bb.getInt();
             // length of address
             int length = bb.getShort();

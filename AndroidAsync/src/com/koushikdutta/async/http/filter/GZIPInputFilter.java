@@ -9,7 +9,6 @@ import java.util.zip.Inflater;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataEmitterReader;
 import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.PushParser;
 import com.koushikdutta.async.TapCallback;

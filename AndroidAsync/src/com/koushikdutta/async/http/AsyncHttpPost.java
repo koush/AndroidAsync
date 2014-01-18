@@ -1,7 +1,6 @@
 package com.koushikdutta.async.http;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 public class AsyncHttpPost extends AsyncHttpRequest {
     public static final String METHOD = "POST";

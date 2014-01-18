@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http;
 
+import java.nio.ByteBuffer;
+
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
@@ -16,10 +18,8 @@ import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
-import java.nio.ByteBuffer;
-
 abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncHttpResponse {
-    private AsyncHttpRequestBody mWriter;
+    private AsyncHttpRequestBody<?> mWriter;
     
     public AsyncSocket getSocket() {
         return mSocket;

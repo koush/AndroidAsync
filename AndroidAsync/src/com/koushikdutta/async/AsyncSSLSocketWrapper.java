@@ -1,14 +1,5 @@
 package com.koushikdutta.async;
 
-import android.os.Build;
-
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.callback.WritableCallback;
-import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
-
-import org.apache.http.conn.ssl.StrictHostnameVerifier;
-
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
@@ -23,6 +14,15 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
+import org.apache.http.conn.ssl.StrictHostnameVerifier;
+
+import android.os.Build;
+
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 
 public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket {
     AsyncSocket mSocket;

@@ -30,11 +30,6 @@
 
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.DataEmitterReader;
-import com.koushikdutta.async.callback.DataCallback;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -43,9 +38,12 @@ import java.util.List;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-abstract class HybiParser {
-    private static final String TAG = "HybiParser";
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataEmitterReader;
+import com.koushikdutta.async.callback.DataCallback;
 
+abstract class HybiParser {
     private boolean mMasking = true;
     private boolean mDeflate = false;
 
@@ -406,6 +404,7 @@ abstract class HybiParser {
             sendFrame(frame(payload, OP_PONG, -1));
 
         } else if (opcode == OP_PONG) {
+            @SuppressWarnings("unused")
             String message = encode(payload);
             // FIXME: Fire callback...
 //            Log.d(TAG, "Got pong! " + message);
@@ -454,6 +453,7 @@ abstract class HybiParser {
         return copy;
     }
 
+    @SuppressWarnings("serial")
     public static class ProtocolError extends IOException {
         public ProtocolError(String detailMessage) {
             super(detailMessage);

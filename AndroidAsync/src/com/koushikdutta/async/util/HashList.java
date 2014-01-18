@@ -7,25 +7,26 @@ import java.util.Hashtable;
  * Created by koush on 5/27/13.
  */
 public class HashList<T> {
-    class TaggedList<T> extends ArrayList<T> {
+    @SuppressWarnings("serial")
+    class TaggedList extends ArrayList<T> {
         Object tag;
     }
-    Hashtable<String, TaggedList<T>> internal = new Hashtable<String, TaggedList<T>>();
+    Hashtable<String, TaggedList> internal = new Hashtable<String, TaggedList>();
 
     public HashList() {
     }
 
-    public synchronized <V> V tag(String key) {
-        TaggedList<T> list = internal.get(key);
+    public synchronized Object tag(String key) {
+        TaggedList list = internal.get(key);
         if (list == null)
             return null;
-        return (V)list.tag;
+        return list.tag;
     }
 
     public synchronized <V> void tag(String key, V tag) {
-        TaggedList<T> list = internal.get(key);
+        TaggedList list = internal.get(key);
         if (list == null) {
-            list = new TaggedList<T>();
+            list = new TaggedList();
             internal.put(key, list);
         }
         list.tag = tag;
@@ -51,7 +52,7 @@ public class HashList<T> {
     synchronized public void add(String key, T value) {
         ArrayList<T> ret = get(key);
         if (ret == null) {
-            TaggedList<T> put = new TaggedList<T>();
+            TaggedList put = new TaggedList();
             ret = put;
             internal.put(key, put);
         }
@@ -59,7 +60,7 @@ public class HashList<T> {
     }
 
     synchronized public Object removeItem(String key, T value) {
-        TaggedList<T> values = internal.get(key);
+        TaggedList values = internal.get(key);
         if (values == null)
             return null;
 

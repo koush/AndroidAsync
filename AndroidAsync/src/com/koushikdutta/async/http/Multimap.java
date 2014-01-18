@@ -1,18 +1,21 @@
 package com.koushikdutta.async.http;
 
-import android.net.Uri;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
-
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+
+import android.net.Uri;
+
+import com.koushikdutta.async.http.libcore.RawHeaders;
+
 /**
  * Created by koush on 5/27/13.
  */
+@SuppressWarnings("serial")
 public class Multimap extends Hashtable<String, List<String>> implements Iterable<NameValuePair> {
     public Multimap() {
     }

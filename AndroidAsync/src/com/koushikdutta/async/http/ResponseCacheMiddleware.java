@@ -1,7 +1,6 @@
 package com.koushikdutta.async.http;
 
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FilterInputStream;
@@ -22,8 +21,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +32,14 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Base64;
 
-import com.koushikdutta.async.*;
+import com.koushikdutta.async.AsyncSSLSocket;
+import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataEmitterBase;
+import com.koushikdutta.async.FilteredDataEmitter;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.Cancellable;
@@ -260,6 +264,16 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
     
     public static class CacheData implements Parcelable {
+        public static final Parcelable.Creator<CacheData> CREATOR = new Parcelable.Creator<CacheData>() {
+            public CacheData createFromParcel(Parcel in) {
+                return new CacheData();
+            }
+
+            public CacheData[] newArray(int size) {
+                return new CacheData[size];
+            }
+        };
+        
         DiskLruCache.Snapshot snapshot;
         CacheResponse candidate;
         long contentLength;
@@ -275,8 +289,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
         
     }
-    
-    private static final String LOGTAG = "AsyncHttpCache";
     
     // step 1) see if we can serve request from the cache directly.
     // also see if this can be turned into a conditional cache request.
@@ -386,6 +398,18 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
 
     private static class BodyCacher extends FilteredDataEmitter implements Parcelable {
+        // This is required by the Parcelable contract.
+        @SuppressWarnings("unused")
+        public static final Parcelable.Creator<BodyCacher> CREATOR = new Parcelable.Creator<BodyCacher>() {
+            public BodyCacher createFromParcel(Parcel in) {
+                return new BodyCacher();
+            }
+
+            public BodyCacher[] newArray(int size) {
+                return new BodyCacher[size];
+            }
+        };
+        
         CacheRequestImpl cacheRequest;
         ByteBufferList cached;
 
@@ -863,26 +887,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         private boolean isHttps() {
             return uri.startsWith("https://");
-        }
-
-        private Certificate[] readCertArray(StrictLineReader reader) throws IOException {
-            int length = reader.readInt();
-            if (length == -1) {
-                return null;
-            }
-            try {
-                CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-                Certificate[] result = new Certificate[length];
-                for (int i = 0; i < result.length; i++) {
-                    String line = reader.readLine();
-                    byte[] bytes = Base64.decode(line, Base64.DEFAULT);
-                    result[i] = certificateFactory.generateCertificate(
-                            new ByteArrayInputStream(bytes));
-                }
-                return result;
-            } catch (CertificateException e) {
-                throw new IOException(e.getMessage());
-            }
         }
 
         private void writeCertArray(Writer writer, Certificate[] certificates) throws IOException {

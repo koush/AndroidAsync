@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http.body;
 
+import org.json.JSONArray;
+
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
@@ -7,8 +9,6 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.parser.JSONArrayParser;
-
-import org.json.JSONArray;
 
 public class JSONArrayBody implements AsyncHttpRequestBody<JSONArray> {
     public JSONArrayBody() {

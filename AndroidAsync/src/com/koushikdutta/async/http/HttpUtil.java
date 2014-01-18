@@ -14,10 +14,9 @@ import com.koushikdutta.async.http.filter.ContentLengthFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.server.UnknownRequestBody;
 
 public class HttpUtil {
-    public static AsyncHttpRequestBody getBody(DataEmitter emitter, CompletedCallback reporter, RawHeaders headers) {
+    public static AsyncHttpRequestBody<?> getBody(DataEmitter emitter, CompletedCallback reporter, RawHeaders headers) {
         String contentType = headers.get("Content-Type");
         if (contentType != null) {
             String[] values = contentType.split(";");
