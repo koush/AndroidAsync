@@ -2,6 +2,7 @@ package com.koushikdutta.async.util;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Set;
 
 /**
  * Created by koush on 5/27/13.
@@ -13,6 +14,10 @@ public class HashList<T> {
     Hashtable<String, TaggedList<T>> internal = new Hashtable<String, TaggedList<T>>();
 
     public HashList() {
+    }
+
+    public Set<String> keySet() {
+        return internal.keySet();
     }
 
     public synchronized <V> V tag(String key) {

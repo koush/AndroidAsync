@@ -93,8 +93,10 @@ public class AsyncHttpClient {
             if (!super.cancel())
                 return false;
 
-            if (socket != null)
+            if (socket != null) {
+                socket.setDataCallback(new NullDataCallback());
                 socket.close();
+            }
 
             if (scheduled != null)
                 mServer.removeAllCallbacks(scheduled);

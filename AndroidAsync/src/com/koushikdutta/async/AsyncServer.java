@@ -18,6 +18,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.DatagramChannel;
@@ -576,7 +577,7 @@ public class AsyncServer {
             }
             catch (Exception e) {
                 Log.e(LOGTAG, "exception?", e);
-           }
+            }
             return;
         }
         
@@ -763,6 +764,8 @@ public class AsyncServer {
                     Log.i(LOGTAG, "wtf");
                     assert false;
                 }
+            }
+            catch (CancelledKeyException ex) {
             }
             catch (Exception ex) {
                 Log.e(LOGTAG, "inner loop exception", ex);
