@@ -108,7 +108,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
                     state = -2;
                 }
                 else {
-                    report(new Exception("Invalid multipart/form-data. Expected \r or -"));
+                    report(new MimeEncodingException("Invalid multipart/form-data. Expected \r or -"));
                     return;
                 }
             }
@@ -117,7 +117,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
                     state = -3;
                 }
                 else {
-                    report(new Exception("Invalid multipart/form-data. Expected -"));
+                    report(new MimeEncodingException("Invalid multipart/form-data. Expected -"));
                     return;
                 }
             }
@@ -133,7 +133,7 @@ public class BoundaryEmitter extends FilteredDataEmitter {
                     onBoundaryEnd();
                 }
                 else {
-                    report(new Exception("Invalid multipart/form-data. Expected \r"));
+                    report(new MimeEncodingException("Invalid multipart/form-data. Expected \r"));
                     return;
                 }
             }
@@ -143,12 +143,12 @@ public class BoundaryEmitter extends FilteredDataEmitter {
                     state = 0;
                 }
                 else {
-                    report(new Exception("Invalid multipart/form-data. Expected \n"));
+                    report(new MimeEncodingException("Invalid multipart/form-data. Expected \n"));
                 }
             }
             else {
                 assert false;
-                report(new Exception("Invalid multipart/form-data. Unknown state?"));
+                report(new MimeEncodingException("Invalid multipart/form-data. Unknown state?"));
             }
         }
 

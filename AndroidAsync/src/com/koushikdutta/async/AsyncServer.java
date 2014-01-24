@@ -395,7 +395,7 @@ public class AsyncServer {
                 try {
                     final InetAddress[] result = InetAddress.getAllByName(host);
                     if (result == null || result.length == 0)
-                        throw new Exception("no addresses for host");
+                        throw new HostnameResolutionException("no addresses for host");
                     post(new Runnable() {
                         @Override
                         public void run() {

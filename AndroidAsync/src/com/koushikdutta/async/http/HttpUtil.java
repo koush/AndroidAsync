@@ -72,7 +72,7 @@ public class HttpUtil {
         final int contentLength = _contentLength;
         if (-1 != contentLength) {
             if (contentLength < 0) {
-                EndEmitter ender = EndEmitter.create(emitter.getServer(), new Exception("not using chunked encoding, and no content-length found."));
+                EndEmitter ender = EndEmitter.create(emitter.getServer(), new BodyDecoderException("not using chunked encoding, and no content-length found."));
                 ender.setDataEmitter(emitter);
                 emitter = ender;
                 return emitter;
