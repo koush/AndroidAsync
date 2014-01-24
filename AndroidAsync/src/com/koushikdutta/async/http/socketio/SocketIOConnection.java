@@ -121,7 +121,7 @@ class SocketIOConnection {
                 String[] transports = transportsLine.split(",");
                 HashSet<String> set = new HashSet<String>(Arrays.asList(transports));
                 if (!set.contains("websocket"))
-                    throw new Exception("websocket not supported");
+                    throw new SocketIOException("websocket not supported");
 
                 final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
 
@@ -399,7 +399,7 @@ class SocketIOConnection {
                             // noop
                             break;
                         default:
-                            throw new Exception("unknown code");
+                            throw new SocketIOException("unknown code");
                     }
                 }
                 catch (Exception ex) {

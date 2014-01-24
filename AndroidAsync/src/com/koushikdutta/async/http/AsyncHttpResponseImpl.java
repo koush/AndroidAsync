@@ -92,7 +92,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         @Override
         public void onCompleted(Exception error) {
             if (error != null && !mCompleted) {
-                report(new Exception("connection closed before response completed."));
+                report(new ConnectionClosedException("connection closed before response completed."));
             }
             else {
                 report(error);

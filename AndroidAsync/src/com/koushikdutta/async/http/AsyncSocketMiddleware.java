@@ -213,7 +213,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                     public void onCompleted(Exception ex) {
                         // if it completed, that means that the connection failed
                         if (lastException == null)
-                            lastException = new Exception("Unable to connect to remote address");
+                            lastException = new ConnectionFailedException("Unable to connect to remote address");
                         setComplete(lastException);
                     }
                 });

@@ -152,7 +152,7 @@ public class AsyncHttpClient {
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
         assert mServer.isAffinityThread();
         if (redirectCount > 15) {
-            reportConnectedCompleted(cancel, new Exception("too many redirects"), null, request, callback);
+            reportConnectedCompleted(cancel, new RedirectLimitExceededException("too many redirects"), null, request, callback);
             return;
         }
         final URI uri = request.getUri();
@@ -677,7 +677,7 @@ public class AsyncHttpClient {
                 }
                 WebSocket ws = WebSocketImpl.finishHandshake(req.getHeaders().getHeaders(), response);
                 if (ws == null) {
-                    if (!ret.setComplete(new Exception("Unable to complete websocket handshake")))
+                    if (!ret.setComplete(new WebSocketHandshakeException("Unable to complete websocket handshake")))
                         return;
                 }
                 else {

@@ -227,7 +227,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             parts = parts[1].split("-");
             try {
                 if (parts.length > 2)
-                    throw new Exception();
+                    throw new MalformedRangeException();
                 if (!TextUtils.isEmpty(parts[0]))
                     start = Integer.parseInt(parts[0]);
                 if (parts.length == 2 && !TextUtils.isEmpty(parts[1]))
@@ -246,7 +246,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         }
         try {
             if (start != inputStream.skip(start))
-                throw new Exception("skip failed to skip requested amount");
+                throw new StreamSkipException("skip failed to skip requested amount");
             mContentLength = end - start + 1;
             mRawHeaders.set("Content-Length", "" + mContentLength);
             mRawHeaders.set("Accept-Ranges", "bytes");

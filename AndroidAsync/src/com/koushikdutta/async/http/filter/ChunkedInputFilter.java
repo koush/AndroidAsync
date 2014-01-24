@@ -22,7 +22,7 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
     
     private boolean checkByte(char b, char value) {
         if (b != value) {
-            report(new Exception(value + " was expeceted, got " + (char)b));
+            report(new ChunkedDataException(value + " was expected, got " + (char)b));
             return false;
         }
         return true;
@@ -39,7 +39,7 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
     @Override
     protected void report(Exception e) {
         if (e == null && mState != State.COMPLETE)
-            e = new Exception("chunked input ended before final chunk");
+            e = new ChunkedDataException("chunked input ended before final chunk");
         super.report(e);
     }
 
@@ -62,7 +62,7 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
                         else if (c >= 'A' && c <= 'F')
                             mChunkLength += (c - 'A' + 10);
                         else {
-                            report(new Exception("invalid chunk length: " + c));
+                            report(new ChunkedDataException("invalid chunk length: " + c));
                             return;
                         }
                     }
