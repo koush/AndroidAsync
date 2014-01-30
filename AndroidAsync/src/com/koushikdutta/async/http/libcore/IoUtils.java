@@ -5,7 +5,7 @@ import java.io.File;
 import java.io.IOException;
 
 /** From libcore.io.IoUtils */
-class IoUtils {
+public class IoUtils {
     static void deleteContents(File dir) throws IOException {
         File[] files = dir.listFiles();
         if (files == null) {
@@ -21,7 +21,7 @@ class IoUtils {
         }
     }
 
-    static void closeQuietly(/*Auto*/Closeable closeable) {
+    public static void closeQuietly(/*Auto*/Closeable closeable) {
         if (closeable != null) {
             try {
                 closeable.close();
