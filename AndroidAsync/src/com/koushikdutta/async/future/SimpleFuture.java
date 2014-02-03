@@ -130,6 +130,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
 
     public SimpleFuture<T> setComplete(Future<T> future) {
         future.setCallback(getCompletionCallback());
+        setParent(future);
         return this;
     }
 
