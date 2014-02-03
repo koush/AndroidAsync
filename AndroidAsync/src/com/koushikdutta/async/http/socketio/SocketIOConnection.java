@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http.socketio;
 
+import android.net.Uri;
 import android.os.Handler;
 import android.text.TextUtils;
 
@@ -123,7 +124,9 @@ class SocketIOConnection {
                 if (!set.contains("websocket"))
                     throw new SocketIOException("websocket not supported");
 
-                final String sessionUrl = request.getUri().toString() + "websocket/" + session + "/";
+                final String sessionUrl = Uri.parse(request.getUri().toString()).buildUpon()
+                		.appendPath("websocket").appendPath(session)
+                		.build().toString();
 
                 setComplete(httpClient.websocket(sessionUrl, null, null));
             }
