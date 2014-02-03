@@ -98,7 +98,8 @@ public class AsyncHttpRequest {
             String host = uri.getHost();
             if (uri.getPort() != -1)
                 host = host + ":" + uri.getPort();
-            ret.set("Host", host);
+            if (host != null)
+                ret.set("Host", host);
         }
         ret.set("User-Agent", getDefaultUserAgent());
         ret.set("Accept-Encoding", "gzip, deflate");
