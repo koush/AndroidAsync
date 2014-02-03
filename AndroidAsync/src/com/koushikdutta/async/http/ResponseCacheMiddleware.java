@@ -50,8 +50,8 @@ import com.koushikdutta.async.http.libcore.StrictLineReader;
 public class ResponseCacheMiddleware extends SimpleMiddleware {
     private DiskLruCache cache;
     private static final int VERSION = 201105;
-    private static final int ENTRY_METADATA = 0;
-    private static final int ENTRY_BODY = 1;
+    public static final int ENTRY_METADATA = 0;
+    public static final int ENTRY_BODY = 1;
     public static final int ENTRY_COUNT = 2;
     private AsyncServer server;
 

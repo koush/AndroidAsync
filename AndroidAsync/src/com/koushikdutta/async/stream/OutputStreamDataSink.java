@@ -31,7 +31,7 @@ public class OutputStreamDataSink implements DataSink {
         mStream = stream;
     }
     
-    public OutputStream getOutputStream() {
+    public OutputStream getOutputStream() throws IOException {
         return mStream;
     }
 
@@ -43,7 +43,7 @@ public class OutputStreamDataSink implements DataSink {
                     b = pending.remove();
                 }
                 int rem = b.remaining();
-                mStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                getOutputStream().write(b.array(), b.arrayOffset() + b.position(), b.remaining());
                 totalWritten += rem;
                 ByteBufferList.reclaim(b);
             }
@@ -63,7 +63,7 @@ public class OutputStreamDataSink implements DataSink {
     @Override
     public void write(final ByteBuffer bb) {
         try {
-            mStream.write(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
+            getOutputStream().write(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
         }
         catch (IOException e) {
             reportClose(e);
@@ -77,7 +77,7 @@ public class OutputStreamDataSink implements DataSink {
         try {
             while (bb.size() > 0) {
                 ByteBuffer b = bb.remove();
-                mStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                getOutputStream().write(b.array(), b.arrayOffset() + b.position(), b.remaining());
                 ByteBufferList.reclaim(b);
             }
         }
