@@ -825,8 +825,16 @@ public final class DiskLruCache implements Closeable {
         /**
          * Commits this edit so it is visible to readers.  This releases the
          * edit lock so another edit may be started on the same key.
+         * @param ignoreWritten Ignore whether or not the value was written
+         * @throws IOException
          */
-        public void commit() throws IOException {
+        public void commit(boolean ignoreWritten) throws IOException {
+            if (ignoreWritten) {
+                for (int i = 0; i < written.length; i++) {
+                    written[i] = true;
+                }
+            }
+
             if (hasErrors) {
                 completeEdit(this, false);
                 remove(entry.key); // The previous entry is stale.
@@ -834,6 +842,14 @@ public final class DiskLruCache implements Closeable {
                 completeEdit(this, true);
             }
             committed = true;
+        }
+
+        /**
+         * Commits this edit so it is visible to readers.  This releases the
+         * edit lock so another edit may be started on the same key.
+         */
+        public void commit() throws IOException {
+            commit(false);
         }
 
         /**
