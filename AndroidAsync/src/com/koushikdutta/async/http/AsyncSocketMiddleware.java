@@ -30,7 +30,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
     }
     
     public int getSchemePort(URI uri) {
-        if (!uri.getScheme().equals(scheme))
+        if (uri.getScheme() == null || !uri.getScheme().equals(scheme))
             return -1;
         if (uri.getPort() == -1) {
             return port;
