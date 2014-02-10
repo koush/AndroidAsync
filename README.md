@@ -156,7 +156,7 @@ SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2
                 System.out.println(string);
             }
         });
-        client.setEventCallback(new EventCallback() {
+        client.on(new EventCallback() {
             @Override
             public void onEvent(String event, JSONArray arguments) {
                 System.out.println("event: " + event + " args: " + arguments.toString());
