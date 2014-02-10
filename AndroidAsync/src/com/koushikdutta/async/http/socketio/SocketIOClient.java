@@ -158,6 +158,10 @@ public class SocketIOClient extends EventEmitter {
         reconnectCallback = callback;
     }
 
+    EventCallback eventCallback;
+    public EventCallback getEventCallback() {return eventCallback;}
+    public void setEventCallback(EventCallback callback){ eventCallback = callback; }
+
     JSONCallback jsonCallback;
     public JSONCallback getJSONCallback() {
         return jsonCallback;
