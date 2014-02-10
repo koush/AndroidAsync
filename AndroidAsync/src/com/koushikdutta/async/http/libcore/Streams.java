@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringWriter;
 
+import com.koushikdutta.async.util.StreamUtility;
+
 /** From libcore.io.Streams */
 class Streams {
     static String readFully(Reader reader) throws IOException {
@@ -16,7 +18,7 @@ class Streams {
             }
             return writer.toString();
         } finally {
-            reader.close();
+            StreamUtility.closeQuietly(reader);
         }
     }
 }

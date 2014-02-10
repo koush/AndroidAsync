@@ -46,6 +46,7 @@ import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 import com.koushikdutta.async.http.libcore.ResponseSource;
 import com.koushikdutta.async.http.libcore.StrictLineReader;
+import com.koushikdutta.async.util.StreamUtility;
 
 public class ResponseCacheMiddleware extends SimpleMiddleware {
     private DiskLruCache cache;
@@ -775,8 +776,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
          * line. A length of -1 is used to encode a null array.
          */
         public Entry(InputStream in) throws IOException {
+            StrictLineReader reader = null;
             try {
-                StrictLineReader reader = new StrictLineReader(in, Charsets.US_ASCII);
+                reader = new StrictLineReader(in, Charsets.US_ASCII);
                 uri = reader.readLine();
                 requestMethod = reader.readLine();
                 varyHeaders = new RawHeaders();
@@ -806,7 +808,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                     localCertificates = null;
 //                }
             } finally {
-                in.close();
+                StreamUtility.closeQuietly(reader, in);
             }
         }
 
