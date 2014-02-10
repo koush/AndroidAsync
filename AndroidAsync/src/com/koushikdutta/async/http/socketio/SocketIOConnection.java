@@ -1,7 +1,6 @@
 package com.koushikdutta.async.http.socketio;
 
 import android.net.Uri;
-import android.os.Handler;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.NullDataCallback;
@@ -11,7 +10,6 @@ import com.koushikdutta.async.future.DependentCancellable;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.WebSocket;
 
 import org.json.JSONArray;
@@ -26,15 +24,13 @@ import java.util.Hashtable;
  * Created by koush on 7/1/13.
  */
 class SocketIOConnection {
-    Handler handler;
     AsyncHttpClient httpClient;
     int heartbeat;
     ArrayList<SocketIOClient> clients = new ArrayList<SocketIOClient>();
     WebSocket webSocket;
     SocketIORequest request;
 
-    public SocketIOConnection(Handler handler, AsyncHttpClient httpClient, SocketIORequest request) {
-        this.handler = handler;
+    public SocketIOConnection(AsyncHttpClient httpClient, SocketIORequest request) {
         this.httpClient = httpClient;
         this.request = request;
     }
@@ -103,9 +99,6 @@ class SocketIOConnection {
         }
 
         request.logi("Reconnecting socket.io");
-
-        // dont invoke onto main handler, as it is unnecessary until a session is ready or failed
-        request.setHandler(null);
 
         Cancellable connecting = httpClient.executeString(request)
         .then(new TransformFuture<WebSocket, String>() {

@@ -1,13 +1,17 @@
 package com.koushikdutta.async.http;
 
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
+
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
-import org.apache.http.*;
+
+import org.apache.http.Header;
+import org.apache.http.HeaderIterator;
+import org.apache.http.HttpRequest;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.RequestLine;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpParams;
 
@@ -126,18 +130,6 @@ public class AsyncHttpRequest {
     
     private RawHeaders mRawHeaders = new RawHeaders();
     private RequestHeaders mHeaders;
-
-    @Deprecated
-    private Handler mHandler = Looper.myLooper() == null ? null : new Handler();
-    @Deprecated
-    public Handler getHandler() {
-        return mHandler;
-    }
-    @Deprecated
-    public AsyncHttpRequest setHandler(Handler handler) {
-        mHandler = handler;
-        return this;
-    }
 
     public RequestHeaders getHeaders() {
         return mHeaders;

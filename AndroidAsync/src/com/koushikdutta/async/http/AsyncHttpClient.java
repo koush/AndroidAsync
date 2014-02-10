@@ -1,7 +1,5 @@
 package com.koushikdutta.async.http;
 
-import android.net.Uri;
-import android.os.Handler;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLException;
@@ -503,17 +501,14 @@ public class AsyncHttpClient {
             callback.onCompleted(e, response, result);
     }
 
-    private <T> void invoke(Handler handler, final RequestCallback<T> callback, final SimpleFuture<T> future, final AsyncHttpResponse response, final Exception e, final T result) {
+    private <T> void invoke(final RequestCallback<T> callback, final SimpleFuture<T> future, final AsyncHttpResponse response, final Exception e, final T result) {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 invokeWithAffinity(callback, future, response, e, result);
             }
         };
-        if (handler == null)
-            mServer.post(runnable);
-        else
-            AsyncServer.post(handler, runnable);
+        mServer.post(runnable);
     }
 
     private void invokeProgress(final RequestCallback callback, final AsyncHttpResponse response, final int downloaded, final int total) {
@@ -546,7 +541,6 @@ public class AsyncHttpClient {
         return executeFile(req, filename, null);
     }
     public Future<File> executeFile(AsyncHttpRequest req, final String filename, final FileCallback callback) {
-        final Handler handler = req.getHandler();
         final File file = new File(filename);
         file.getParentFile().mkdirs();
         final OutputStream fout;
@@ -589,7 +583,7 @@ public class AsyncHttpClient {
                     catch (IOException e) {
                     }
                     file.delete();
-                    invoke(handler, callback, ret, response, ex, null);
+                    invoke(callback, ret, response, ex, null);
                     return;
                 }
                 invokeConnect(callback, response);
@@ -615,10 +609,10 @@ public class AsyncHttpClient {
                         }
                         if (ex != null) {
                             file.delete();
-                            invoke(handler, callback, ret, response, ex, null);
+                            invoke(callback, ret, response, ex, null);
                         }
                         else {
-                            invoke(handler, callback, ret, response, null, file);
+                            invoke(callback, ret, response, null, file);
                         }
                     }
                 });
@@ -630,12 +624,11 @@ public class AsyncHttpClient {
     private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final AsyncParser<T> parser, final RequestCallback<T> callback) {
         final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
         final SimpleFuture<T> ret = new SimpleFuture<T>();
-        final Handler handler = req.getHandler();
         execute(req, 0, cancel, new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
                 if (ex != null) {
-                    invoke(handler, callback, ret, response, ex, null);
+                    invoke(callback, ret, response, ex, null);
                     return;
                 }
                 invokeConnect(callback, response);
@@ -646,7 +639,7 @@ public class AsyncHttpClient {
                 .setCallback(new FutureCallback<T>() {
                     @Override
                     public void onCompleted(Exception e, T result) {
-                        invoke(handler, callback, ret, response, e, result);
+                        invoke(callback, ret, response, e, result);
                     }
                 });
 

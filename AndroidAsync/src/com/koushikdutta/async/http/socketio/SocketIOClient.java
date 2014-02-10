@@ -1,11 +1,9 @@
 package com.koushikdutta.async.http.socketio;
 
 import android.os.Handler;
-import android.os.Looper;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
@@ -89,10 +87,9 @@ public class SocketIOClient extends EventEmitter {
 
     ConnectCallback connectCallback;
     public static Future<SocketIOClient> connect(final AsyncHttpClient client, final SocketIORequest request, final ConnectCallback callback) {
-        final Handler handler = Looper.myLooper() == null ? null : request.getHandler();
         final SimpleFuture<SocketIOClient> ret = new SimpleFuture<SocketIOClient>();
 
-        final SocketIOConnection connection = new SocketIOConnection(handler, client, request);
+        final SocketIOConnection connection = new SocketIOConnection(client, request);
 
         final ConnectCallback wrappedCallback = new ConnectCallback() {
             @Override
