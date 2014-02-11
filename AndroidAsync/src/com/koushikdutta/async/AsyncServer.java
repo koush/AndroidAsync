@@ -12,6 +12,7 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.future.TransformFuture;
+import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -276,9 +277,14 @@ public class AsyncServer {
         run(new Runnable() {
             @Override
             public void run() {
+                ServerSocketChannel closeableServer = null;
+                ServerSocketChannelWrapper closeableWrapper = null;
                 try {
-                    final ServerSocketChannel server = ServerSocketChannel.open();
-                    final ServerSocketChannelWrapper wrapper = new ServerSocketChannelWrapper(server);
+                    closeableServer = ServerSocketChannel.open();
+                    closeableWrapper = new ServerSocketChannelWrapper(
+                            closeableServer);
+                    final ServerSocketChannel server = closeableServer;
+                    final ServerSocketChannelWrapper wrapper = closeableWrapper;
                     InetSocketAddress isa;
                     if (host == null)
                         isa = new InetSocketAddress(port);
@@ -295,11 +301,7 @@ public class AsyncServer {
 
                         @Override
                         public void stop() {
-                            try {
-                                server.close();
-                            }
-                            catch (Exception e) {
-                            }
+                            StreamUtility.closeQuietly(wrapper);
                             try {
                                 key.cancel();
                             }
@@ -309,6 +311,7 @@ public class AsyncServer {
                     });
                 }
                 catch (Exception e) {
+                    StreamUtility.closeQuietly(closeableWrapper, closeableServer);
                     handler.onCompleted(e);
                 }
             }
