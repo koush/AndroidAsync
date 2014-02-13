@@ -710,10 +710,14 @@ public class AsyncServer {
         }
 
         if (needsSelect) {
-            if (wait == QUEUE_EMPTY)
-                wait = 5;
-            // nothing to select immediately but there so let's block and wait.
-            selector.select(wait);
+            if (wait == QUEUE_EMPTY) {
+                // wait until woken up
+                selector.select();
+            }
+            else {
+                // nothing to select immediately but there's something pending so let's block and wait.
+                selector.select(wait);
+            }
         }
 
         // process whatever keys are ready
