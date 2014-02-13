@@ -2,7 +2,6 @@ package com.koushikdutta.async;
 
 import android.os.Build;
 import android.os.Handler;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
@@ -29,14 +27,12 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 public class AsyncServer {
     public static final String LOGTAG = "NIO";
@@ -91,22 +87,9 @@ public class AsyncServer {
         }
     }
     
-    static AsyncServer mInstance = new AsyncServer() {
-        {
-            setAutostart(true);
-        }
-    };
+    static AsyncServer mInstance = new AsyncServer();
     public static AsyncServer getDefault() {
         return mInstance;
-    }
-    
-    private boolean mAutoStart = false;
-    public void setAutostart(boolean autoStart) {
-        mAutoStart = autoStart;
-    }
-    
-    public boolean getAutoStart() {
-        return mAutoStart;
     }
 
     private Selector mSelector;
@@ -712,7 +695,12 @@ public class AsyncServer {
         if (needsSelect) {
             if (wait == QUEUE_EMPTY) {
                 // wait until woken up
-                selector.select();
+//                selector.select();
+
+                // HACK: can not use a infinite select, as there is a race
+                // condition that exists with wakeup being called right before this select
+                // is invoked. How to fix that?
+                selector.select(50);
             }
             else {
                 // nothing to select immediately but there's something pending so let's block and wait.

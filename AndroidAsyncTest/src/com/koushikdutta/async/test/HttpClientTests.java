@@ -37,7 +37,6 @@ public class HttpClientTests extends TestCase {
     
     public HttpClientTests() {
         super();
-        server.setAutostart(true);
         client = new AsyncHttpClient(server);
     }
 
