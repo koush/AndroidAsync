@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class SelectorWrapper {
     private Selector selector;
-    boolean needsWake;
+    boolean isWaking;
     Semaphore semaphore = new Semaphore(0);
     public Selector getSelector() {
         return selector;
@@ -67,11 +67,11 @@ public class SelectorWrapper {
         // now, we NEED to wait for the select to start to forcibly wake it.
         synchronized (this) {
             // check if another thread is already waiting
-            if (needsWake) {
+            if (isWaking) {
 //                System.out.println("race wakeup already progressing");
                 return;
             }
-            needsWake = true;
+            isWaking = true;
         }
 
         try {
@@ -91,7 +91,7 @@ public class SelectorWrapper {
         }
         finally {
             synchronized (this) {
-                needsWake = false;
+                isWaking = false;
             }
         }
     }
