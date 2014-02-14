@@ -7,6 +7,8 @@ import android.util.Log;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.dns.Dns;
+import com.koushikdutta.async.dns.DnsResponse;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
@@ -373,31 +375,39 @@ public class AsyncServer {
 
     private static ExecutorService synchronousWorkers = Executors.newFixedThreadPool(4);
     public Future<InetAddress[]> getAllByName(final String host) {
-        final SimpleFuture<InetAddress[]> ret = new SimpleFuture<InetAddress[]>();
-        synchronousWorkers.execute(new Runnable() {
+        return Dns.lookup(this, host).then(new TransformFuture<InetAddress[], DnsResponse>() {
             @Override
-            public void run() {
-                try {
-                    final InetAddress[] result = InetAddress.getAllByName(host);
-                    if (result == null || result.length == 0)
-                        throw new HostnameResolutionException("no addresses for host");
-                    post(new Runnable() {
-                        @Override
-                        public void run() {
-                            ret.setComplete(null, result);
-                        }
-                    });
-                } catch (final Exception e) {
-                    post(new Runnable() {
-                        @Override
-                        public void run() {
-                            ret.setComplete(e, null);
-                        }
-                    });
-                }
+            protected void transform(DnsResponse result) throws Exception {
+                setComplete(result.addresses.toArray(new InetAddress[result.addresses.size()]));
             }
         });
-        return ret;
+
+
+//        final SimpleFuture<InetAddress[]> ret = new SimpleFuture<InetAddress[]>();
+//        synchronousWorkers.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    final InetAddress[] result = InetAddress.getAllByName(host);
+//                    if (result == null || result.length == 0)
+//                        throw new HostnameResolutionException("no addresses for host");
+//                    post(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            ret.setComplete(null, result);
+//                        }
+//                    });
+//                } catch (final Exception e) {
+//                    post(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            ret.setComplete(e, null);
+//                        }
+//                    });
+//                }
+//            }
+//        });
+//        return ret;
     }
 
     public Future<InetAddress> getByName(String host) {
