@@ -2,6 +2,7 @@ package com.koushikdutta.async;
 
 import android.os.Build;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -92,7 +93,7 @@ public class AsyncServer {
         return mInstance;
     }
 
-    private Selector mSelector;
+    private SelectorWrapper mSelector;
 
     public boolean isRunning() {
         return mSelector != null;
@@ -103,7 +104,7 @@ public class AsyncServer {
 
     private void handleSocket(final AsyncNetworkSocket handler) throws ClosedChannelException {
         final ChannelWrapper sc = handler.getChannel();
-        SelectionKey ckey = sc.register(mSelector);
+        SelectionKey ckey = sc.register(mSelector.getSelector());
         ckey.attach(handler);
         handler.setup(this, ckey);
     }
@@ -114,11 +115,11 @@ public class AsyncServer {
         }
     }
 
-    private static void wakeup(final Selector selector) {
+    private static void wakeup(final SelectorWrapper selector) {
         synchronousWorkers.execute(new Runnable() {
             @Override
             public void run() {
-                selector.wakeup();
+                selector.wakeupOnce();
             }
         });
     }
@@ -214,7 +215,7 @@ public class AsyncServer {
 
     public void stop() {
 //        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
-        final Selector currentSelector;
+        final SelectorWrapper currentSelector;
         final Semaphore semaphore;
         synchronized (this) {
             currentSelector = mSelector;
@@ -233,7 +234,7 @@ public class AsyncServer {
                     semaphore.release();
                 }
             }, 0));
-            currentSelector.wakeup();
+            currentSelector.wakeupOnce();
 
             // force any existing connections to die
             shutdownKeys(currentSelector);
@@ -274,7 +275,7 @@ public class AsyncServer {
                     else
                         isa = new InetSocketAddress(host, port);
                     server.socket().bind(isa);
-                    final SelectionKey key = wrapper.register(mSelector);
+                    final SelectionKey key = wrapper.register(mSelector.getSelector());
                     key.attach(handler);
                     handler.onListening(holder.held = new AsyncServerSocket() {
                         @Override
@@ -334,7 +335,7 @@ public class AsyncServer {
                 try {
                     socket = cancel.socket = SocketChannel.open();
                     socket.configureBlocking(false);
-                    ckey = socket.register(mSelector, SelectionKey.OP_CONNECT);
+                    ckey = socket.register(mSelector.getSelector(), SelectionKey.OP_CONNECT);
                     ckey.attach(cancel);
                     socket.connect(address);
                 }
@@ -506,7 +507,7 @@ public class AsyncServer {
         run(false, false);
     }
     public void run(final boolean keepRunning, boolean newThread) {
-        final Selector selector;
+        final SelectorWrapper selector;
         final PriorityQueue<Scheduled> queue;
         boolean reentrant = false;
         synchronized (this) {
@@ -520,7 +521,7 @@ public class AsyncServer {
             }
             else {
                 try {
-                    selector = mSelector = SelectorProvider.provider().openSelector();
+                    selector = mSelector = new SelectorWrapper(SelectorProvider.provider().openSelector());
                     queue = mQueue;
                 }
                 catch (IOException e) {
@@ -570,7 +571,7 @@ public class AsyncServer {
         run(this, selector, queue, keepRunning);
     }
     
-    private static void run(final AsyncServer server, final Selector selector, final PriorityQueue<Scheduled> queue, final boolean keepRunning) {
+    private static void run(final AsyncServer server, final SelectorWrapper selector, final PriorityQueue<Scheduled> queue, final boolean keepRunning) {
 //        Log.i(LOGTAG, "****AsyncServer is starting.****");
         // at this point, this local queue and selector are owned
         // by this thread.
@@ -608,7 +609,7 @@ public class AsyncServer {
 //        Log.i(LOGTAG, "****AsyncServer has shut down.****");
     }
 
-    private static void shutdownKeys(Selector selector) {
+    private static void shutdownKeys(SelectorWrapper selector) {
         try {
             for (SelectionKey key: selector.keys()) {
                 try {
@@ -627,7 +628,7 @@ public class AsyncServer {
         }
     }
 
-    private static void shutdownEverything(Selector selector) {
+    private static void shutdownEverything(SelectorWrapper selector) {
         shutdownKeys(selector);
         // SHUT. DOWN. EVERYTHING.
         try {
@@ -669,7 +670,7 @@ public class AsyncServer {
         return wait;
     }
 
-    private static void runLoop(final AsyncServer server, final Selector selector, final PriorityQueue<Scheduled> queue, final boolean keepRunning) throws IOException {
+    private static void runLoop(final AsyncServer server, final SelectorWrapper selector, final PriorityQueue<Scheduled> queue, final boolean keepRunning) throws IOException {
 //        Log.i(LOGTAG, "Keys: " + selector.keys().size());
         boolean needsSelect = true;
 
@@ -695,15 +696,10 @@ public class AsyncServer {
         if (needsSelect) {
             if (wait == QUEUE_EMPTY) {
                 // wait until woken up
-//                selector.select();
-
-                // HACK: can not use a infinite select, as there is a race
-                // condition that exists with wakeup being called right before this select
-                // is invoked. How to fix that?
-                selector.select(50);
+                selector.select();
             }
             else {
-                // nothing to select immediately but there's something pending so let's block and wait.
+                // nothing to select immediately but there's something pending so let's block that duration and wait.
                 selector.select(wait);
             }
         }
@@ -718,7 +714,7 @@ public class AsyncServer {
                     if (sc == null)
                         continue;
                     sc.configureBlocking(false);
-                    SelectionKey ckey = sc.register(selector, SelectionKey.OP_READ);
+                    SelectionKey ckey = sc.register(selector.getSelector(), SelectionKey.OP_READ);
                     ListenCallback serverHandler = (ListenCallback) key.attachment();
                     AsyncNetworkSocket handler = new AsyncNetworkSocket();
                     handler.attach(sc, (InetSocketAddress)sc.socket().getRemoteSocketAddress());

@@ -5,17 +5,25 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by koush on 2/13/14.
  */
 public class SelectorWrapper {
     private Selector selector;
-    boolean maybeSelecting;
     boolean needsWake;
+    Semaphore semaphore = new Semaphore(0);
+    public Selector getSelector() {
+        return selector;
+    }
 
     public SelectorWrapper(Selector selector) {
         this.selector = selector;
+    }
+
+    public int selectNow() throws IOException {
+        return selector.selectNow();
     }
 
     public void select() throws IOException {
@@ -24,18 +32,11 @@ public class SelectorWrapper {
 
     public void select(long timeout) throws IOException {
         try {
-            synchronized (this) {
-                maybeSelecting = true;
-                if (needsWake) {
-                    selector.selectNow();
-                    needsWake = false;
-                    return;
-                }
-            }
+            semaphore.drainPermits();
             selector.select(timeout);
         }
         finally {
-            maybeSelecting = false;
+            semaphore.release(Integer.MAX_VALUE);
         }
     }
 
@@ -55,23 +56,43 @@ public class SelectorWrapper {
         return selector.isOpen();
     }
 
-    private boolean wakeupOnceInternal() {
-        // if a selection is not in progress,
-        // that means the current state is such
-        // that the reactor thread may block and select at any moment.
-        // let's note that that we need to do a nonblocking select in this case.
+    public void wakeupOnce() {
+        // see if it is selecting, ie, can't acquire a permit
+        boolean selecting = !semaphore.tryAcquire();
+        selector.wakeup();
+        // if it was selecting, then the wakeup definitely worked.
+        if (selecting)
+            return;
+
+        // now, we NEED to wait for the select to start to forcibly wake it.
         synchronized (this) {
-            if (!maybeSelecting) {
-                needsWake = true;
-                return false;
+            // check if another thread is already waiting
+            if (needsWake) {
+//                System.out.println("race wakeup already progressing");
+                return;
+            }
+            needsWake = true;
+        }
+
+        try {
+//            System.out.println("performing race wakup");
+            // try to wake up 10 times
+            for (int i = 0; i < 100; i++) {
+                try {
+                    if (semaphore.tryAcquire(10, TimeUnit.MILLISECONDS)) {
+//                        System.out.println("race wakeup success");
+                        return;
+                    }
+                }
+                catch (InterruptedException e) {
+                }
+                selector.wakeup();
             }
         }
-        selector.wakeup();
-        return true;
-    }
-
-    public void wakeupOnce() {
-        if (!wakeupOnceInternal())
-            wakeupOnceInternal();
+        finally {
+            synchronized (this) {
+                needsWake = false;
+            }
+        }
     }
 }
