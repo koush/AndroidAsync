@@ -2,7 +2,6 @@ package com.koushikdutta.async;
 
 import android.os.Build;
 import android.os.Handler;
-import android.os.SystemClock;
 import android.util.Log;
 
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -23,7 +22,6 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
