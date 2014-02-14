@@ -50,7 +50,7 @@ public class Util {
         pump(is, Integer.MAX_VALUE, ds, callback);
     }
 
-    public static void pump(final InputStream is, final int max, final DataSink ds, final CompletedCallback callback) {
+    public static void pump(final InputStream is, final long max, final DataSink ds, final CompletedCallback callback) {
         final CompletedCallback wrapper = new CompletedCallback() {
             boolean reported;
             @Override
@@ -88,8 +88,8 @@ public class Util {
                             ByteBufferList.reclaim(pending);
                             pending = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
 
-                            int toRead = Math.min(max - totalRead, pending.capacity());
-                            int read = is.read(pending.array(), 0, toRead);
+                            long toRead = Math.min(max - totalRead, pending.capacity());
+                            int read = is.read(pending.array(), 0, (int)toRead);
                             if (read == -1 || totalRead == max) {
                                 cleanup();
                                 wrapper.onCompleted(null);
