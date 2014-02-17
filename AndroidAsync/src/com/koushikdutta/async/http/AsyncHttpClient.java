@@ -258,7 +258,8 @@ public class AsyncHttpClient {
                                     return;
                                 }
                             }
-                            AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
+                            final String method = request.getMethod().equals(AsyncHttpHead.METHOD) ? AsyncHttpHead.METHOD : AsyncHttpGet.METHOD;
+                            AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, method);
                             newReq.executionTime = request.executionTime;
                             newReq.logLevel = request.logLevel;
                             newReq.LOGTAG = request.LOGTAG;
