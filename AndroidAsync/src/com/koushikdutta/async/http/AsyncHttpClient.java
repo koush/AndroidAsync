@@ -258,7 +258,7 @@ public class AsyncHttpClient {
                                     return;
                                 }
                             }
-                            AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, AsyncHttpGet.METHOD);
+                            AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, request.getMethod());
                             newReq.executionTime = request.executionTime;
                             newReq.logLevel = request.logLevel;
                             newReq.LOGTAG = request.LOGTAG;
