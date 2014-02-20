@@ -5,6 +5,7 @@ import com.koushikdutta.async.http.libcore.RawHeaders;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -79,6 +80,22 @@ public class Multimap extends Hashtable<String, List<String>> implements Iterabl
             String value = null;
             if (pair.length == 2)
                 value = Uri.decode(pair[1]);
+            map.add(name, value);
+        }
+        return map;
+    }
+
+    public static Multimap parseUrlEncoded(String query) {
+        Multimap map = new Multimap();
+        String[] pairs = query.split("&");
+        for (String p : pairs) {
+            String[] pair = p.split("=", 2);
+            if (pair.length == 0)
+                continue;
+            String name = URLDecoder.decode(pair[0]);
+            String value = null;
+            if (pair.length == 2)
+                value = URLDecoder.decode(pair[1]);
             map.add(name, value);
         }
         return map;
