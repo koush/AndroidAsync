@@ -26,7 +26,7 @@ import java.nio.ByteBuffer;
 
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
-    private int mContentLength = -1;
+    private long mContentLength = -1;
     private ResponseHeaders mHeaders = new ResponseHeaders(null, mRawHeaders);
     
     @Override
@@ -210,9 +210,9 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     @Override
-    public void sendStream(InputStream inputStream, int totalLength) {
-        int start = 0;
-        int end = totalLength - 1;
+    public void sendStream(InputStream inputStream, long totalLength) {
+        long start = 0;
+        long end = totalLength - 1;
 
         String range = mRequest.getHeaders().getHeaders().get("Range");
         if (range != null) {
@@ -229,9 +229,9 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 if (parts.length > 2)
                     throw new MalformedRangeException();
                 if (!TextUtils.isEmpty(parts[0]))
-                    start = Integer.parseInt(parts[0]);
+                    start = Long.parseLong(parts[0]);
                 if (parts.length == 2 && !TextUtils.isEmpty(parts[1]))
-                    end = Integer.parseInt(parts[1]);
+                    end = Long.parseLong(parts[1]);
                 else
                     end = totalLength - 1;
 
@@ -248,7 +248,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             if (start != inputStream.skip(start))
                 throw new StreamSkipException("skip failed to skip requested amount");
             mContentLength = end - start + 1;
-            mRawHeaders.set("Content-Length", "" + mContentLength);
+            mRawHeaders.set("Content-Length", String.valueOf(mContentLength));
             mRawHeaders.set("Accept-Ranges", "bytes");
             if (getHeaders().getHeaders().getStatusLine() == null)
                 responseCode(200);
@@ -276,7 +276,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             if (mRawHeaders.get("Content-Type") == null)
                 mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
             FileInputStream fin = new FileInputStream(file);
-            sendStream(fin, (int) file.length());
+            sendStream(fin, file.length());
         }
         catch (Exception e) {
             responseCode(404);

@@ -16,7 +16,7 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void send(String string);
     public void send(JSONObject json);
     public void sendFile(File file);
-    public void sendStream(InputStream inputStream, int totalLength);
+    public void sendStream(InputStream inputStream, long totalLength);
     public void responseCode(int code);
     public ResponseHeaders getHeaders();
     public void writeHead();

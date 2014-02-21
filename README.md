@@ -31,8 +31,7 @@ Download [the latest JAR](http://repository.sonatype.org/service/local/artifact/
 ### Download a url to a String
 
 ```java
-// url is the URL to download. The callback will be invoked on the UI thread
-// once the download is complete.
+// url is the URL to download.
 AsyncHttpClient.getDefaultInstance().getString(url, new AsyncHttpClient.StringCallback() {
     // Callback is invoked with any exceptions/errors, and the result, if available.
     @Override
@@ -50,8 +49,7 @@ AsyncHttpClient.getDefaultInstance().getString(url, new AsyncHttpClient.StringCa
 ### Download JSON from a url
 
 ```java
-// url is the URL to download. The callback will be invoked on the UI thread
-// once the download is complete.
+// url is the URL to download.
 AsyncHttpClient.getDefaultInstance().getJSONObject(url, new AsyncHttpClient.JSONObjectCallback() {
     // Callback is invoked with any exceptions/errors, and the result, if available.
     @Override
@@ -68,8 +66,7 @@ AsyncHttpClient.getDefaultInstance().getJSONObject(url, new AsyncHttpClient.JSON
 Or for JSONArrays...
 
 ```java
-// url is the URL to download. The callback will be invoked on the UI thread
-// once the download is complete.
+// url is the URL to download.
 AsyncHttpClient.getDefaultInstance().getJSONArray(url, new AsyncHttpClient.JSONArrayCallback() {
     // Callback is invoked with any exceptions/errors, and the result, if available.
     @Override
@@ -156,10 +153,10 @@ SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2
                 System.out.println(string);
             }
         });
-        client.on(new EventCallback() {
+        client.on("someEvent", new EventCallback() {
             @Override
-            public void onEvent(String event, JSONArray arguments) {
-                System.out.println("event: " + event + " args: " + arguments.toString());
+            public void onEvent(JSONArray argument, Acknowledge acknowledge) {
+                System.out.println("args: " + arguments.toString());
             }
         });
         client.setJSONCallback(new JSONCallback() {
