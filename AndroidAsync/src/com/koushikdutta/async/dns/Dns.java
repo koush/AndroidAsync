@@ -145,7 +145,7 @@ public class Dns {
                 }
             }
             catch (Exception e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
         }
 
@@ -164,7 +164,7 @@ public class Dns {
                 bb.get(new byte[length]);
             }
             catch (Exception e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
         }
 
@@ -190,7 +190,7 @@ public class Dns {
                 }
             }
             catch (Exception e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
         }
 

@@ -16,7 +16,6 @@ import com.koushikdutta.async.future.TransformFuture;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 
