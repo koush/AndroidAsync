@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http.server;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
@@ -21,6 +22,7 @@ import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
+import com.koushikdutta.async.http.libcore.IoUtils;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.util.StreamUtility;
@@ -325,34 +327,14 @@ public class AsyncHttpServer {
     }
 
     public static android.util.Pair<Integer, InputStream> getAssetStream(final Context context, String asset) {
-        String apkPath = context.getPackageResourcePath();
-        String assetPath = "assets/" + asset;
-        FileInputStream fileInputStream = null;
-        ZipInputStream zipInputStream = null;
+        AssetManager am = context.getAssets();
         try {
-            fileInputStream = new FileInputStream(apkPath);
-            zipInputStream = newZipInputStream(fileInputStream);
-            ZipEntry entry = null;
-            do {
-                entry = zipInputStream.getNextEntry();
-                if (entry.getName().equals(assetPath)) {
-                    // if we don't have #newZipInputStream we need to add
-                    // @SuppressWarnings("resource") on this whole method
-                    // which isn't granular enough.
-                    return new android.util.Pair<Integer, InputStream>(
-                            (int) entry.getSize(), zipInputStream);
-                }
-            } while (entry != null);
-        } catch (Exception ex) {
-            StreamUtility.closeQuietly(zipInputStream, fileInputStream);
+            InputStream is = am.open(asset);
+            return new android.util.Pair<Integer, InputStream>(is.available(), is);
         }
-        return null;
-    }
-
-    // just to stop Eclipse from whining about not closing ZipInputSteam
-    private static ZipInputStream newZipInputStream(InputStream inputStream)
-            throws IOException {
-        return new ZipInputStream(inputStream);
+        catch (IOException e) {
+            return null;
+        }
     }
 
     static Hashtable<String, String> mContentTypes = new Hashtable<String, String>();
@@ -393,7 +375,7 @@ public class AsyncHttpServer {
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 String path = request.getMatcher().replaceAll("");
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
-                InputStream is = pair.second;
+                final InputStream is = pair.second;
                 response.getHeaders().getHeaders().set("Content-Length", String.valueOf(pair.first));
                 if (is == null) {
                     response.responseCode(404);
@@ -406,6 +388,7 @@ public class AsyncHttpServer {
                     @Override
                     public void onCompleted(Exception ex) {
                         response.end();
+                        IoUtils.closeQuietly(is);
                     }
                 });
             }
@@ -415,7 +398,8 @@ public class AsyncHttpServer {
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 String path = request.getMatcher().replaceAll("");
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
-                InputStream is = pair.second;
+                final InputStream is = pair.second;
+                IoUtils.closeQuietly(is);
                 response.getHeaders().getHeaders().set("Content-Length", String.valueOf(pair.first));
                 if (is == null) {
                     response.responseCode(404);
