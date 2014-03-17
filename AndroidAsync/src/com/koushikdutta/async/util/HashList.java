@@ -63,6 +63,15 @@ public class HashList<T> {
         ret.add(value);
     }
 
+    synchronized public T pop(String key) {
+        TaggedList<T> values = internal.get(key);
+        if (values == null)
+            return null;
+        if (values.size() == 0)
+            return null;
+        return values.remove(values.size() - 1);
+    }
+
     synchronized public boolean removeItem(String key, T value) {
         TaggedList<T> values = internal.get(key);
         if (values == null)

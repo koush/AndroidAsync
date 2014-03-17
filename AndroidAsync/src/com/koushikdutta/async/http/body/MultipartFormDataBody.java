@@ -170,7 +170,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         c.add(new ContinuationCallback() {
             @Override
             public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
-                byte[] bytes = (getBoundaryEnd() + "\r\n").getBytes();
+                byte[] bytes = (getBoundaryEnd()).getBytes();
                 com.koushikdutta.async.Util.writeAll(sink, bytes, next);
                 written += bytes.length;
                 
@@ -207,7 +207,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                 return -1;
             length += part.length() + part.getRawHeaders().toHeaderString().getBytes().length + "\r\n".length();
         }
-        length += (getBoundaryEnd() + "\r\n").getBytes().length;
+        length += (getBoundaryEnd()).getBytes().length;
         return totalToWrite = length;
     }
     

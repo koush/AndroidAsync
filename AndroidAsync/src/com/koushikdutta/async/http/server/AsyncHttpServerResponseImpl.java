@@ -167,6 +167,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         mRawHeaders.set("Content-Type", contentType);
     }
 
+    @Override
     public void send(String contentType, final String string) {
         try {
             if (mRawHeaders.getStatusLine() == null)
@@ -201,7 +202,10 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void send(String string) {
         responseCode(200);
-        send("text/html; charset=utf8", string);
+        String contentType = mRawHeaders.get("Content-Type");
+        if (contentType == null)
+            contentType = "text/html; charset=utf8";
+        send(contentType, string);
     }
 
     @Override

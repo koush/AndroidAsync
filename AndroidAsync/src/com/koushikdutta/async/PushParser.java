@@ -240,6 +240,7 @@ public class PushParser {
                     TapCallback callback = mCallback;
                     mCallback = null;
                     Method method = getTap(callback);
+                    method.setAccessible(true);
                     method.invoke(callback, args);
                 }
                 catch (Exception ex) {
@@ -255,11 +256,6 @@ public class PushParser {
         Method found = mTable.get(callback.getClass());
         if (found != null)
             return found;
-        // try the proguard friendly route, take the first/only method
-        // in case "tap" has been renamed
-        Method[] candidates = callback.getClass().getDeclaredMethods();
-        if (candidates.length == 1)
-            return candidates[0];
 
         for (Method method : callback.getClass().getMethods()) {
             if ("tap".equals(method.getName())) {
@@ -267,6 +263,13 @@ public class PushParser {
                 return method;
             }
         }
+
+        // try the proguard friendly route, take the first/only method
+        // in case "tap" has been renamed
+        Method[] candidates = callback.getClass().getDeclaredMethods();
+        if (candidates.length == 1)
+            return candidates[0];
+
         String fail =
         "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
         "    *;\n" +

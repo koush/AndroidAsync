@@ -11,7 +11,7 @@ public abstract class TransformFuture<T, F> extends SimpleFuture<T> implements F
         }
 
         try {
-           transform(result);
+            transform(result);
         }
         catch (Exception ex) {
             error(ex);
