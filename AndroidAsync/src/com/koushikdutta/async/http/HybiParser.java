@@ -309,7 +309,7 @@ abstract class HybiParser {
             frame[1] = (byte) (masked | length);
         } else if (length <= 65535) {
             frame[1] = (byte) (masked | 126);
-            frame[2] = (byte) Math.floor(length / 256);
+            frame[2] = (byte) (length / 256);
             frame[3] = (byte) (length & BYTE);
         } else {
             frame[1] = (byte) (masked | 127);
