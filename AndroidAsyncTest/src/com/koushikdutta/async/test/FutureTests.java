@@ -175,7 +175,7 @@ public class FutureTests extends TestCase {
         
         IntegerFuture i1;
         c.add(i1 = IntegerFuture.create(2, 200));
-        
+
         IntegerFuture i2;
         c.add(i2 = IntegerFuture.create(3, 200));
         

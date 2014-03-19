@@ -370,7 +370,7 @@ public class AsyncHttpClient {
                 }
             }
         }
-        assert false;
+        reportConnectedCompleted(cancel, new IllegalArgumentException("invalid uri"), null, request, callback);
     }
 
     public Future<AsyncHttpResponse> execute(URI uri, final HttpConnectCallback callback) {

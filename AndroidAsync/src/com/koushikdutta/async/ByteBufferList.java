@@ -2,6 +2,7 @@ package com.koushikdutta.async;
 
 import android.os.Looper;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -276,6 +277,22 @@ public class ByteBufferList {
             return;
         }
         addRemaining(b.remaining());
+        // see if we can fit the entirety of the buffer into the end
+        // of the current last buffer
+        if (mBuffers.size() > 0) {
+            ByteBuffer last = mBuffers.getLast();
+            if (last.capacity() - last.limit() >= b.remaining()) {
+                last.mark();
+                last.position(last.limit());
+                last.limit(last.capacity());
+                last.put(b);
+                last.limit(last.position());
+                last.reset();
+                reclaim(b);
+                trim();
+                return;
+            }
+        }
         mBuffers.add(b);
         trim();
     }
@@ -286,6 +303,19 @@ public class ByteBufferList {
             return;
         }
         addRemaining(b.remaining());
+        // see if we can fit the entirety of the buffer into the beginning
+        // of the current first buffer
+        if (mBuffers.size() > 0) {
+            ByteBuffer first = mBuffers.getFirst();
+            if (first.position() >= b.remaining()) {
+                first.position(first.position() - b.remaining());
+                first.mark();
+                first.put(b);
+                first.reset();
+                reclaim(b);
+                return;
+            }
+        }
         mBuffers.addFirst(b);
     }
 

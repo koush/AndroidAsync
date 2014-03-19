@@ -94,7 +94,7 @@ public class Continuation extends SimpleCancellable implements ContinuationCallb
         return this;
     }
    
-    public void add(final DependentFuture future) {
+    public Continuation add(final DependentFuture future) {
         future.setParent(this);
         add(new ContinuationCallback() {
             @Override
@@ -103,6 +103,7 @@ public class Continuation extends SimpleCancellable implements ContinuationCallb
                 next.onCompleted(null);
             }
         });
+        return this;
     }
     
     private boolean inNext;
