@@ -224,7 +224,11 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                             mClient.getServer().connectSocket(new InetSocketAddress(address, port), wrapCallback(new ConnectCallback() {
                                 @Override
                                 public void onConnectCompleted(Exception ex, AsyncSocket socket) {
-                                    assert !isDone();
+                                    if (isDone()) {
+                                        lastException = new Exception("internal error during connect");
+                                        next.onCompleted(null);
+                                        return;
+                                    }
 
                                     // try the next address
                                     if (ex != null) {

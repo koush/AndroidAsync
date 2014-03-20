@@ -32,6 +32,8 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
         StringBuilder b = new StringBuilder();
         try {
             for (NameValuePair pair: mParameters) {
+                if (pair.getValue() == null)
+                    continue;
                 if (!first)
                     b.append('&');
                 first = false;
