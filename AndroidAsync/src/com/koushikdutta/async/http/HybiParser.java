@@ -275,33 +275,49 @@ abstract class HybiParser {
     }
 
     public byte[] frame(String data) {
-        return frame(data, OP_TEXT, -1);
+        return frame(OP_TEXT, data, -1);
     }
 
     public byte[] frame(byte[] data) {
-        return frame(data, OP_BINARY, -1);
+        return frame(OP_BINARY, data, -1);
     }
     
-    public byte[] frame(byte[] data, int offset, long length) {
-    	return frame(data, OP_BINARY, -1, offset, (int) length);
+    public byte[] frame(byte[] data, int offset, int length) {
+    	return frame(OP_BINARY, data, -1, offset, length);
     }
 
-    private byte[] frame(byte[] data, int opcode, int errorCode)  {
-        return frame(data, opcode, errorCode, 0, data.length);
+    /**
+     * Flip the opcode so to avoid the name collision with the public method
+     * 
+     * @param opcode
+     * @param data
+     * @param errorCode
+     * @return
+     */
+    private byte[] frame(int opcode, byte[] data, int errorCode)  {
+        return frame(opcode, data, errorCode, 0, data.length);
     }
 
-    private byte[] frame(String data, int opcode, int errorCode) {
-        return frame(decode(data), opcode, errorCode);
+    /**
+     * Don't actually need the flipped method signature, trying to keep it in line with the byte[] version
+     * 
+     * @param opcode
+     * @param data
+     * @param errorCode
+     * @return
+     */
+    private byte[] frame(int opcode, String data, int errorCode) {
+        return frame(opcode, decode(data), errorCode);
     }
     
-    private byte[] frame(byte [] data, int opcode, int errorCode, int buffOffset, int bufLen) {
+    private byte[] frame(int opcode, byte [] data, int errorCode, int dataOffset, int dataLength) {
         if (mClosed) return null;
 
 //        Log.d(TAG, "Creating frame for: " + data + " op: " + opcode + " err: " + errorCode);
 
         byte[] buffer = data;
         int insert = (errorCode > 0) ? 2 : 0;
-        int length = bufLen + insert - buffOffset;
+        int length = dataLength + insert - dataOffset;
         int header = (length <= 125) ? 2 : (length <= 65535 ? 4 : 10);
         int offset = header + (mMasking ? 4 : 0);
         int masked = mMasking ? MASK : 0;
@@ -331,8 +347,8 @@ abstract class HybiParser {
             frame[offset] = (byte) (((int) Math.floor(errorCode / 256)) & BYTE);
             frame[offset+1] = (byte) (errorCode & BYTE);
         }
-        int len = buffer.length;
-        System.arraycopy(buffer, buffOffset, frame, offset + insert, bufLen - buffOffset);
+        
+        System.arraycopy(buffer, dataOffset, frame, offset + insert, dataLength - dataOffset);
 
         if (mMasking) {
             byte[] mask = {
@@ -352,7 +368,7 @@ abstract class HybiParser {
 
     public void close(int code, String reason) {
         if (mClosed) return;
-        sendFrame(frame(reason, OP_CLOSE, code));
+        sendFrame(frame(OP_CLOSE, reason, code));
         mClosed = true;
     }
 
@@ -408,7 +424,7 @@ abstract class HybiParser {
         } else if (opcode == OP_PING) {
             if (payload.length > 125) { throw new ProtocolError("Ping payload too large"); }
 //            Log.d(TAG, "Sending pong!!");
-            sendFrame(frame(payload, OP_PONG, -1));
+            sendFrame(frame(OP_PONG, payload, -1));
 
         } else if (opcode == OP_PONG) {
             String message = encode(payload);
