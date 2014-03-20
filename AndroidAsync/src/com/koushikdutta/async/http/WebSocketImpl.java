@@ -216,6 +216,11 @@ public class WebSocketImpl implements WebSocket {
     public void send(byte[] bytes) {
         mSink.write(ByteBuffer.wrap(mParser.frame(bytes)));
     }
+    
+    @Override
+    public void send(byte[] bytes, int offset, int len) {
+    	mSink.write(ByteBuffer.wrap(mParser.frame(bytes, offset, len)));
+    }
 
     @Override
     public void send(String string) {

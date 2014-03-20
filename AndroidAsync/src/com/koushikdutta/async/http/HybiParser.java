@@ -281,23 +281,27 @@ abstract class HybiParser {
     public byte[] frame(byte[] data) {
         return frame(data, OP_BINARY, -1);
     }
+    
+    public byte[] frame(byte[] data, int offset, long length) {
+    	return frame(data, OP_BINARY, -1, offset, (int) length);
+    }
 
     private byte[] frame(byte[] data, int opcode, int errorCode)  {
-        return frame((Object)data, opcode, errorCode);
+        return frame(data, opcode, errorCode, 0, data.length);
     }
 
     private byte[] frame(String data, int opcode, int errorCode) {
-        return frame((Object)data, opcode, errorCode);
+        return frame(decode(data), opcode, errorCode);
     }
-
-    private byte[] frame(Object data, int opcode, int errorCode) {
+    
+    private byte[] frame(byte [] data, int opcode, int errorCode, int buffOffset, int bufLen) {
         if (mClosed) return null;
 
 //        Log.d(TAG, "Creating frame for: " + data + " op: " + opcode + " err: " + errorCode);
 
-        byte[] buffer = (data instanceof String) ? decode((String) data) : (byte[]) data;
+        byte[] buffer = data;
         int insert = (errorCode > 0) ? 2 : 0;
-        int length = buffer.length + insert;
+        int length = bufLen + insert - buffOffset;
         int header = (length <= 125) ? 2 : (length <= 65535 ? 4 : 10);
         int offset = header + (mMasking ? 4 : 0);
         int masked = mMasking ? MASK : 0;
@@ -327,7 +331,8 @@ abstract class HybiParser {
             frame[offset] = (byte) (((int) Math.floor(errorCode / 256)) & BYTE);
             frame[offset+1] = (byte) (errorCode & BYTE);
         }
-        System.arraycopy(buffer, 0, frame, offset + insert, buffer.length);
+        int len = buffer.length;
+        System.arraycopy(buffer, buffOffset, frame, offset + insert, bufLen - buffOffset);
 
         if (mMasking) {
             byte[] mask = {
