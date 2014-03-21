@@ -1,10 +1,6 @@
 package com.koushikdutta.async.http;
 
-import com.koushikdutta.async.ArrayDeque;
-import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
@@ -16,10 +12,13 @@ import com.koushikdutta.async.future.TransformFuture;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
+
     String scheme;
     int port;
     public AsyncSocketMiddleware(AsyncHttpClient client, String scheme, int port) {
@@ -45,6 +44,22 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
     AsyncHttpClient mClient;
     private Hashtable<String, HashSet<AsyncSocket>> mSockets = new Hashtable<String, HashSet<AsyncSocket>>();
+
+    public static interface AsyncSocketMiddlewareConnectionObserver {
+        public abstract void connectionUpdated(String scheme, String host, int port, int numberOfOpenConnections);
+    };
+    private List<AsyncSocketMiddlewareConnectionObserver> observers = new ArrayList<AsyncSocketMiddlewareConnectionObserver>();
+    public void addObserver(AsyncSocketMiddlewareConnectionObserver observer) {
+       observers.add(observer);
+    }
+    public void removeObserver(AsyncSocketMiddlewareConnectionObserver observer) {
+        observers.remove(observer);
+    }
+    private void updateObservers(String schedule, String host, int port, int numberOfOpenConnections) {
+        for ( AsyncSocketMiddlewareConnectionObserver observer : observers ) {
+            observer.connectionUpdated(scheme, host, port, numberOfOpenConnections);
+        }
+    }
 
     protected ConnectCallback wrapCallback(ConnectCallback callback, URI uri, int port) {
         return callback;
@@ -143,6 +158,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         }
 
         info.openCount++;
+        updateObservers(uri.getScheme(), uri.getHost(), port, info.openCount);
 
         final String lookup = computeLookup(uri, port, data.request);
         
@@ -315,6 +331,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         final int port = getSchemePort(uri);
         ConnectionInfo info = getConnectionInfo(uri.getScheme(), uri.getHost(), port);
         --info.openCount;
+        updateObservers(uri.getScheme(), uri.getHost(), port, info.openCount);
         while (info.openCount < maxConnectionCount && info.queue.size() > 0) {
             GetSocketData gsd = info.queue.remove();
             SimpleCancellable socketCancellable = (SimpleCancellable)gsd.socketCancellable;
