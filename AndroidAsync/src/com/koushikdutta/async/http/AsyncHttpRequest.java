@@ -40,7 +40,7 @@ public class AsyncHttpRequest {
             @Override
             public String toString() {
                 String path = AsyncHttpRequest.this.getUri().getRawPath();
-                if (path.length() == 0)
+                if (path == null || path.length() == 0)
                     path = "/";
                 String query = AsyncHttpRequest.this.getUri().getRawQuery();
                 if (query != null && query.length() != 0) {
