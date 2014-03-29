@@ -22,12 +22,10 @@ public class ByteUtilTests extends TestCase {
                 return false;
             }
         };
-        PushParser p = new PushParser(mock);
-        p
+        new PushParser(mock)
             .until((byte)0, new NullDataCallback())
-            .readInt()
-            .tap(new TapCallback() {
-                public void tap(int arg) {
+            .readInt(new TapCallback<Integer>() {
+                public void tap(Integer arg) {
                     valRead = arg;
                 }
             });
