@@ -5,7 +5,7 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
 
 public class ContentLengthFilter extends FilteredDataEmitter {
-    public ContentLengthFilter(int contentLength) {
+    public ContentLengthFilter(long contentLength) {
         this.contentLength = contentLength;
     }
 
@@ -16,17 +16,17 @@ public class ContentLengthFilter extends FilteredDataEmitter {
         super.report(e);
     }
 
-    int contentLength;
-    int totalRead;
+    long contentLength;
+    long totalRead;
     ByteBufferList transformed = new ByteBufferList();
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         assert totalRead < contentLength;
 
         int remaining = bb.remaining();
-        int toRead = Math.min(contentLength - totalRead, remaining);
+        long toRead = Math.min(contentLength - totalRead, remaining);
 
-        bb.get(transformed, toRead);
+        bb.get(transformed, (int)toRead);
 
         int beforeRead = transformed.remaining();
 

@@ -62,14 +62,14 @@ public class HttpUtil {
     }
     
     public static DataEmitter getBodyDecoder(DataEmitter emitter, RawHeaders headers, boolean server) {
-        int _contentLength;
+        long _contentLength;
         try {
-            _contentLength = Integer.parseInt(headers.get("Content-Length"));
+            _contentLength = Long.parseLong(headers.get("Content-Length"));
         }
         catch (Exception ex) {
             _contentLength = -1;
         }
-        final int contentLength = _contentLength;
+        final long contentLength = _contentLength;
         if (-1 != contentLength) {
             if (contentLength < 0) {
                 EndEmitter ender = EndEmitter.create(emitter.getServer(), new BodyDecoderException("not using chunked encoding, and no content-length found."));
