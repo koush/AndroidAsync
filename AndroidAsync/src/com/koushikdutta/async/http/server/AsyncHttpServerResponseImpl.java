@@ -95,7 +95,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         if (mContentLength < 0) {
             String contentLength = mRawHeaders.get("Content-Length");
             if (!TextUtils.isEmpty(contentLength))
-                mContentLength = Integer.valueOf(contentLength);
+                mContentLength = Long.valueOf(contentLength);
         }
         if (mContentLength < 0 && canUseChunked) {
             mRawHeaders.set("Transfer-Encoding", "Chunked");
