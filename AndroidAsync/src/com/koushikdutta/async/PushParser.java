@@ -3,7 +3,6 @@ package com.koushikdutta.async;
 import android.util.Log;
 import com.koushikdutta.async.callback.DataCallback;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -119,13 +118,6 @@ public class PushParser implements DataCallback {
         }
     }
 
-    private class TapArgCallback<T> implements ParseCallback<T> {
-        @Override
-        public void parsed(T data) {
-            args.add(data);
-        }
-    }
-
     private class TapWaiter extends Waiter {
         private final TapCallback callback;
 
@@ -148,11 +140,57 @@ public class PushParser implements DataCallback {
         }
     }
 
-    private Waiter noopWaiter = new Waiter(0) {
+    private Waiter noopArgWaiter = new Waiter(0) {
         @Override
         public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
             args.add(null);
             return null;
+        }
+    };
+
+    private Waiter byteArgWaiter = new Waiter(1) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(bb.get());
+            return null;
+        }
+    };
+
+    private Waiter shortArgWaiter = new Waiter(2) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(bb.getShort());
+            return null;
+        }
+    };
+
+    private Waiter intArgWaiter = new Waiter(4) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(bb.getInt());
+            return null;
+        }
+    };
+
+    private Waiter longArgWaiter = new Waiter(8) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(bb.getLong());
+            return null;
+        }
+    };
+
+    private ParseCallback<byte[]> byteArrayArgCallback = new ParseCallback<byte[]>() {
+        @Override
+        public void parsed(byte[] data) {
+            args.add(data);
+        }
+    };
+
+    private ParseCallback<byte[]> stringArgCallback = new ParseCallback<byte[]>() {
+        @Override
+        public void parsed(byte[] data) {
+            args.add(new String(data));
         }
     };
 
@@ -182,70 +220,41 @@ public class PushParser implements DataCallback {
     }
 
     public PushParser readByte() {
-        mWaiting.add(new Waiter(1) {
-            @Override
-            public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                args.add(bb.get());
-                return null;
-            }
-        });
+        mWaiting.add(byteArgWaiter);
         return this;
     }
 
     public PushParser readShort() {
-        mWaiting.add(new Waiter(2) {
-            @Override
-            public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                args.add(bb.getShort());
-                return null;
-            }
-        });
+        mWaiting.add(shortArgWaiter);
         return this;
     }
 
     public PushParser readInt() {
-        mWaiting.add(new Waiter(4) {
-            @Override
-            public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                args.add(bb.getInt());
-                return null;
-            }
-        });
+        mWaiting.add(intArgWaiter);
         return this;
     }
 
     public PushParser readLong() {
-        mWaiting.add(new Waiter(8) {
-            @Override
-            public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                args.add(bb.getLong());
-                return null;
-            }
-        });
+        mWaiting.add(longArgWaiter);
         return this;
     }
 
     public PushParser readBuffer(int length) {
-        return (length == -1) ? readLenBuffer() : readBuffer(length, new TapArgCallback<byte[]>());
+        return (length == -1) ? readLenBuffer() : readBuffer(length, byteArrayArgCallback);
     }
 
     public PushParser readLenBuffer() {
-        mWaiting.add(new LenBufferWaiter(new TapArgCallback<byte[]>()));
+        mWaiting.add(new LenBufferWaiter(byteArrayArgCallback));
         return this;
     }
 
     public PushParser readString() {
-        mWaiting.add(new LenBufferWaiter(new ParseCallback<byte[]>() {
-            @Override
-            public void parsed(byte[] data) {
-                args.add(new String(data));
-            }
-        }));
+        mWaiting.add(new LenBufferWaiter(stringArgCallback));
         return this;
     }
 
     public PushParser noop() {
-        mWaiting.add(noopWaiter);
+        mWaiting.add(noopArgWaiter);
         return this;
     }
 
@@ -283,9 +292,9 @@ public class PushParser implements DataCallback {
             return candidates[0];
 
         String fail =
-                "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
-                        "    *;\n" +
-                        "}\n";
+            "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
+                    "    *;\n" +
+                    "}\n";
 
         //null != "AndroidAsync: tap callback could not be found. Proguard? Use this in your proguard config:\n" + fail;
         assert false;
