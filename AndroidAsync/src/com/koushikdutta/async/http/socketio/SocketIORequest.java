@@ -6,6 +6,12 @@ import android.text.TextUtils;
 import com.koushikdutta.async.http.AsyncHttpPost;
 
 public class SocketIORequest extends AsyncHttpPost {
+    static String socketIOContext = "/socket.io/1/";
+    
+    public String getSocketIOContext() {
+        return socketIOContext;
+    }
+    
     public SocketIORequest(String uri) {
         this(uri, "");
     }
@@ -25,8 +31,14 @@ public class SocketIORequest extends AsyncHttpPost {
     }
 
     public SocketIORequest(String uri, String endpoint, String query) {
-        super(Uri.parse(uri + (query == null ? "" : "?" + query)).buildUpon().encodedPath("/socket.io/1/").build().toString());
+        this(uri,endpoint,query,null);
+    }
+    
+    public SocketIORequest(String uri, String endpoint, String query,String context) {
+        super(Uri.parse(uri + (query == null ? "" : "?" + query)).buildUpon().encodedPath(TextUtils.isEmpty(context) ? socketIOContext
+                : context).build().toString());
         this.endpoint = endpoint;
         this.query = query;
+        SocketIORequest.socketIOContext = context;
     }
 }
