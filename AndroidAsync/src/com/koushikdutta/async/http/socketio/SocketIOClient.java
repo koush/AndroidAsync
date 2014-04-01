@@ -7,7 +7,7 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.WebSocket;
+import com.koushikdutta.async.http.socketio.transport.SocketIOTransport;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -199,7 +199,7 @@ public class SocketIOClient extends EventEmitter {
         connection.reconnect(null);
     }
 
-    public WebSocket getWebSocket() {
-        return connection.webSocket;
+    public SocketIOTransport getTransport() {
+        return connection.transport;
     }
 }
