@@ -173,7 +173,7 @@ public class SocketIOTests extends TestCase {
                             @Override
                             public void run() {
                                 // this will trigger a reconnect
-                                client.getWebSocket().close();
+                                client.getTransport().disconnect();
                             }
                         }, 200);
                     }
