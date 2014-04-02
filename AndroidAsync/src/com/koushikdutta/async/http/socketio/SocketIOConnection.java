@@ -140,7 +140,7 @@ class SocketIOConnection {
                     final String sessionUrl = Uri.parse(request.getUri().toString()).buildUpon()
                             .appendPath("xhr-polling").appendPath(session)
                             .build().toString();
-                    XHRPollingTransport xhrPolling = new XHRPollingTransport(sessionUrl);
+                    XHRPollingTransport xhrPolling = new XHRPollingTransport(httpClient, sessionUrl);
                     transport.setComplete(xhrPolling);
                 } else {
                     throw new SocketIOException("transport not supported");

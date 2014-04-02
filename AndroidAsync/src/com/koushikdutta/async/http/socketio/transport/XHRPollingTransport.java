@@ -14,58 +14,58 @@ import com.koushikdutta.async.http.body.StringBody;
 
 public class XHRPollingTransport implements SocketIOTransport {
     private AsyncHttpClient client;
-    private Builder sessionUrl;
+    private Uri sessionUrl;
     private StringCallback stringCallback;
     private CompletedCallback closedCallback;
     private boolean connected;
 
     private static final String SEPARATOR = "\ufffd";
 
-    public XHRPollingTransport(String sessionUrl) {
-        this.client = AsyncHttpClient.getDefaultInstance();
-        this.sessionUrl = Uri.parse(sessionUrl).buildUpon();
+    public XHRPollingTransport(AsyncHttpClient client, String sessionUrl) {
+        this.client = client;
+        this.sessionUrl = Uri.parse(sessionUrl);
 
-        this.doLongPolling();
-        this.connected = true;
+        doLongPolling();
+        connected = true;
     }
 
     @Override
     public boolean isConnected() {
-        return this.connected;
+        return connected;
     }
 
     @Override
     public void setClosedCallback(CompletedCallback handler) {
-        this.closedCallback = handler;
+        closedCallback = handler;
     }
 
     @Override
     public void disconnect() {
-        this.connected = false;
-        this.close(null);
+        connected = false;
+        close(null);
     }
 
     private void close(Exception ex) {
-        if (this.closedCallback != null)
-            this.closedCallback.onCompleted(ex);
+        if (closedCallback != null)
+            closedCallback.onCompleted(ex);
     }
 
     @Override
     public AsyncServer getServer() {
-        return this.client.getServer();
+        return client.getServer();
     }
 
     @Override
     public void send(String message) {
         if (message.startsWith("5")) {
-            this.postMessage(message);
+            postMessage(message);
             return;
         }
 
-        AsyncHttpRequest request = new AsyncHttpGet(this.computedRequestUrl());
+        AsyncHttpRequest request = new AsyncHttpPost(computedRequestUrl());
         request.setBody(new StringBody(message));
 
-        this.client.executeString(request, new AsyncHttpClient.StringCallback() {
+        client.executeString(request, new AsyncHttpClient.StringCallback() {
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
                 if (e != null) {
@@ -82,13 +82,13 @@ public class XHRPollingTransport implements SocketIOTransport {
         if (!message.startsWith("5"))
             return;
 
-        AsyncHttpRequest request = new AsyncHttpPost(this.computedRequestUrl());
+        AsyncHttpRequest request = new AsyncHttpPost(computedRequestUrl());
         request.setBody(new StringBody(message));
-        this.client.executeString(request);
+        client.executeString(request);
     }
 
     private void doLongPolling() {
-        this.client.getString(this.computedRequestUrl(), new AsyncHttpClient.StringCallback() {
+        this.client.getString(computedRequestUrl(), new AsyncHttpClient.StringCallback() {
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
                 if (e != null) {
@@ -107,13 +107,13 @@ public class XHRPollingTransport implements SocketIOTransport {
             return;
 
         if (!result.contains(SEPARATOR)) {
-            this.stringCallback.onStringAvailable(result);
+            stringCallback.onStringAvailable(result);
             return;
         }
 
         String [] results = result.split(SEPARATOR);
         for (int i = 1; i < results.length; i = i + 2) {
-            this.stringCallback.onStringAvailable(results[i+1]);
+            stringCallback.onStringAvailable(results[i+1]);
         }
     }
 
@@ -122,13 +122,13 @@ public class XHRPollingTransport implements SocketIOTransport {
      */
     private String computedRequestUrl() {
         String currentTime = String.valueOf(System.currentTimeMillis());
-        return this.sessionUrl.appendQueryParameter("t", currentTime)
+        return sessionUrl.buildUpon().appendQueryParameter("t", currentTime)
                 .build().toString();
     }
 
     @Override
     public void setStringCallback(StringCallback callback) {
-        this.stringCallback = callback;
+        stringCallback = callback;
     }
 
     @Override
