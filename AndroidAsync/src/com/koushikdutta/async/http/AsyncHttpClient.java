@@ -405,87 +405,18 @@ public class AsyncHttpClient {
     public static abstract class FileCallback extends RequestCallbackBase<File> {
     }
 
-    @Deprecated
-    public Future<ByteBufferList> get(String uri, DownloadCallback callback) {
-        return getByteBufferList(uri, callback);
-    }
-
-    public Future<ByteBufferList> getByteBufferList(String uri) {
-        return getByteBufferList(uri, null);
-    }
-    public Future<ByteBufferList> getByteBufferList(String uri, DownloadCallback callback) {
-        return executeByteBufferList(new AsyncHttpGet(uri), callback);
-    }
-
     public Future<ByteBufferList> executeByteBufferList(AsyncHttpRequest request, DownloadCallback callback) {
         return execute(request, new ByteBufferListParser(), callback);
     }
 
-    @Deprecated
-    public Future<String> get(String uri, final StringCallback callback) {
-        return executeString(new AsyncHttpGet(uri), callback);
-    }
-    @Deprecated
-    public Future<String> execute(AsyncHttpRequest req, final StringCallback callback) {
-        return executeString(req, callback);
-    }
-
-    public Future<String> getString(String uri) {
-        return executeString(new AsyncHttpGet(uri), null);
-    }
-    public Future<String> getString(String uri, final StringCallback callback) {
-        return executeString(new AsyncHttpGet(uri), callback);
-    }
-
-    public Future<String> executeString(AsyncHttpRequest req) {
-        return executeString(req, null);
-    }
     public Future<String> executeString(AsyncHttpRequest req, final StringCallback callback) {
         return execute(req, new StringParser(), callback);
     }
 
-    @Deprecated
-    public Future<JSONObject> get(String uri, final JSONObjectCallback callback) {
-        return executeJSONObject(new AsyncHttpGet(uri), callback);
-    }
-    @Deprecated
-    public Future<JSONObject> execute(AsyncHttpRequest req, final JSONObjectCallback callback) {
-        return executeJSONObject(req, callback);
-    }
-
-    public Future<JSONObject> getJSONObject(String uri) {
-        return getJSONObject(uri, null);
-    }
-    public Future<JSONObject> getJSONObject(String uri, final JSONObjectCallback callback) {
-        return executeJSONObject(new AsyncHttpGet(uri), callback);
-    }
-
-    public Future<JSONObject> executeJSONObject(AsyncHttpRequest req) {
-        return executeJSONObject(req, null);
-    }
     public Future<JSONObject> executeJSONObject(AsyncHttpRequest req, final JSONObjectCallback callback) {
         return execute(req, new JSONObjectParser(), callback);
     }
 
-    @Deprecated
-    public Future<JSONArray> get(String uri, final JSONArrayCallback callback) {
-        return executeJSONArray(new AsyncHttpGet(uri), callback);
-    }
-    @Deprecated
-    public Future<JSONArray> execute(AsyncHttpRequest req, final JSONArrayCallback callback) {
-        return executeJSONArray(req, callback);
-    }
-
-    public Future<JSONArray> getJSONArray(String uri) {
-        return getJSONArray(uri, null);
-    }
-    public Future<JSONArray> getJSONArray(String uri, final JSONArrayCallback callback) {
-        return executeJSONArray(new AsyncHttpGet(uri), callback);
-    }
-
-    public Future<JSONArray> executeJSONArray(AsyncHttpRequest req) {
-        return executeJSONArray(req, null);
-    }
     public Future<JSONArray> executeJSONArray(AsyncHttpRequest req, final JSONArrayCallback callback) {
         return execute(req, new JSONArrayParser(), callback);
     }
@@ -522,25 +453,6 @@ public class AsyncHttpClient {
             callback.onConnect(response);
     }
 
-    @Deprecated
-    public Future<File> get(String uri, final String filename, final FileCallback callback) {
-        return executeFile(new AsyncHttpGet(uri), filename, callback);
-    }
-    @Deprecated
-    public Future<File> execute(AsyncHttpRequest req, final String filename, final FileCallback callback) {
-        return executeFile(req, filename, callback);
-    }
-
-    public Future<File> getFile(String uri, final String filename) {
-        return getFile(uri, filename, null);
-    }
-    public Future<File> getFile(String uri, final String filename, final FileCallback callback) {
-        return executeFile(new AsyncHttpGet(uri), filename, callback);
-    }
-
-    public Future<File> executeFile(AsyncHttpRequest req, final String filename) {
-        return executeFile(req, filename, null);
-    }
     public Future<File> executeFile(AsyncHttpRequest req, final String filename, final FileCallback callback) {
         final File file = new File(filename);
         file.getParentFile().mkdirs();

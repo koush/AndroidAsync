@@ -84,11 +84,11 @@ public class XHRPollingTransport implements SocketIOTransport {
 
         AsyncHttpRequest request = new AsyncHttpPost(computedRequestUrl());
         request.setBody(new StringBody(message));
-        client.executeString(request);
+        client.executeString(request, null);
     }
 
     private void doLongPolling() {
-        this.client.getString(computedRequestUrl(), new AsyncHttpClient.StringCallback() {
+        this.client.executeString(new AsyncHttpGet(computedRequestUrl()), new AsyncHttpClient.StringCallback() {
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
                 if (e != null) {
