@@ -43,9 +43,9 @@ public class PushParser implements DataCallback {
         }
     }
 
-    static class BufferWaiter extends Waiter {
+    static class ByteArrayWaiter extends Waiter {
         ParseCallback<byte[]> callback;
-        public BufferWaiter(int length, ParseCallback<byte[]> callback) {
+        public ByteArrayWaiter(int length, ParseCallback<byte[]> callback) {
             super(length);
             if (length <= 0) throw new IllegalArgumentException("length should be > 0");
             this.callback = callback;
@@ -60,10 +60,10 @@ public class PushParser implements DataCallback {
         }
     }
 
-    static class LenBufferWaiter extends Waiter {
+    static class LenByteArrayWaiter extends Waiter {
         private final ParseCallback<byte[]> callback;
 
-        public LenBufferWaiter(ParseCallback<byte[]> callback) {
+        public LenByteArrayWaiter(ParseCallback<byte[]> callback) {
             super(4);
             this.callback = callback;
         }
@@ -71,7 +71,7 @@ public class PushParser implements DataCallback {
         @Override
         public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
             int length = bb.getInt();
-            return new BufferWaiter(length, callback);
+            return new ByteArrayWaiter(length, callback);
         }
     }
 
@@ -210,7 +210,7 @@ public class PushParser implements DataCallback {
     }
 
     public PushParser readBuffer(int length, ParseCallback<byte[]> callback) {
-        mWaiting.add(new BufferWaiter(length, callback));
+        mWaiting.add(new ByteArrayWaiter(length, callback));
         return this;
     }
 
@@ -239,17 +239,17 @@ public class PushParser implements DataCallback {
         return this;
     }
 
-    public PushParser readBuffer(int length) {
-        return (length == -1) ? readLenBuffer() : readBuffer(length, byteArrayArgCallback);
+    public PushParser readByteArray(int length) {
+        return (length == -1) ? readLenByteArray() : readBuffer(length, byteArrayArgCallback);
     }
 
-    public PushParser readLenBuffer() {
-        mWaiting.add(new LenBufferWaiter(byteArrayArgCallback));
+    public PushParser readLenByteArray() {
+        mWaiting.add(new LenByteArrayWaiter(byteArrayArgCallback));
         return this;
     }
 
     public PushParser readString() {
-        mWaiting.add(new LenBufferWaiter(stringArgCallback));
+        mWaiting.add(new LenByteArrayWaiter(stringArgCallback));
         return this;
     }
 
