@@ -39,9 +39,10 @@ public class GZIPInputFilter extends InflaterInputFilter {
     public void onDataAvailable(final DataEmitter emitter, ByteBufferList bb) {
         if (mNeedsHeader) {
             final PushParser parser = new PushParser(emitter);
-            parser.readBuffer(10, new ParseCallback<byte[]>() {
+            parser.readByteArray(10, new ParseCallback<byte[]>() {
                 int flags;
                 boolean hcrc;
+
                 public void parsed(byte[] header) {
                     short magic = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
                     if (magic != (short) GZIPInputStream.GZIP_MAGIC) {
@@ -55,13 +56,13 @@ public class GZIPInputFilter extends InflaterInputFilter {
                         crc.update(header, 0, header.length);
                     }
                     if ((flags & FEXTRA) != 0) {
-                        parser.readBuffer(2, new ParseCallback<byte[]>() {
+                        parser.readByteArray(2, new ParseCallback<byte[]>() {
                             public void parsed(byte[] header) {
                                 if (hcrc) {
                                     crc.update(header, 0, 2);
                                 }
                                 int length = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN) & 0xffff;
-                                parser.readBuffer(length, new ParseCallback<byte[]>() {
+                                parser.readByteArray(length, new ParseCallback<byte[]>() {
                                     public void parsed(byte[] buf) {
                                         if (hcrc) {
                                             crc.update(buf, 0, buf.length);
@@ -75,6 +76,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
                         next();
                     }
                 }
+
                 private void next() {
                     PushParser parser = new PushParser(emitter);
                     DataCallback summer = new DataCallback() {
@@ -90,13 +92,13 @@ public class GZIPInputFilter extends InflaterInputFilter {
                         }
                     };
                     if ((flags & FNAME) != 0) {
-                        parser.until((byte)0, summer);
+                        parser.until((byte) 0, summer);
                     }
                     if ((flags & FCOMMENT) != 0) {
-                        parser.until((byte)0, summer);
+                        parser.until((byte) 0, summer);
                     }
                     if (hcrc) {
-                        parser.readBuffer(2, new ParseCallback<byte[]>() {
+                        parser.readByteArray(2, new ParseCallback<byte[]>() {
                             public void parsed(byte[] header) {
                                 short crc16 = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
                                 if ((short) crc.getValue() != crc16) {
@@ -109,8 +111,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
 //                            emitter.setDataCallback(GZIPInputFilter.this);
                             }
                         });
-                    }
-                    else {
+                    } else {
                         mNeedsHeader = false;
                         setDataEmitter(emitter);
                     }

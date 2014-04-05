@@ -209,7 +209,7 @@ public class PushParser implements DataCallback {
         return this;
     }
 
-    public PushParser readBuffer(int length, ParseCallback<byte[]> callback) {
+    public PushParser readByteArray(int length, ParseCallback<byte[]> callback) {
         mWaiting.add(new ByteArrayWaiter(length, callback));
         return this;
     }
@@ -240,7 +240,7 @@ public class PushParser implements DataCallback {
     }
 
     public PushParser readByteArray(int length) {
-        return (length == -1) ? readLenByteArray() : readBuffer(length, byteArrayArgCallback);
+        return (length == -1) ? readLenByteArray() : readByteArray(length, byteArrayArgCallback);
     }
 
     public PushParser readLenByteArray() {
