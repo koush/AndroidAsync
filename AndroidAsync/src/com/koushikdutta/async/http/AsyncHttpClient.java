@@ -373,14 +373,6 @@ public class AsyncHttpClient {
         reportConnectedCompleted(cancel, new IllegalArgumentException("invalid uri"), null, request, callback);
     }
 
-    public Future<AsyncHttpResponse> execute(URI uri, final HttpConnectCallback callback) {
-        return execute(new AsyncHttpGet(uri), callback);
-    }
-
-    public Future<AsyncHttpResponse> execute(String uri, final HttpConnectCallback callback) {
-        return execute(new AsyncHttpGet(URI.create(uri)), callback);
-    }
-
     public static abstract class RequestCallbackBase<T> implements RequestCallback<T> {
         @Override
         public void onProgress(AsyncHttpResponse response, int downloaded, int total) {
