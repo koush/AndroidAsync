@@ -93,7 +93,7 @@ public class HttpUtil {
             emitter = chunker;
         }
         else {
-            if (server || headers.getStatusLine().contains("HTTP/1.1")) {
+            if ((server || headers.getStatusLine().contains("HTTP/1.1")) && !"close".equalsIgnoreCase(headers.get("Connection"))) {
                 // if this is the server, and the client has not indicated a request body, the client is done
                 EndEmitter ender = EndEmitter.create(emitter.getServer(), null);
                 ender.setDataEmitter(emitter);
