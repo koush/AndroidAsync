@@ -49,9 +49,14 @@ public class UnknownRequestBody implements AsyncHttpRequestBody<Void> {
         return null;
     }
 
+    @Deprecated
     public void setCallbacks(DataCallback callback, CompletedCallback endCallback) {
         emitter.setEndCallback(endCallback);
         emitter.setDataCallback(callback);
+    }
+
+    public DataEmitter getEmitter() {
+        return emitter;
     }
 
     DataEmitter emitter;
