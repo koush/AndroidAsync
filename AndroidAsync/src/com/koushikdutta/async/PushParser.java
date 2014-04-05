@@ -75,6 +75,37 @@ public class PushParser implements DataCallback {
         }
     }
 
+
+    static class ByteBufferListWaiter extends Waiter {
+        ParseCallback<ByteBufferList> callback;
+        public ByteBufferListWaiter(int length, ParseCallback<ByteBufferList> callback) {
+            super(length);
+            if (length <= 0) throw new IllegalArgumentException("length should be > 0");
+            this.callback = callback;
+        }
+
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            callback.parsed(bb.get(length));
+            return null;
+        }
+    }
+
+    static class LenByteBufferListWaiter extends Waiter {
+        private final ParseCallback<ByteBufferList> callback;
+
+        public LenByteBufferListWaiter(ParseCallback<ByteBufferList> callback) {
+            super(4);
+            this.callback = callback;
+        }
+
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            int length = bb.getInt();
+            return new ByteBufferListWaiter(length, callback);
+        }
+    }
+
     static class UntilWaiter extends Waiter {
 
         byte value;
@@ -187,6 +218,13 @@ public class PushParser implements DataCallback {
         }
     };
 
+    private ParseCallback<ByteBufferList> byteBufferListArgCallback = new ParseCallback<ByteBufferList>() {
+        @Override
+        public void parsed(ByteBufferList data) {
+            args.add(data);
+        }
+    };
+
     private ParseCallback<byte[]> stringArgCallback = new ParseCallback<byte[]>() {
         @Override
         public void parsed(byte[] data) {
@@ -198,6 +236,10 @@ public class PushParser implements DataCallback {
     private LinkedList<Waiter> mWaiting = new LinkedList<Waiter>();
     private ArrayList<Object> args = new ArrayList<Object>();
     ByteOrder order = ByteOrder.BIG_ENDIAN;
+
+    public void setOrder(ByteOrder order) {
+        this.order = order;
+    }
 
     public PushParser(DataEmitter s) {
         mEmitter = s;
@@ -211,6 +253,11 @@ public class PushParser implements DataCallback {
 
     public PushParser readByteArray(int length, ParseCallback<byte[]> callback) {
         mWaiting.add(new ByteArrayWaiter(length, callback));
+        return this;
+    }
+
+    public PushParser readByteBufferList(int length, ParseCallback<ByteBufferList> callback) {
+        mWaiting.add(new ByteBufferListWaiter(length, callback));
         return this;
     }
 
@@ -248,6 +295,19 @@ public class PushParser implements DataCallback {
         return this;
     }
 
+    public PushParser readByteBufferList(int length) {
+        return (length == -1) ? readLenByteBufferList() : readByteBufferList(length, byteBufferListArgCallback);
+    }
+
+    public PushParser readLenByteBufferList() {
+        return readLenByteBufferList(byteBufferListArgCallback);
+    }
+
+    public PushParser readLenByteBufferList(ParseCallback<ByteBufferList> callback) {
+        mWaiting.add(new LenByteBufferListWaiter(callback));
+        return this;
+    }
+
     public PushParser readString() {
         mWaiting.add(new LenByteArrayWaiter(stringArgCallback));
         return this;
@@ -258,14 +318,17 @@ public class PushParser implements DataCallback {
         return this;
     }
 
+    ByteBufferList pending = new ByteBufferList();
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-
-        while (mWaiting.size() > 0 && bb.remaining() >= mWaiting.peek().length) {
-            bb.order(order);
-            Waiter next = mWaiting.poll().onDataAvailable(emitter, bb);
+        bb.get(pending);
+        while (mWaiting.size() > 0 && pending.remaining() >= mWaiting.peek().length) {
+            pending.order(order);
+            Waiter next = mWaiting.poll().onDataAvailable(emitter, pending);
             if (next != null) mWaiting.addFirst(next);
         }
+        if (mWaiting.size() == 0)
+            pending.get(bb);
     }
 
     public void tap(TapCallback callback) {
