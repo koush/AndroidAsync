@@ -66,19 +66,19 @@ public class RedirectTests extends TestCase {
 
     public void testRelativeRedirect() throws Exception {
         String ret = AsyncHttpClient.getDefaultInstance()
-        .executeString(new AsyncHttpGet("http://localhost:6003/foo/bar"))
+        .executeString(new AsyncHttpGet("http://localhost:6003/foo/bar"), null)
         .get();
 
         assertEquals(ret, "SUCCESS!");
 
         ret = AsyncHttpClient.getDefaultInstance()
-        .executeString(new AsyncHttpGet("http://localhost:6003/foo"))
+        .executeString(new AsyncHttpGet("http://localhost:6003/foo"), null)
         .get();
 
         assertEquals(ret, "BORAT!");
 
         ret = AsyncHttpClient.getDefaultInstance()
-        .executeString(new AsyncHttpGet("http://localhost:6003/foo/poo"))
+        .executeString(new AsyncHttpGet("http://localhost:6003/foo/poo"), null)
         .get();
 
         assertEquals(ret, "SWEET!");

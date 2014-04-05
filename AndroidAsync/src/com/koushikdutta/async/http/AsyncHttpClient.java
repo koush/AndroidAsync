@@ -80,6 +80,10 @@ public class AsyncHttpClient {
         return ret;
     }
 
+    public Future<AsyncHttpResponse> execute(String uri, final HttpConnectCallback callback) {
+        return execute(new AsyncHttpGet(URI.create(uri)), callback);
+    }
+
     private static final String LOGTAG = "AsyncHttp";
     private class FutureAsyncHttpResponse extends SimpleFuture<AsyncHttpResponse> {
         public AsyncSocket socket;

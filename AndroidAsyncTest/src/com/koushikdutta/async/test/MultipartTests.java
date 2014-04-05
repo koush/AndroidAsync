@@ -99,7 +99,7 @@ public class MultipartTests extends TestCase {
         body.addStringPart("baz", FIELD_VAL);
         post.setBody(body);
 
-        Future<String> ret = AsyncHttpClient.getDefaultInstance().execute(post, new StringCallback() {
+        Future<String> ret = AsyncHttpClient.getDefaultInstance().executeString(post, new StringCallback() {
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
             }

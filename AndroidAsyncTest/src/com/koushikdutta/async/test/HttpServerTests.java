@@ -93,7 +93,7 @@ public class HttpServerTests extends TestCase {
         JSONObjectBody body = new JSONObjectBody(json);
         AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000/echo");
         post.setBody(body);
-        json = AsyncHttpClient.getDefaultInstance().executeJSONObject(post).get();
+        json = AsyncHttpClient.getDefaultInstance().executeJSONObject(post, null).get();
         assertEquals(json.getString("foo"), "bar");
     }
 
@@ -101,7 +101,7 @@ public class HttpServerTests extends TestCase {
         StringBody body = new StringBody("bar");
         AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000/echo");
         post.setBody(body);
-        JSONObject json = AsyncHttpClient.getDefaultInstance().executeJSONObject(post).get();
+        JSONObject json = AsyncHttpClient.getDefaultInstance().executeJSONObject(post, null).get();
         assertEquals(json.getString("foo"), "bar");
     }
 

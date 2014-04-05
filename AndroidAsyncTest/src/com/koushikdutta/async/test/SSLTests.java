@@ -3,6 +3,7 @@ package com.koushikdutta.async.test;
 import android.test.AndroidTestCase;
 
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
@@ -47,6 +48,6 @@ public class SSLTests extends AndroidTestCase {
 
         AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setSSLContext(sslContext);
         AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setTrustManagers(tmf.getTrustManagers());
-        AsyncHttpClient.getDefaultInstance().getString("https://localhost:8888/").get();
+        AsyncHttpClient.getDefaultInstance().executeString(new AsyncHttpGet("https://localhost:8888/"), null).get();
     }
 }

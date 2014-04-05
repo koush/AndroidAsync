@@ -46,7 +46,7 @@ public class Issue59 extends TestCase {
             get.getHeaders().getHeaders().removeAll("Connection");
             get.getHeaders().getHeaders().removeAll("Accept-Encoding");
 
-            assertEquals("foobarbeepboop", AsyncHttpClient.getDefaultInstance().executeString(get).get(1000, TimeUnit.MILLISECONDS));
+            assertEquals("foobarbeepboop", AsyncHttpClient.getDefaultInstance().executeString(get, null).get(1000, TimeUnit.MILLISECONDS));
         }
         finally {
             httpServer.stop();

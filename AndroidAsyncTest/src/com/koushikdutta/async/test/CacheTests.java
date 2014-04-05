@@ -4,6 +4,7 @@ import android.os.Environment;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.libcore.DiskLruCache;
 import com.koushikdutta.async.http.libcore.HttpDate;
@@ -39,9 +40,9 @@ public class CacheTests extends TestCase {
             // clear the old cache
             cache.clear();
 
-            client.getString("http://localhost:5555/uname/43434").get();
+            client.executeString(new AsyncHttpGet("http://localhost:5555/uname/43434"), null).get();
 
-            client.getString("http://localhost:5555/uname/43434").get();
+            client.executeString(new AsyncHttpGet("http://localhost:5555/uname/43434"), null).get();
 
 
             assertEquals(cache.getCacheHitCount(), 1);

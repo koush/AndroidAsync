@@ -63,7 +63,7 @@ public class TimeoutTests extends TestCase {
         AsyncHttpRequest req = new AsyncHttpRequest(URI.create("http://localhost:5000/3"), "GET");
         req.setTimeout(1000);
         try {
-            AsyncHttpClient.getDefaultInstance().executeString(req).get();
+            AsyncHttpClient.getDefaultInstance().executeString(req, null).get();
             fail();
         }
         catch (Exception e) {
@@ -72,7 +72,7 @@ public class TimeoutTests extends TestCase {
         }
 
         req = new AsyncHttpRequest(URI.create("http://localhost:5000/3"), "GET");
-        assertEquals("3", AsyncHttpClient.getDefaultInstance().executeString(req).get());
+        assertEquals("3", AsyncHttpClient.getDefaultInstance().executeString(req, null).get());
     }
 
     public void testSlowBody() throws Exception {
@@ -80,14 +80,14 @@ public class TimeoutTests extends TestCase {
         req.setTimeout(1000);
         req.setLogging("slowbody", Log.VERBOSE);
         req.setBody(new DelayedStringBody("foo"));
-        assertEquals("foo", AsyncHttpClient.getDefaultInstance().executeString(req).get());
+        assertEquals("foo", AsyncHttpClient.getDefaultInstance().executeString(req, null).get());
 
         req = new AsyncHttpRequest(URI.create("http://localhost:5000/3"), "GET");
         req.setLogging("slowbody", Log.VERBOSE);
         req.setTimeout(100);
         req.setBody(new DelayedStringBody("foo"));
         try {
-            AsyncHttpClient.getDefaultInstance().executeString(req).get();
+            AsyncHttpClient.getDefaultInstance().executeString(req, null).get();
             fail();
         }
         catch (Exception e) {
