@@ -1,7 +1,6 @@
 package com.koushikdutta.async;
 
 import android.util.Log;
-
 import com.koushikdutta.async.callback.DataCallback;
 
 import java.lang.reflect.Method;
@@ -11,244 +10,266 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
-public class PushParser {
-    private LinkedList<Object> mWaiting = new LinkedList<Object>();
+public class PushParser implements DataCallback {
 
-    static class BufferWaiter {
+    public interface ParseCallback<T> {
+        public void parsed(T data);
+    }
+
+    static abstract class Waiter {
         int length;
+        public Waiter(int length) {
+            this.length = length;
+        }
+        /**
+         * Consumes received data, and/or returns next waiter to continue reading instead of this waiter.
+         * @param bb received data, bb.remaining >= length
+         * @return - a waiter that should continue reading right away, or null if this waiter is finished
+         */
+        public abstract Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb);
     }
-    
-    static class StringWaiter extends BufferWaiter {
+
+    static class IntWaiter extends Waiter {
+        ParseCallback<Integer> callback;
+        public IntWaiter(ParseCallback<Integer> callback) {
+            super(4);
+            this.callback = callback;
+        }
+
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            callback.parsed(bb.getInt());
+            return null;
+        }
     }
-    
-    static class UntilWaiter {
+
+    static class BufferWaiter extends Waiter {
+        ParseCallback<byte[]> callback;
+        public BufferWaiter(int length, ParseCallback<byte[]> callback) {
+            super(length);
+            if (length <= 0) throw new IllegalArgumentException("length should be > 0");
+            this.callback = callback;
+        }
+
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            byte[] bytes = new byte[length];
+            bb.get(bytes);
+            callback.parsed(bytes);
+            return null;
+        }
+    }
+
+    static class LenBufferWaiter extends Waiter {
+        private final ParseCallback<byte[]> callback;
+
+        public LenBufferWaiter(ParseCallback<byte[]> callback) {
+            super(4);
+            this.callback = callback;
+        }
+
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            int length = bb.getInt();
+            return new BufferWaiter(length, callback);
+        }
+    }
+
+    static class UntilWaiter extends Waiter {
+
         byte value;
         DataCallback callback;
+        public UntilWaiter(byte value, DataCallback callback) {
+            super(1);
+            this.value = value;
+            this.callback = callback;
+        }
+
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            boolean found = true;
+            ByteBufferList cb = new ByteBufferList();
+            while (bb.size() > 0) {
+                ByteBuffer b = bb.remove();
+                b.mark();
+                int index = 0;
+                while (b.remaining() > 0 && !(found = (b.get() == value))) {
+                    index++;
+                }
+                b.reset();
+                if (found) {
+                    bb.addFirst(b);
+                    bb.get(cb, index);
+                    // eat the one we're waiting on
+                    bb.get();
+                    break;
+                } else {
+                    cb.add(b);
+                }
+            }
+
+            callback.onDataAvailable(emitter, cb);
+
+            if (found) {
+                return null;
+            } else {
+                return this;
+            }
+        }
     }
-    
-    int mNeeded = 0;
-    public PushParser readInt() {
-        mNeeded += 4;
-        mWaiting.add(int.class);
+
+    private class TapWaiter extends Waiter {
+        private final TapCallback callback;
+
+        public TapWaiter(TapCallback callback) {
+            super(0);
+            this.callback = callback;
+        }
+
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            Method method = getTap(callback);
+            method.setAccessible(true);
+            try {
+                method.invoke(callback, args.toArray());
+            } catch (Exception e) {
+                Log.e("PushParser", "Error while invoking tap callback", e);
+            }
+            args.clear();
+            return null;
+        }
+    }
+
+    private Waiter noopArgWaiter = new Waiter(0) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(null);
+            return null;
+        }
+    };
+
+    private Waiter byteArgWaiter = new Waiter(1) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(bb.get());
+            return null;
+        }
+    };
+
+    private Waiter shortArgWaiter = new Waiter(2) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(bb.getShort());
+            return null;
+        }
+    };
+
+    private Waiter intArgWaiter = new Waiter(4) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(bb.getInt());
+            return null;
+        }
+    };
+
+    private Waiter longArgWaiter = new Waiter(8) {
+        @Override
+        public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            args.add(bb.getLong());
+            return null;
+        }
+    };
+
+    private ParseCallback<byte[]> byteArrayArgCallback = new ParseCallback<byte[]>() {
+        @Override
+        public void parsed(byte[] data) {
+            args.add(data);
+        }
+    };
+
+    private ParseCallback<byte[]> stringArgCallback = new ParseCallback<byte[]>() {
+        @Override
+        public void parsed(byte[] data) {
+            args.add(new String(data));
+        }
+    };
+
+    DataEmitter mEmitter;
+    private LinkedList<Waiter> mWaiting = new LinkedList<Waiter>();
+    private ArrayList<Object> args = new ArrayList<Object>();
+    ByteOrder order = ByteOrder.BIG_ENDIAN;
+
+    public PushParser(DataEmitter s) {
+        mEmitter = s;
+        mEmitter.setDataCallback(this);
+    }
+
+    public PushParser readInt(ParseCallback<Integer> callback) {
+        mWaiting.add(new IntWaiter(callback));
+        return this;
+    }
+
+    public PushParser readBuffer(int length, ParseCallback<byte[]> callback) {
+        mWaiting.add(new BufferWaiter(length, callback));
+        return this;
+    }
+
+    public PushParser until(byte b, DataCallback callback) {
+        mWaiting.add(new UntilWaiter(b, callback));
         return this;
     }
 
     public PushParser readByte() {
-        mNeeded += 1;
-        mWaiting.add(byte.class);
+        mWaiting.add(byteArgWaiter);
         return this;
     }
-    
+
     public PushParser readShort() {
-        mNeeded += 2;
-        mWaiting.add(short.class);
+        mWaiting.add(shortArgWaiter);
         return this;
     }
-    
+
+    public PushParser readInt() {
+        mWaiting.add(intArgWaiter);
+        return this;
+    }
+
     public PushParser readLong() {
-        mNeeded += 8;
-        mWaiting.add(long.class);
+        mWaiting.add(longArgWaiter);
         return this;
     }
-    
+
     public PushParser readBuffer(int length) {
-        if (length != -1)
-            mNeeded += length;
-        BufferWaiter bw = new BufferWaiter();
-        bw.length = length;
-        mWaiting.add(bw);
-        return this;
+        return (length == -1) ? readLenBuffer() : readBuffer(length, byteArrayArgCallback);
     }
 
     public PushParser readLenBuffer() {
-        readInt();
-        BufferWaiter bw = new BufferWaiter();
-        bw.length = -1;
-        mWaiting.add(bw);
+        mWaiting.add(new LenBufferWaiter(byteArrayArgCallback));
         return this;
     }
-    
+
     public PushParser readString() {
-        readInt();
-        StringWaiter bw = new StringWaiter();
-        bw.length = -1;
-        mWaiting.add(bw);
+        mWaiting.add(new LenBufferWaiter(stringArgCallback));
         return this;
     }
-    
-    public PushParser until(byte b, DataCallback callback) {
-        UntilWaiter waiter = new UntilWaiter();
-        waiter.value = b;
-        waiter.callback = callback;
-        mWaiting.add(waiter);
-        mNeeded++;
-        return this;
-    }
-    
+
     public PushParser noop() {
-        mWaiting.add(Object.class);
+        mWaiting.add(noopArgWaiter);
         return this;
     }
 
-    DataEmitterReader mReader;
-    DataEmitter mEmitter;
-    public PushParser(DataEmitter s) {
-        mEmitter = s;
-        mReader = new DataEmitterReader();
-        mEmitter.setDataCallback(mReader);
-    }
-    
-    private ArrayList<Object> mArgs = new ArrayList<Object>();
-    private TapCallback mCallback;
-    
-    Exception stack() {
-        try {
-            throw new Exception();
-        }
-        catch (Exception e) {
-            return e;
+    @Override
+    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+
+        while (mWaiting.size() > 0 && bb.remaining() >= mWaiting.peek().length) {
+            bb.order(order);
+            Waiter next = mWaiting.poll().onDataAvailable(emitter, bb);
+            if (next != null) mWaiting.addFirst(next);
         }
     }
-    
-    ByteOrder order = ByteOrder.BIG_ENDIAN;
-    public ByteOrder order() {
-        return order;
-    }
-    public PushParser order(ByteOrder order) {
-        this.order = order;
-        return this;
-    }
-    
+
     public void tap(TapCallback callback) {
-        assert mCallback == null;
-        assert mWaiting.size() > 0;
-
-        mCallback = callback;
-        
-        new DataCallback() {
-            {
-                onDataAvailable(mEmitter, null);
-            }
-            
-            @Override
-            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                try {
-                    if (bb != null)
-                        bb.order(order);
-                    while (mWaiting.size() > 0) {
-                        Object waiting = mWaiting.peek();
-                        if (waiting == null)
-                            break;
-//                        System.out.println("Remaining: " + bb.remaining());
-                        if (waiting == int.class) {
-                            mArgs.add(bb.getInt());
-                            mNeeded -= 4;
-                        }
-                        else if (waiting == short.class) {
-                            mArgs.add(bb.getShort());
-                            mNeeded -= 2;
-                        }
-                        else if (waiting == byte.class) {
-                            mArgs.add(bb.get());
-                            mNeeded -= 1;
-                        }
-                        else if (waiting == long.class) {
-                            mArgs.add(bb.getLong());
-                            mNeeded -= 8;
-                        }
-                        else if (waiting == Object.class) {
-                            mArgs.add(null);
-                        }
-                        else if (waiting instanceof UntilWaiter) {
-                            UntilWaiter uw = (UntilWaiter)waiting;
-                            boolean different = true;
-                            ByteBufferList cb = new ByteBufferList();
-                            while (bb.size() > 0) {
-                                ByteBuffer b = bb.remove();
-                                b.mark();
-                                int index = 0;
-                                while (b.remaining() > 0 && (different = (b.get() != uw.value))) {
-                                    index++;
-                                }
-                                b.reset();
-                                if (!different) {
-                                    bb.addFirst(b);
-                                    bb.get(cb, index);
-                                    // eat the one we're waiting on
-                                    bb.get();
-                                    break;
-                                }
-                                else {
-                                    cb.add(b);
-                                }
-                            }
-
-                            if (uw.callback != null)
-                                uw.callback.onDataAvailable(emitter, cb);
-
-                            if (!different) {
-                                mNeeded--;
-                            }
-                            else {
-                                throw new Exception();
-                            }
-                        }
-                        else if (waiting instanceof BufferWaiter || waiting instanceof StringWaiter) {
-                            BufferWaiter bw = (BufferWaiter)waiting;
-                            int length = bw.length;
-                            if (length == -1) {
-                                length = (Integer)mArgs.get(mArgs.size() - 1);
-                                mArgs.remove(mArgs.size() - 1);
-                                bw.length = length;
-                                mNeeded += length;
-                            }
-                            if (bb.remaining() < length) {
-//                                System.out.print("imminient feilure detected");
-                                throw new Exception();
-                            }
-                            
-//                            e.printStackTrace();
-//                            System.out.println("Buffer length: " + length);
-                            byte[] bytes = null;
-                            if (length > 0) {
-                                bytes = new byte[length];
-                                bb.get(bytes);
-                            }
-                            mNeeded -= length;
-                            if (waiting instanceof StringWaiter)
-                                mArgs.add(new String(bytes));
-                            else
-                                mArgs.add(bytes);
-                        }
-                        else {
-                            assert false;
-                        }
-//                        System.out.println("Parsed: " + mArgs.get(0));
-                        mWaiting.remove();
-                    }
-                }
-                catch (Exception ex) {
-                    assert mNeeded != 0;
-//                    ex.printStackTrace();
-                    mReader.read(mNeeded, this);
-                    return;
-                }
-                
-                try {
-                    Object[] args = mArgs.toArray();
-                    mArgs.clear();
-                    TapCallback callback = mCallback;
-                    mCallback = null;
-                    Method method = getTap(callback);
-                    method.setAccessible(true);
-                    method.invoke(callback, args);
-                }
-                catch (Exception ex) {
-                    assert false;
-                    Log.e("PushParser", "error during parse", ex);
-                }
-            }
-        };
+        mWaiting.add(new TapWaiter(callback));
     }
 
     static Hashtable<Class, Method> mTable = new Hashtable<Class, Method>();
@@ -271,9 +292,9 @@ public class PushParser {
             return candidates[0];
 
         String fail =
-        "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
-        "    *;\n" +
-        "}\n";
+            "-keep class * extends com.koushikdutta.async.TapCallback {\n" +
+                    "    *;\n" +
+                    "}\n";
 
         //null != "AndroidAsync: tap callback could not be found. Proguard? Use this in your proguard config:\n" + fail;
         assert false;

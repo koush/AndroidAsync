@@ -1,5 +1,5 @@
 package com.koushikdutta.async;
 
 
-public class TapCallback {
+public interface TapCallback {
 }
