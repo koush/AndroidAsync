@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -312,12 +313,12 @@ public class HttpClientTests extends TestCase {
                 }
             });
 
-            httpServer.listen(proxyServer, 5555);
+            AsyncServerSocket socket = httpServer.listen(proxyServer, 0);
 
 //            client.getSocketMiddleware().enableProxy("localhost", 5555);
 
             AsyncHttpGet get = new AsyncHttpGet("http://www.clockworkmod.com");
-            get.enableProxy("localhost", 5555);
+            get.enableProxy("localhost", socket.getLocalPort());
 
             Future<String> ret = client.executeString(get, null);
             String data;

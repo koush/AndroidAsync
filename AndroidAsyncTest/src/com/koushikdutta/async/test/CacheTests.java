@@ -3,6 +3,7 @@ package com.koushikdutta.async.test;
 import android.os.Environment;
 
 import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.ResponseCacheMiddleware;
@@ -36,13 +37,14 @@ public class CacheTests extends TestCase {
                 }
             });
 
-            httpServer.listen(AsyncServer.getDefault(), 5555);
+            AsyncServerSocket socket = httpServer.listen(AsyncServer.getDefault(), 0);
+            int port = socket.getLocalPort();
             // clear the old cache
             cache.clear();
 
-            client.executeString(new AsyncHttpGet("http://localhost:5555/uname/43434"), null).get();
+            client.executeString(new AsyncHttpGet("http://localhost:" + port + "/uname/43434"), null).get();
 
-            client.executeString(new AsyncHttpGet("http://localhost:5555/uname/43434"), null).get();
+            client.executeString(new AsyncHttpGet("http://localhost:" + port + "/uname/43434"), null).get();
 
 
             assertEquals(cache.getCacheHitCount(), 1);
