@@ -408,15 +408,19 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
 
             // write to cache... any data not consumed needs to be retained for the next callback
+            ByteBufferList copy = new ByteBufferList();
             try {
                 if (cacheRequest != null) {
                     OutputStream outputStream = cacheRequest.getBody();
                     if (outputStream != null) {
-                        int count = bb.size();
-                        for (int i = 0; i < count; i++) {
+                        while (!bb.isEmpty()) {
                             ByteBuffer b = bb.remove();
-                            outputStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
-                            bb.add(b);
+                            try {
+                                outputStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                            }
+                            finally {
+                                copy.add(b);
+                            }
                         }
                     }
                     else {
@@ -426,6 +430,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
             catch (Exception e) {
                 abort();
+            }
+            finally {
+                copy.get(bb);
             }
             
             super.onDataAvailable(emitter, bb);
