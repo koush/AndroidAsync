@@ -151,6 +151,12 @@ public class AsyncHttpClient {
         return request.getTimeout();
     }
 
+    private static void copyHeader(AsyncHttpRequest from, AsyncHttpRequest to, String header) {
+        String value = from.getHeaders().getHeaders().get(header);
+        if (!TextUtils.isEmpty(value))
+            to.getHeaders().getHeaders().set("User-Agent", value);
+    }
+
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
         assert mServer.isAffinityThread();
         if (redirectCount > 15) {
@@ -269,9 +275,8 @@ public class AsyncHttpClient {
                             newReq.LOGTAG = request.LOGTAG;
                             newReq.proxyHost = request.proxyHost;
                             newReq.proxyPort = request.proxyPort;
-                            String userAgent = request.getHeaders().getHeaders().get("User-Agent");
-                            if (!TextUtils.isEmpty(userAgent))
-                                newReq.getHeaders().getHeaders().set("User-Agent", userAgent);
+                            copyHeader(request, newReq, "User-Agent");
+                            copyHeader(request, newReq, "Range");
                             request.logi("Redirecting");
                             newReq.logi("Redirected");
                             execute(newReq, redirectCount + 1, cancel, callback);
