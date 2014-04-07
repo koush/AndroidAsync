@@ -155,6 +155,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                     if (socket.isOpen()) {
                         sockets.remove(socket);
                         socket.setClosedCallback(null);
+
                         mClient.getServer().post(new Runnable() {
                             @Override
                             public void run() {
@@ -162,6 +163,11 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                                 data.connectCallback.onConnectCompleted(null, socket);
                             }
                         });
+
+                        // replace above code with immediate callback?
+//                        data.request.logd("Reusing keep-alive socket");
+//                        data.connectCallback.onConnectCompleted(null, socket);
+
                         // just a noop/dummy, as this can't actually be cancelled.
                         return new SimpleCancellable();
                     }
@@ -284,8 +290,6 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             }
             final HashSet<AsyncSocket> ss = sockets;
             sockets.add(socket);
-            // should not get any data after this point...
-            // if so, eat it and disconnect.
             socket.setClosedCallback(new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
@@ -299,8 +303,16 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
     }
 
     private void idleSocket(final AsyncSocket socket) {
-        socket.setEndCallback(null);
+        // must listen for socket close, otherwise log will get spammed.
+        socket.setEndCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                socket.close();
+            }
+        });
         socket.setWriteableCallback(null);
+        // should not get any data after this point...
+        // if so, eat it and disconnect.
         socket.setDataCallback(new NullDataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
