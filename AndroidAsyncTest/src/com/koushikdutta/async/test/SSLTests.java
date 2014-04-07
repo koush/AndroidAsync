@@ -2,12 +2,16 @@ package com.koushikdutta.async.test;
 
 import android.test.AndroidTestCase;
 
+import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
+
+import org.json.JSONObject;
 
 import java.security.KeyStore;
 
@@ -49,5 +53,19 @@ public class SSLTests extends AndroidTestCase {
         AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setSSLContext(sslContext);
         AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setTrustManagers(tmf.getTrustManagers());
         AsyncHttpClient.getDefaultInstance().executeString(new AsyncHttpGet("https://localhost:8888/"), null).get();
+    }
+
+    public void disabled__testClientCertificateIssue163() throws Exception {
+        // https://security.springthroughtest.com/hello.json
+
+        AsyncServer server = new AsyncServer();
+        try {
+            AsyncHttpClient client = new AsyncHttpClient(server);
+            JSONObject json = client.executeJSONObject(new AsyncHttpGet("https://security.springthroughtest.com/hello.json"), null).get();
+
+        }
+        finally {
+            server.stop();
+        }
     }
 }
