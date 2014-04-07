@@ -313,7 +313,10 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
     private void nextConnection(URI uri) {
         final int port = getSchemePort(uri);
-        ConnectionInfo info = getConnectionInfo(uri.getScheme(), uri.getHost(), port);
+        String key = getConnectionKey(uri.getScheme(), uri.getHost(), port);
+        ConnectionInfo info = connectionInfo.get(key);
+        if (info == null)
+            return;
         --info.openCount;
         while (info.openCount < maxConnectionCount && info.queue.size() > 0) {
             GetSocketData gsd = info.queue.remove();
@@ -323,6 +326,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             Cancellable connect = getSocket(gsd);
             socketCancellable.setParent(connect);
         }
+        if (info.queue.size() == 0 && info.openCount == 0)
+            connectionInfo.remove(key);
     }
 
     @Override
