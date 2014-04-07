@@ -2,6 +2,7 @@ package com.koushikdutta.async.test;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataInterceptCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.body.JSONObjectBody;
@@ -24,9 +25,11 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,6 +88,31 @@ public class HttpServerTests extends TestCase {
                 }
             }
         });
+
+        httpServer.get("/stream", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                assertNotNull(request.getHeaders().getHost());
+
+                byte[] data = new byte[100];
+
+                final ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
+
+                response.sendStream(inputStream, data.length, new DataInterceptCallback() {
+                    @Override
+                    public void onDataAvailable(ByteBuffer buffer, int dataLength) {
+                        byte[] interceptData = buffer.array();
+
+                        byte[] hello = "hello".getBytes();
+
+                        for (int index = 0; index < hello.length; ++index) {
+                            interceptData[index] = hello[index];
+                        }
+
+                    }
+                });
+            }
+        });
     }
 
     public void testJSONObject() throws Exception {
@@ -137,6 +165,17 @@ public class HttpServerTests extends TestCase {
         String contents = StreamUtility.readToEnd(is);
         is.close();
         assertEquals(contents, "hello");
+    }
+
+    public void testServerStream() throws Exception {
+        URL url = new URL("http://localhost:5000/stream");
+        URLConnection conn = url.openConnection();
+
+        InputStream is = conn.getInputStream();
+
+        String contents = StreamUtility.readToEnd(is);
+        is.close();
+        assertEquals(contents.trim(), "hello");
     }
     
     @Override

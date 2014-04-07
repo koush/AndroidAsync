@@ -9,6 +9,7 @@ import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataInterceptCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.HttpUtil;
@@ -215,6 +216,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void sendStream(InputStream inputStream, long totalLength) {
+        sendStream(inputStream, totalLength, null);
+    }
+
+    @Override
+    public void sendStream(InputStream inputStream, long totalLength, DataInterceptCallback dataInterceptCallback) {
         long start = 0;
         long end = totalLength - 1;
 
@@ -266,7 +272,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 public void onCompleted(Exception ex) {
                     onEnd();
                 }
-            });
+            }, dataInterceptCallback);
         }
         catch (Exception e) {
             responseCode(404);
