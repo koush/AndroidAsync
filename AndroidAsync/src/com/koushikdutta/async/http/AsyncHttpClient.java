@@ -154,7 +154,7 @@ public class AsyncHttpClient {
     private static void copyHeader(AsyncHttpRequest from, AsyncHttpRequest to, String header) {
         String value = from.getHeaders().getHeaders().get(header);
         if (!TextUtils.isEmpty(value))
-            to.getHeaders().getHeaders().set("User-Agent", value);
+            to.getHeaders().getHeaders().set(header, value);
     }
 
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
