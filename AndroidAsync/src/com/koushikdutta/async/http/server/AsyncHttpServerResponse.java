@@ -3,6 +3,7 @@ package com.koushikdutta.async.http.server;
 import java.io.File;
 import java.io.InputStream;
 
+import com.koushikdutta.async.callback.DataInterceptCallback;
 import org.json.JSONObject;
 
 import com.koushikdutta.async.AsyncSocket;
@@ -17,6 +18,7 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void send(JSONObject json);
     public void sendFile(File file);
     public void sendStream(InputStream inputStream, long totalLength);
+    public void sendStream(InputStream inputStream, long totalLength, DataInterceptCallback dataInterceptCallback);
     public void responseCode(int code);
     public ResponseHeaders getHeaders();
     public void writeHead();

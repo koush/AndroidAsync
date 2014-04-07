@@ -2,6 +2,7 @@ package com.koushikdutta.async;
 
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.DataInterceptCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;
@@ -51,6 +52,10 @@ public class Util {
     }
 
     public static void pump(final InputStream is, final long max, final DataSink ds, final CompletedCallback callback) {
+        pump(is, max, ds, callback, null);
+    }
+
+    public static void pump(final InputStream is, final long max, final DataSink ds, final CompletedCallback callback, final DataInterceptCallback dataInterceptCallback) {
         final CompletedCallback wrapper = new CompletedCallback() {
             boolean reported;
             @Override
@@ -97,6 +102,11 @@ public class Util {
                             }
                             mToAlloc = read * 2;
                             totalRead += read;
+
+                            if (dataInterceptCallback != null) {
+                                dataInterceptCallback.onDataAvailable(pending, read);
+                            }
+
                             pending.position(0);
                             pending.limit(read);
                         }
