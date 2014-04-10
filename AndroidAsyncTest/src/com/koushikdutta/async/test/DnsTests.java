@@ -2,8 +2,10 @@ package com.koushikdutta.async.test;
 
 import com.koushikdutta.async.AsyncDatagramSocket;
 import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.dns.Dns;
 import com.koushikdutta.async.dns.DnsResponse;
@@ -70,5 +72,24 @@ public class DnsTests extends TestCase {
 //        });
 //
 //        semaphore.tryAcquire(1000000, TimeUnit.MILLISECONDS);
+    }
+
+    public void testNoDomain() throws Exception {
+        AsyncServer server = new AsyncServer();
+
+        try {
+            final Semaphore semaphore = new Semaphore(0);
+            server.connectSocket("www.clockworkmod-notfound.com", 8080, new ConnectCallback() {
+                @Override
+                public void onConnectCompleted(Exception ex, AsyncSocket socket) {
+                    assertNotNull(ex);
+                    semaphore.release();
+                }
+            });
+            semaphore.tryAcquire(10000, TimeUnit.MILLISECONDS);
+        }
+        finally {
+            server.stop();
+        }
     }
 }
