@@ -136,7 +136,7 @@ public class HttpClientTests extends TestCase {
         final Semaphore semaphore = new Semaphore(0);
         final Md5 md5 = Md5.createInstance();
         AsyncHttpGet get = new AsyncHttpGet(github);
-//        get.setLogging("AsyncTest", Log.VERBOSE);
+        get.setLogging("AsyncTest", Log.VERBOSE);
         client.execute(get, new HttpConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
@@ -212,7 +212,7 @@ public class HttpClientTests extends TestCase {
 
     Future<String> future;
     public void testCancel() throws Exception {
-        future = AsyncHttpClient.getDefaultInstance().executeString(new AsyncHttpGet("http://yahoo.com"), new StringCallback() {
+        future = client.executeString(new AsyncHttpGet("http://yahoo.com"), new StringCallback() {
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
                 fail();
