@@ -19,6 +19,7 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
+import java.net.UnknownHostException;
 import java.nio.channels.DatagramChannel;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -82,11 +83,11 @@ public class DnsTests extends TestCase {
             server.connectSocket("www.clockworkmod-notfound.com", 8080, new ConnectCallback() {
                 @Override
                 public void onConnectCompleted(Exception ex, AsyncSocket socket) {
-                    assertNotNull(ex);
+                    assertTrue(ex instanceof UnknownHostException);
                     semaphore.release();
                 }
             });
-            semaphore.tryAcquire(10000, TimeUnit.MILLISECONDS);
+            assertTrue(semaphore.tryAcquire(5000, TimeUnit.MILLISECONDS));
         }
         finally {
             server.stop();
