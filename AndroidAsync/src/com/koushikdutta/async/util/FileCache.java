@@ -1,7 +1,5 @@
 package com.koushikdutta.async.util;
 
-import com.koushikdutta.async.http.libcore.IoUtils;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

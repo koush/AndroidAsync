@@ -1,16 +1,39 @@
 package com.koushikdutta.async.http;
 
-import android.os.Bundle;
-
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
+import java.util.Hashtable;
+
 public interface AsyncHttpClientMiddleware {
+    public static class UntypedHashtable {
+        private Hashtable<String, Object> hash = new Hashtable<String, Object>();
+
+        public void put(String key, Object value) {
+            hash.put(key, value);
+        }
+
+        public void remove(String key) {
+            hash.remove(key);
+        }
+
+        public <T> T get(String key, T defaultValue) {
+            T ret = get(key);
+            if (ret == null)
+                return defaultValue;
+            return ret;
+        }
+
+        public <T> T get(String key) {
+            return (T)hash.get(key);
+        }
+    }
+
     public static class GetSocketData {
-        public Bundle state = new Bundle();
+        public UntypedHashtable state = new UntypedHashtable();
         public AsyncHttpRequest request;
         public ConnectCallback connectCallback;
         public Cancellable socketCancellable;

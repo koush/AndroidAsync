@@ -138,7 +138,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
             info.openCount++;
 
-            data.state.putBoolean(getClass().getCanonicalName() + ".owned", true);
+            data.state.put(getClass().getCanonicalName() + ".owned", true);
 
             while (!info.sockets.isEmpty()) {
                 IdleSocketHolder idleSocketHolder = info.sockets.pop();
@@ -345,7 +345,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
     @Override
     public void onRequestComplete(final OnRequestCompleteData data) {
-        if (!data.state.getBoolean(getClass().getCanonicalName() + ".owned", false)) {
+        if (!data.state.get(getClass().getCanonicalName() + ".owned", false)) {
             return;
         }
 

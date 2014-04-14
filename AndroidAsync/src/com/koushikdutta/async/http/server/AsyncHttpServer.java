@@ -22,7 +22,6 @@ import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.libcore.IoUtils;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.util.StreamUtility;
@@ -34,13 +33,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
 
 import javax.net.ssl.SSLContext;
 
@@ -388,7 +383,7 @@ public class AsyncHttpServer {
                     @Override
                     public void onCompleted(Exception ex) {
                         response.end();
-                        IoUtils.closeQuietly(is);
+                        StreamUtility.closeQuietly(is);
                     }
                 });
             }
@@ -399,7 +394,7 @@ public class AsyncHttpServer {
                 String path = request.getMatcher().replaceAll("");
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
                 final InputStream is = pair.second;
-                IoUtils.closeQuietly(is);
+                StreamUtility.closeQuietly(is);
                 response.getHeaders().getHeaders().set("Content-Length", String.valueOf(pair.first));
                 if (is == null) {
                     response.responseCode(404);
