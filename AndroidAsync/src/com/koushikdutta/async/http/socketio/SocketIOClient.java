@@ -16,22 +16,6 @@ public class SocketIOClient extends EventEmitter {
     boolean connected;
     boolean disconnected;
 
-    private static void reportError(SimpleFuture<SocketIOClient> future, Handler handler, final ConnectCallback callback, final Exception e) {
-        if (!future.setComplete(e))
-            return;
-        if (handler != null) {
-            AsyncServer.post(handler, new Runnable() {
-                @Override
-                public void run() {
-                    callback.onConnectCompleted(e, null);
-                }
-            });
-        }
-        else {
-            callback.onConnectCompleted(e, null);
-        }
-    }
-
     private void emitRaw(int type, String message, Acknowledge acknowledge) {
         connection.emitRaw(type, this, message, acknowledge);
     }
