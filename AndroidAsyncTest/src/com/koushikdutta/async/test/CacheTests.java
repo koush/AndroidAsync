@@ -7,7 +7,6 @@ import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.ResponseCacheMiddleware;
-import com.koushikdutta.async.http.libcore.DiskLruCache;
 import com.koushikdutta.async.http.libcore.HttpDate;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;

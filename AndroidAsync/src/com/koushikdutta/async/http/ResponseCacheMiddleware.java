@@ -4,6 +4,8 @@ import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -41,16 +43,16 @@ import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.http.libcore.Charsets;
-import com.koushikdutta.async.http.libcore.DiskLruCache;
+import com.koushikdutta.async.http.libcore.IoUtils;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 import com.koushikdutta.async.http.libcore.ResponseSource;
 import com.koushikdutta.async.http.libcore.StrictLineReader;
+import com.koushikdutta.async.util.FileCache;
 import com.koushikdutta.async.util.StreamUtility;
 
 public class ResponseCacheMiddleware extends SimpleMiddleware {
-    private DiskLruCache cache;
-    private static final int VERSION = 201105;
+    private FileCache cache;
     public static final int ENTRY_METADATA = 0;
     public static final int ENTRY_BODY = 1;
     public static final int ENTRY_COUNT = 2;
@@ -80,10 +82,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
 
     private void open() throws IOException {
-        cache = DiskLruCache.open(cacheDir, VERSION, ENTRY_COUNT, size);
+        cache = new FileCache(cacheDir, size, false);
     }
 
-    public DiskLruCache getDiskLruCache() {
+    public FileCache getDiskLruCache() {
         return cache;
     }
     
@@ -96,20 +98,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         return caching;
     }
 
-    public static String uriToKey(URI uri) {
-        return toKeyString(uri.toString());
-    }
-
-    public static String toKeyString(String string) {
-        try {
-            MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-            byte[] md5bytes = messageDigest.digest(string.toString().getBytes());
-            return new BigInteger(1, md5bytes).toString(16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    
     private class CachedSSLSocket extends CachedSocket implements AsyncSSLSocket {
         public CachedSSLSocket(CacheResponse cacheResponse, long contentLength) {
             super(cacheResponse, contentLength);
@@ -261,7 +249,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
     
     public static class CacheData implements Parcelable {
-        DiskLruCache.Snapshot snapshot;
+        FileInputStream[] snapshot;
         CacheResponse candidate;
         long contentLength;
         ResponseHeaders cachedResponseHeaders;
@@ -288,26 +276,29 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return null;
         }
 
-        String key = uriToKey(data.request.getUri());
-        DiskLruCache.Snapshot snapshot = null;
+        String key = FileCache.toKeyString(data.request.getUri());
+        FileInputStream[] snapshot = null;
+        long contentLength;
         Entry entry;
         try {
-            snapshot = cache.get(key);
+            snapshot = cache.get(key, ENTRY_COUNT);
             if (snapshot == null) {
                 networkCount++;
                 return null;
             }
-            entry = new Entry(snapshot.getInputStream(ENTRY_METADATA));
+            contentLength = snapshot[ENTRY_BODY].available();
+            entry = new Entry(snapshot[ENTRY_METADATA]);
         } catch (IOException e) {
             // Give up because the cache cannot be read.
             networkCount++;
+            StreamUtility.closeQuietly(snapshot);
             return null;
         }
 
         // verify the entry matches
         if (!entry.matches(data.request.getUri(), data.request.getMethod(), data.request.getHeaders().getHeaders().toMultimap())) {
             networkCount++;
-            snapshot.close();
+            StreamUtility.closeQuietly(snapshot);
             return null;
         }
 
@@ -321,7 +312,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
         catch (Exception e) {
             networkCount++;
-            snapshot.close();
+            StreamUtility.closeQuietly(snapshot);
             return null;
         }
         if (responseHeadersMap == null || cachedResponseBody == null) {
@@ -331,7 +322,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             catch (Exception e) {
             }
             networkCount++;
-            snapshot.close();
+            StreamUtility.closeQuietly(snapshot);
             return null;
         }
 
@@ -341,7 +332,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         long now = System.currentTimeMillis();
         ResponseSource responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
-        long contentLength = snapshot.getLength(ENTRY_BODY);
 
         if (responseSource == ResponseSource.CACHE) {
             data.request.logi("Response retrieved from cache");
@@ -381,7 +371,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             catch (Exception e) {
             }
             networkCount++;
-            snapshot.close();
+            StreamUtility.closeQuietly(snapshot);
             return null;
         }
     }
@@ -432,6 +422,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 abort();
             }
             finally {
+                bb.get(copy);
                 copy.get(bb);
             }
             
@@ -563,6 +554,27 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     }
     
 
+    class EntryEditor {
+        String key;
+        File[] temps;
+        public EntryEditor(String key) {
+            this.key = key;
+            temps = cache.getTempFiles(ENTRY_COUNT);
+        }
+
+        void commit() {
+            cache.commitTempFiles(key, temps);
+        }
+
+        FileOutputStream newOutputStream(int index) throws IOException {
+            return new FileOutputStream(temps[index]);
+        }
+
+        void abort() {
+
+        }
+    }
+
     // step 3) if this is a conditional cache request, serve it from the cache if necessary
     // otherwise, see if it is cacheable
     @Override
@@ -593,7 +605,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
             // did not validate, so fall through and cache the response
             data.state.remove("cache-data");
-            cacheData.snapshot.close();
+            StreamUtility.closeQuietly(cacheData.snapshot);
         }
         
         if (!caching)
@@ -610,17 +622,12 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return;
         }
 
-        String key = uriToKey(data.request.getUri());
+        String key = FileCache.toKeyString(data.request.getUri());
         RawHeaders varyHeaders = data.request.getHeaders().getHeaders().getAll(data.headers.getVaryFields());
         Entry entry = new Entry(data.request.getUri(), varyHeaders, data.request, data.headers);
-        DiskLruCache.Editor editor = null;
+        EntryEditor editor = editor = new EntryEditor(key);
         BodyCacher cacher = new BodyCacher();
         try {
-            editor = cache.edit(key);
-            if (editor == null) {
-                // Log.i(LOGTAG, "can't cache");
-                return;
-            }
             entry.writeTo(editor);
 
 
@@ -649,11 +656,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     public void onRequestComplete(OnRequestCompleteData data) {
         CacheData cacheData = data.state.getParcelable("cache-data");
         if (cacheData != null && cacheData.snapshot != null)
-            cacheData.snapshot.close();
+            StreamUtility.closeQuietly(cacheData.snapshot);
 
         CachedSocket cachedSocket = Util.getWrappedSocket(data.socket, CachedSocket.class);
         if (cachedSocket != null)
-            ((SnapshotCacheResponse)cachedSocket.cacheResponse).getSnapshot().close();
+            StreamUtility.closeQuietly(((SnapshotCacheResponse)cachedSocket.cacheResponse).getSnapshot());
 
         BodyCacher cacher = data.state.getParcelable("body-cacher");
         if (cacher != null) {
@@ -673,12 +680,12 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     int writeAbortCount;
     
     private final class CacheRequestImpl extends CacheRequest {
-        private final DiskLruCache.Editor editor;
+        private final EntryEditor editor;
         private OutputStream cacheOut;
         private boolean done;
         private OutputStream body;
 
-        public CacheRequestImpl(final DiskLruCache.Editor editor) throws IOException {
+        public CacheRequestImpl(final EntryEditor editor) throws IOException {
             this.editor = editor;
             this.cacheOut = editor.newOutputStream(ENTRY_BODY);
             this.body = new FilterOutputStream(cacheOut) {
@@ -716,10 +723,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
             catch (IOException e) {
             }
-            try {
-                editor.abort();
-            } catch (IOException ignored) {
-            }
+            editor.abort();
         }
 
         @Override public OutputStream getBody() throws IOException {
@@ -842,7 +846,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 //            }
         }
 
-        public void writeTo(DiskLruCache.Editor editor) throws IOException {
+        public void writeTo(EntryEditor editor) throws IOException {
             OutputStream out = editor.newOutputStream(ENTRY_METADATA);
             Writer writer = new BufferedWriter(new OutputStreamWriter(out, Charsets.UTF_8));
 
@@ -924,30 +928,30 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
      * Returns an input stream that reads the body of a snapshot, closing the
      * snapshot when the stream is closed.
      */
-    private static InputStream newBodyInputStream(final DiskLruCache.Snapshot snapshot) {
-        return new FilterInputStream(snapshot.getInputStream(ENTRY_BODY)) {
+    private static InputStream newBodyInputStream(final FileInputStream[] snapshot) {
+        return new FilterInputStream(snapshot[ENTRY_BODY]) {
             @Override public void close() throws IOException {
-                snapshot.close();
+                StreamUtility.closeQuietly(snapshot);
                 super.close();
             }
         };
     }
 
     static interface SnapshotCacheResponse {
-        public DiskLruCache.Snapshot getSnapshot();
+        public FileInputStream[] getSnapshot();
     }
 
     static class EntryCacheResponse extends CacheResponse implements SnapshotCacheResponse {
         private final Entry entry;
-        private final DiskLruCache.Snapshot snapshot;
+        private final FileInputStream[] snapshot;
         private final InputStream in;
 
         @Override
-        public DiskLruCache.Snapshot getSnapshot() {
+        public FileInputStream[] getSnapshot() {
             return snapshot;
         }
 
-        public EntryCacheResponse(Entry entry, DiskLruCache.Snapshot snapshot) {
+        public EntryCacheResponse(Entry entry, FileInputStream[] snapshot) {
             this.entry = entry;
             this.snapshot = snapshot;
             this.in = newBodyInputStream(snapshot);
@@ -964,16 +968,16 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
     static class EntrySecureCacheResponse extends SecureCacheResponse implements SnapshotCacheResponse {
         private final Entry entry;
-        private final DiskLruCache.Snapshot snapshot;
+        private final FileInputStream[] snapshot;
         private final InputStream in;
 
         @Override
-        public DiskLruCache.Snapshot getSnapshot() {
+        public FileInputStream[] getSnapshot() {
             return snapshot;
         }
 
 
-        public EntrySecureCacheResponse(Entry entry, DiskLruCache.Snapshot snapshot) {
+        public EntrySecureCacheResponse(Entry entry, FileInputStream[] snapshot) {
             this.entry = entry;
             this.snapshot = snapshot;
             this.in = newBodyInputStream(snapshot);
@@ -1023,7 +1027,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     
     public void clear() throws IOException {
         if (cache != null) {
-            cache.delete();
+            cache.clear();
             open();
         }
     }

@@ -598,6 +598,7 @@ public class AsyncServer {
             }
             catch (Exception e) {
                 Log.e(LOGTAG, "exception?", e);
+                throw new RuntimeException(e);
             }
             // see if we keep looping, this must be in a synchronized block since the queue is accessed.
             synchronized (server) {
