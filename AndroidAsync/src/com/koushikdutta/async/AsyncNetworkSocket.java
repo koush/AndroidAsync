@@ -76,10 +76,12 @@ public class AsyncNetworkSocket implements AsyncSocket {
         }
 
         try {
+            int before = list.remaining();
             ByteBuffer[] arr = list.getAllArray();
             mChannel.write(arr);
             list.addAll(arr);
             handleRemaining(list.remaining());
+            mServer.onDataSent(before - list.remaining());
         }
         catch (IOException e) {
             closeInternal();
@@ -119,8 +121,10 @@ public class AsyncNetworkSocket implements AsyncSocket {
 
             // keep writing until the the socket can't write any more, or the
             // data is exhausted.
+            int before = b.remaining();
             mChannel.write(b);
             handleRemaining(b.remaining());
+            mServer.onDataSent(before - b.remaining());
         }
         catch (IOException ex) {
             closeInternal();

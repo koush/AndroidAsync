@@ -249,7 +249,10 @@ public class AsyncServer {
         }
     }
     
-    protected void onDataTransmitted(int transmitted) {
+    protected void onDataReceived(int transmitted) {
+    }
+
+    protected void onDataSent(int transmitted) {
     }
 
     private static class ObjectHolder<T> {
@@ -736,7 +739,7 @@ public class AsyncServer {
                 else if (key.isReadable()) {
                     AsyncNetworkSocket handler = (AsyncNetworkSocket) key.attachment();
                     int transmitted = handler.onReadable();
-                    server.onDataTransmitted(transmitted);
+                    server.onDataReceived(transmitted);
                 }
                 else if (key.isWritable()) {
                     AsyncNetworkSocket handler = (AsyncNetworkSocket) key.attachment();
