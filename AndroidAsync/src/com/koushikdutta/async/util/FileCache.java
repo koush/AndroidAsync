@@ -174,6 +174,8 @@ public class FileCache {
             super.entryRemoved(evicted, key, oldValue, newValue);
             if (newValue != null)
                 return;
+            if (loading)
+                return;
             new File(directory, key).delete();
         }
     }
@@ -195,19 +197,26 @@ public class FileCache {
         }
     };
 
+    boolean loading;
     void load() {
-        File[] files = directory.listFiles();
-        if (files == null)
-            return;
-        ArrayList<File> list = new ArrayList<File>();
-        Collections.addAll(list, files);
-        Collections.sort(list, dateCompare);
+        loading = true;
+        try {
+            File[] files = directory.listFiles();
+            if (files == null)
+                return;
+            ArrayList<File> list = new ArrayList<File>();
+            Collections.addAll(list, files);
+            Collections.sort(list, dateCompare);
 
-        for (File file: list) {
-            String name = file.getName();
-            CacheEntry entry = new CacheEntry(file);
-            cache.put(name, entry);
-            cache.get(name);
+            for (File file: list) {
+                String name = file.getName();
+                CacheEntry entry = new CacheEntry(file);
+                cache.put(name, entry);
+                cache.get(name);
+            }
+        }
+        finally {
+            loading = false;
         }
     }
 
