@@ -205,6 +205,15 @@ server.get("/", new HttpServerRequestCallback() {
     }
 });
 
+// listen on port 5000
+server.listen(5000);
+// browsing http://localhost:5000 will return Hello!!!
+
+```
+
+### And WebSocket servers
+
+```java
 server.websocket("/live", new WebSocketRequestCallback() {
     @Override
     public void onConnected(final WebSocket webSocket, RequestHeaders headers) {
@@ -233,13 +242,11 @@ server.websocket("/live", new WebSocketRequestCallback() {
     
     }
 });
-// listen on port 5000
-server.listen(5000);
-// browsing http://localhost:5000 will return Hello!!!
 
 //..Sometime later, broadcast!
 for (WebSocket socket : _sockets)
     socket.send("Fireball!");
+```
 
 ### Futures
 
