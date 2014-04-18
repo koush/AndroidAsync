@@ -191,7 +191,7 @@ AsyncHttpClient.getDefaultInstance().execute(post, new StringCallback() {
 ```
 
 
-### AndroidAsync also let's you create simple HTTP servers (and websocket servers):
+### AndroidAsync also let's you create simple HTTP servers:
 
 ```java
 AsyncHttpServer server = new AsyncHttpServer();
@@ -211,7 +211,7 @@ server.listen(5000);
 
 ```
 
-### And WebSocket servers
+### And WebSocket Servers:
 
 ```java
 server.websocket("/live", new WebSocketRequestCallback() {
