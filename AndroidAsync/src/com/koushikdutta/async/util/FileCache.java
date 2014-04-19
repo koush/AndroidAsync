@@ -9,7 +9,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * Created by koush on 4/12/14.
@@ -247,6 +249,20 @@ public class FileCache {
     public void clear() {
         removeFiles(directory.listFiles());
         cache.evictAll();
+    }
+
+    public Set<String> keySet() {
+        HashSet<String> ret = new HashSet<String>();
+        File[] files = directory.listFiles();
+        if (files == null)
+            return ret;
+        for (File file: files) {
+            String name = file.getName();
+            int last = name.lastIndexOf('.');
+            if (last != -1)
+                ret.add(name.substring(0, last));
+        }
+        return ret;
     }
 
     public void setMaxSize(long maxSize) {

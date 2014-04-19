@@ -8,13 +8,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class SimpleFuture<T> extends SimpleCancellable implements DependentFuture<T> {
+    AsyncSemaphore waiter;
+    Exception exception;
+    T result;
+    boolean silent;
+    FutureCallback<T> callback;
+
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return cancel();
     }
 
-    @Override
-    public boolean cancel() {
+    private boolean cancelInternal(boolean silent) {
         if (!super.cancel())
             return false;
         // still need to release any pending waiters
@@ -23,12 +28,21 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
             exception = new CancellationException();
             releaseWaiterLocked();
             callback = handleCompleteLocked();
+            this.silent = silent;
         }
         handleCallbackUnlocked(callback);
         return true;
     }
 
-    AsyncSemaphore waiter;
+    public boolean cancelSilently() {
+        return cancelInternal(true);
+    }
+
+    @Override
+    public boolean cancel() {
+        return cancelInternal(silent);
+    }
+
     @Override
     public T get() throws InterruptedException, ExecutionException {
         AsyncSemaphore waiter;
@@ -40,7 +54,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         waiter.acquire();
         return getResult();
     }
-    
+
     private T getResult() throws ExecutionException {
         if (exception != null)
             throw new ExecutionException(exception);
@@ -59,7 +73,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
             throw new TimeoutException();
         return getResult();
     }
-    
+
     @Override
     public boolean setComplete() {
         return setComplete((T)null);
@@ -78,7 +92,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     private void handleCallbackUnlocked(FutureCallback<T> callback) {
-        if (callback != null)
+        if (callback != null && !silent)
             callback.onCompleted(exception, result);
     }
 
@@ -95,12 +109,10 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         return waiter;
     }
 
-    Exception exception;
     public boolean setComplete(Exception e) {
         return setComplete(e, null);
     }
 
-    T result;
     public boolean setComplete(T value) {
         return setComplete(null, value);
     }
@@ -134,7 +146,10 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         return this;
     }
 
-    FutureCallback<T> callback;
+    // TEST USE ONLY!
+    public FutureCallback<T> getCallback() {
+        return callback;
+    }
 
     @Override
     public SimpleFuture<T> setCallback(FutureCallback<T> callback) {
@@ -148,11 +163,6 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         }
         handleCallbackUnlocked(callback);
         return this;
-    }
-
-    // TEST USE ONLY!
-    public FutureCallback<T> getCallback() {
-        return callback;
     }
 
     @Override
@@ -180,6 +190,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         exception = null;
         waiter = null;
         callback = null;
+        silent = false;
 
         return this;
     }
