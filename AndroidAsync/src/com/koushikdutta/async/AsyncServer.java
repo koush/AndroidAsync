@@ -296,7 +296,7 @@ public class AsyncServer {
                         }
                     });
                 }
-                catch (Exception e) {
+                catch (IOException e) {
                     StreamUtility.closeQuietly(closeableWrapper, closeableServer);
                     handler.onCompleted(e);
                 }
@@ -341,15 +341,10 @@ public class AsyncServer {
                     ckey.attach(cancel);
                     socket.connect(address);
                 }
-                catch (Exception e) {
+                catch (IOException e) {
                     if (ckey != null)
                         ckey.cancel();
-                    try {
-                        if (socket != null)
-                            socket.close();
-                    }
-                    catch (Exception ignored) {
-                    }
+                    StreamUtility.closeQuietly(socket);
                     cancel.setComplete(e);
                 }
             }
@@ -440,8 +435,9 @@ public class AsyncServer {
                     handleSocket(handler);
                     socket.connect(remote);
                 }
-                catch (Exception e) {
+                catch (IOException e) {
                     Log.e(LOGTAG, "Datagram error", e);
+                    StreamUtility.closeQuietly(socket);
                 }
             }
         });
@@ -468,8 +464,9 @@ public class AsyncServer {
                     socket.socket().bind(address);
                     handleSocket(handler);
                 }
-                catch (Exception e) {
+                catch (IOException e) {
                     Log.e(LOGTAG, "Datagram error", e);
+                    StreamUtility.closeQuietly(socket);
                 }
             }
         });
@@ -490,7 +487,8 @@ public class AsyncServer {
                     handleSocket(handler);
                     socket.connect(remote);
                 }
-                catch (Exception e) {
+                catch (IOException e) {
+                    StreamUtility.closeQuietly(socket);
                 }
             }
         });
@@ -575,8 +573,11 @@ public class AsyncServer {
             try {
                 runLoop(this, selector, queue, false);
             }
+            catch (ClosedSelectorException e) {
+            }
             catch (Exception e) {
                 Log.e(LOGTAG, "exception?", e);
+                throw new RuntimeException(e);
             }
             return;
         }
@@ -626,11 +627,7 @@ public class AsyncServer {
     private static void shutdownKeys(SelectorWrapper selector) {
         try {
             for (SelectionKey key: selector.keys()) {
-                try {
-                    key.channel().close();
-                }
-                catch (Exception e) {
-                }
+                StreamUtility.closeQuietly(key.channel());
                 try {
                     key.cancel();
                 }
@@ -720,7 +717,7 @@ public class AsyncServer {
 
         // process whatever keys are ready
         Set<SelectionKey> readyKeys = selector.selectedKeys();
-        for (SelectionKey key : readyKeys) {
+        for (SelectionKey key: readyKeys) {
             try {
                 if (key.isAcceptable()) {
                     ServerSocketChannel nextReady = (ServerSocketChannel) key.channel();
@@ -758,7 +755,7 @@ public class AsyncServer {
                         if (cancel.setComplete(newHandler))
                             cancel.callback.onConnectCompleted(null, newHandler);
                     }
-                    catch (Exception ex) {
+                    catch (IOException ex) {
                         key.cancel();
                         sc.close();
                         if (cancel.setComplete(ex))
@@ -767,13 +764,10 @@ public class AsyncServer {
                 }
                 else {
                     Log.i(LOGTAG, "wtf");
-                    assert false;
+                    throw new RuntimeException("Unknown key state.");
                 }
             }
             catch (CancelledKeyException ex) {
-            }
-            catch (Exception ex) {
-                Log.e(LOGTAG, "inner loop exception", ex);
             }
         }
         readyKeys.clear();
