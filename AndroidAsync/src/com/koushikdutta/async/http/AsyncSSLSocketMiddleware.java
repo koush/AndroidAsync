@@ -51,7 +51,8 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                         callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, hostnameVerifier, true));
                     }
                     else {
-                        System.out.println("requsting SSL PROXY: " + uri.getHost());
+                        // this SSL connection is proxied, must issue a CONNECT request to the proxy server
+                        // http://stackoverflow.com/a/6594880/704837
                         RawHeaders connect = new RawHeaders();
                         connect.setStatusLine(String.format("CONNECT %s:%s HTTP/1.1", uri.getHost(), port));
                         Util.writeAll(socket, connect.toHeaderString().getBytes(), new CompletedCallback() {
