@@ -51,7 +51,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
     AsyncHttpClient mClient;
 
-    protected ConnectCallback wrapCallback(ConnectCallback callback, URI uri, int port) {
+    protected ConnectCallback wrapCallback(ConnectCallback callback, URI uri, int port, boolean proxied) {
         return callback;
     }
 
@@ -166,23 +166,26 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             data.request.logd("Connecting socket");
             String unresolvedHost;
             int unresolvedPort;
+            boolean proxied = false;
             if (data.request.getProxyHost() != null) {
                 unresolvedHost = data.request.getProxyHost();
                 unresolvedPort = data.request.getProxyPort();
                 // set the host and port explicitly for proxied connections
                 data.request.getHeaders().getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
+                proxied = true;
             }
             else if (proxyHost != null) {
                 unresolvedHost = proxyHost;
                 unresolvedPort = proxyPort;
                 // set the host and port explicitly for proxied connections
                 data.request.getHeaders().getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
+                proxied = true;
             }
             else {
                 unresolvedHost = uri.getHost();
                 unresolvedPort = port;
             }
-            return mClient.getServer().connectSocket(unresolvedHost, unresolvedPort, wrapCallback(data.connectCallback, uri, port));
+            return mClient.getServer().connectSocket(unresolvedHost, unresolvedPort, wrapCallback(data.connectCallback, uri, port, proxied));
         }
 
         // try to connect to everything...
@@ -241,7 +244,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                                         data.connectCallback.onConnectCompleted(ex, socket);
                                     }
                                 }
-                            }, uri, port));
+                            }, uri, port, false));
                         }
                     });
                 }
