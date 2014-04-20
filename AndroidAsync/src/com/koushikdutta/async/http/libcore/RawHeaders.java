@@ -17,6 +17,8 @@ package com.koushikdutta.async.http.libcore;
  *  limitations under the License.
  */
 
+import android.text.TextUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -296,5 +298,22 @@ public final class RawHeaders {
             }
         }
         return result;
+    }
+
+    public static RawHeaders parse(String payload) {
+        String[] lines = payload.split("\n");
+
+        RawHeaders headers = new RawHeaders();
+        for (String line: lines) {
+            line = line.trim();
+            if (TextUtils.isEmpty(line))
+                continue;
+
+            if (headers.getStatusLine() == null)
+                headers.setStatusLine(line);
+            else
+                headers.addLine(line);
+        }
+        return headers;
     }
 }

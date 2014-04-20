@@ -2,6 +2,7 @@ package com.koushikdutta.async;
 
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -52,12 +53,7 @@ public class FileDataEmitter extends DataEmitterBase {
 
     @Override
     protected void report(Exception e) {
-        try {
-            channel.close();
-        }
-        catch (Exception ex) {
-            e = ex;
-        }
+        StreamUtility.closeQuietly(channel);
         super.report(e);
     }
 

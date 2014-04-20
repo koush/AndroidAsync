@@ -98,7 +98,15 @@ public class AsyncServer {
         return mSelector != null;
     }
 
+    String mName;
     public AsyncServer() {
+        this(null);
+    }
+
+    public AsyncServer(String name) {
+        if (name == null)
+            name = "AsyncServer";
+        mName = name;
     }
 
     private void handleSocket(final AsyncNetworkSocket handler) throws ClosedChannelException {
@@ -539,7 +547,7 @@ public class AsyncServer {
                     return;
                 }
                 if (newThread) {
-                    mAffinity = new Thread("AsyncServer") {
+                    mAffinity = new Thread(mName) {
                         public void run() {
                             AsyncServer.run(AsyncServer.this, selector, queue, keepRunning);
                         }
