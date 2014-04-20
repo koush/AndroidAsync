@@ -54,6 +54,7 @@ public class FileCache {
         }
     }
 
+    boolean loadAsync;
     Random random = new Random();
     public File getTempFile() {
         File f;
@@ -168,7 +169,7 @@ public class FileCache {
 
         @Override
         protected long sizeOf(String key, CacheEntry value) {
-            return value.size;
+            return Math.max(4096L, value.size);
         }
 
         @Override
@@ -222,13 +223,7 @@ public class FileCache {
         }
     }
 
-    public FileCache(File directory, long size, boolean loadAsync) {
-        this.directory = directory;
-        this.size = size;
-        cache = new InternalCache();
-
-        directory.mkdirs();
-
+    private void doLoad() {
         if (loadAsync) {
             new Thread() {
                 @Override
@@ -240,6 +235,16 @@ public class FileCache {
         else {
             load();
         }
+    }
+
+    public FileCache(File directory, long size, boolean loadAsync) {
+        this.directory = directory;
+        this.size = size;
+        this.loadAsync = loadAsync;
+        cache = new InternalCache();
+
+        directory.mkdirs();
+        doLoad();
     }
 
     public long size() {
@@ -267,5 +272,6 @@ public class FileCache {
 
     public void setMaxSize(long maxSize) {
         cache.setMaxSize(maxSize);
+        doLoad();
     }
 }

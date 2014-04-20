@@ -9,9 +9,14 @@ import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.IllegalFormatCodePointException;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -121,7 +126,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                     addToPending(transformed);
                     Util.emitAllData(AsyncSSLSocketWrapper.this, transformed);
                 }
-                catch (Exception ex) {
+                catch (SSLException ex) {
                     ex.printStackTrace();
                     report(ex);
                 }
@@ -237,7 +242,10 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             trusted = true;
                             break;
                         }
-                        catch (Exception ex) {
+                        catch (GeneralSecurityException ex) {
+                            ex.printStackTrace();
+                        }
+                        catch (SSLException ex) {
                             ex.printStackTrace();
                         }
                     }
@@ -254,7 +262,13 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 mEmitter.onDataAvailable();
             }
         }
-        catch (Exception ex) {
+        catch (NoSuchAlgorithmException ex) {
+            throw new RuntimeException(ex);
+        }
+        catch (GeneralSecurityException ex) {
+            report(ex);
+        }
+        catch (AsyncSSLException ex) {
             report(ex);
         }
     }
