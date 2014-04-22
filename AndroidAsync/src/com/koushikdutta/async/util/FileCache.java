@@ -162,6 +162,11 @@ public class FileCache {
         return new File(directory, getPartName(key, part));
     }
 
+    long blockSize = 4096;
+    public void setBlockSize(long blockSize) {
+        this.blockSize = blockSize;
+    }
+
     class InternalCache extends LruCache<String, CacheEntry> {
         public InternalCache() {
             super(size);
@@ -169,7 +174,7 @@ public class FileCache {
 
         @Override
         protected long sizeOf(String key, CacheEntry value) {
-            return Math.max(4096L, value.size);
+            return Math.max(blockSize, value.size);
         }
 
         @Override

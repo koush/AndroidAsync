@@ -26,6 +26,7 @@ public class FileCacheTests extends AndroidTestCase {
 
     public void testSimple() throws Exception {
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 100000, false);
+        cache.setBlockSize(1);
 
         File temp = cache.getTempFile();
         StreamUtility.writeFile(temp, "hello");
@@ -38,6 +39,7 @@ public class FileCacheTests extends AndroidTestCase {
 
     public void testEviction() throws Exception {
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 25, false);
+        cache.setBlockSize(1);
 
         for (int i = 0; i < 10; i++) {
             File temp = cache.getTempFile();
@@ -59,6 +61,7 @@ public class FileCacheTests extends AndroidTestCase {
 
     public void testMultipleParts() throws Exception {
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 100000, false);
+        cache.setBlockSize(1);
         File[] temps = new File[10];
         for (int i = 0; i < temps.length; i++) {
             File temp = temps[i] = cache.getTempFile();
@@ -78,6 +81,7 @@ public class FileCacheTests extends AndroidTestCase {
 
     public void testMultipartEviction() throws Exception {
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 12, false);
+        cache.setBlockSize(1);
         File[] temps = new File[10];
         for (int i = 0; i < temps.length; i++) {
             File temp = temps[i] = cache.getTempFile();
@@ -105,6 +109,7 @@ public class FileCacheTests extends AndroidTestCase {
 
     public void testMultipartEvictionAgain() throws Exception {
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 72, false);
+        cache.setBlockSize(1);
         File[] temps = new File[10];
         for (int i = 0; i < temps.length; i++) {
             File temp = temps[i] = cache.getTempFile();
@@ -146,6 +151,7 @@ public class FileCacheTests extends AndroidTestCase {
 
     public void testReinit() throws Exception {
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 10, false);
+        cache.setBlockSize(1);
         File temp = cache.getTempFile();
         StreamUtility.writeFile(temp, "hello");
         cache.commitTempFiles("test", temp);
@@ -157,6 +163,7 @@ public class FileCacheTests extends AndroidTestCase {
         assertEquals(cache.size(), 10);
 
         cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 10, false);
+        cache.setBlockSize(1);
 
         String value = StreamUtility.readToEnd(cache.get("test"));
         assertEquals(value, "hello");
@@ -167,6 +174,7 @@ public class FileCacheTests extends AndroidTestCase {
 
     public void testCacheOrder() throws Exception {
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 10, false);
+        cache.setBlockSize(1);
         File temp = cache.getTempFile();
         StreamUtility.writeFile(temp, "hello");
         cache.commitTempFiles("test", temp);

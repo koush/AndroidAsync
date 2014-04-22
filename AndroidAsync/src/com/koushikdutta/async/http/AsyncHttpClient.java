@@ -535,7 +535,7 @@ public class AsyncHttpClient {
         return ret;
     }
 
-    private <T> SimpleFuture<T> execute(AsyncHttpRequest req, final AsyncParser<T> parser, final RequestCallback<T> callback) {
+    public <T> SimpleFuture<T> execute(AsyncHttpRequest req, final AsyncParser<T> parser, final RequestCallback<T> callback) {
         final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
         final SimpleFuture<T> ret = new SimpleFuture<T>();
         execute(req, 0, cancel, new HttpConnectCallback() {
