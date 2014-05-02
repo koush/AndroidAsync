@@ -109,6 +109,7 @@ public class AsyncHttpClient {
 
     private void reportConnectedCompleted(FutureAsyncHttpResponse cancel, Exception ex, AsyncHttpResponseImpl response, AsyncHttpRequest request, final HttpConnectCallback callback) {
         assert callback != null;
+        mServer.removeAllCallbacks(cancel.scheduled);
         boolean complete;
         if (ex != null) {
             request.loge("Connection error", ex);
