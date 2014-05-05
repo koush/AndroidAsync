@@ -15,9 +15,11 @@ import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
+import com.koushikdutta.async.util.StreamUtility;
 
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -214,7 +216,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     @Override
-    public void sendStream(InputStream inputStream, long totalLength) {
+    public void sendStream(final InputStream inputStream, long totalLength) {
         long start = 0;
         long end = totalLength - 1;
 
@@ -264,6 +266,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             Util.pump(inputStream, mContentLength, this, new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
+                    StreamUtility.closeQuietly(inputStream);
                     onEnd();
                 }
             });
@@ -280,7 +283,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             if (mRawHeaders.get("Content-Type") == null)
                 mRawHeaders.set("Content-Type", AsyncHttpServer.getContentType(file.getAbsolutePath()));
             FileInputStream fin = new FileInputStream(file);
-            sendStream(fin, file.length());
+            sendStream(new BufferedInputStream(fin, 64000), file.length());
         }
         catch (Exception e) {
             responseCode(404);
