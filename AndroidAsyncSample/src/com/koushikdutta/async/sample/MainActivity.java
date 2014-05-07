@@ -88,6 +88,15 @@ public class MainActivity extends Activity {
         });
         return true;
     }
+    
+    private void assignImageView(final ImageView iv, final BitmapDrawable bd) {
+        iv.getHandler().post(new Runnable() {
+          @Override
+          public void run() {
+              iv.setImageDrawable(bd);
+          }
+        });
+    }
 
     private void getFile(final ImageView iv, String url, final String filename) {
         AsyncHttpClient.getDefaultInstance().executeFile(new AsyncHttpGet(url), filename, new AsyncHttpClient.FileCallback() {
@@ -102,7 +111,7 @@ public class MainActivity extends Activity {
                 if (bitmap == null)
                     return;
                 BitmapDrawable bd = new BitmapDrawable(bitmap);
-                iv.setImageDrawable(bd);
+                assignImageView(iv, bd);
             }
         });
     }
@@ -132,7 +141,7 @@ public class MainActivity extends Activity {
                     if (bitmap == null)
                         return;
                     BitmapDrawable bd = new BitmapDrawable(bitmap);
-                    iv.setImageDrawable(bd);
+                    assignImageView(iv, bd);
                 }
             });
         }
