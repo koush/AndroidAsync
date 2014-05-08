@@ -129,7 +129,7 @@ AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocket
             public void onDataAvailable(ByteBufferList byteBufferList) {
                 System.out.println("I got some bytes!");
                 // note that this data has been read
-                byteBufferList.clear();
+                byteBufferList.recycle();
             }
         });
     }
