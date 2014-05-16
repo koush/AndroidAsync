@@ -142,7 +142,8 @@ public class WebSocketImpl implements WebSocket {
             headers.set("Sec-WebSocket-Protocol", protocol);
         headers.set("Pragma", "no-cache");
         headers.set("Cache-Control", "no-cache");
-        req.getHeaders().setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.15 Safari/537.36");
+        if (TextUtils.isEmpty(req.getHeaders().getUserAgent()))
+            req.getHeaders().setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.15 Safari/537.36");
     }
     
     public WebSocketImpl(AsyncSocket socket) {
