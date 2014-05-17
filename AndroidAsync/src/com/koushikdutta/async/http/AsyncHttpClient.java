@@ -548,7 +548,7 @@ public class AsyncHttpClient {
                 }
                 invokeConnect(callback, response);
 
-                final int contentLength = response.getHeaders().getContentLength();
+                final long contentLength = response.getHeaders().getContentLength();
 
                 Future<T> parsed = parser.parse(response)
                 .setCallback(new FutureCallback<T>() {
