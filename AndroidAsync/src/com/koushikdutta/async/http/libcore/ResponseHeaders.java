@@ -105,7 +105,7 @@ public final class ResponseHeaders {
 
     private String contentEncoding;
     private String transferEncoding;
-    private int contentLength = -1;
+    private long contentLength = -1;
     private String connection;
     private String proxyAuthenticate;
     private String wwwAuthenticate;
@@ -165,7 +165,7 @@ public final class ResponseHeaders {
                 transferEncoding = value;
             } else if ("Content-Length".equalsIgnoreCase(fieldName)) {
                 try {
-                    contentLength = Integer.parseInt(value);
+                    contentLength = Long.parseLong(value);
                 } catch (NumberFormatException ignored) {
                 }
             } else if ("Connection".equalsIgnoreCase(fieldName)) {
@@ -255,7 +255,7 @@ public final class ResponseHeaders {
         return contentEncoding;
     }
 
-    public int getContentLength() {
+    public long getContentLength() {
         return contentLength;
     }
 

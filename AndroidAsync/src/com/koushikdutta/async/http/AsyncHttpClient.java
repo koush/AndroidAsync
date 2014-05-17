@@ -385,7 +385,7 @@ public class AsyncHttpClient {
 
     public static abstract class RequestCallbackBase<T> implements RequestCallback<T> {
         @Override
-        public void onProgress(AsyncHttpResponse response, int downloaded, int total) {
+        public void onProgress(AsyncHttpResponse response, long downloaded, long total) {
         }
         @Override
         public void onConnect(AsyncHttpResponse response) {
@@ -445,7 +445,7 @@ public class AsyncHttpClient {
         mServer.post(runnable);
     }
 
-    private void invokeProgress(final RequestCallback callback, final AsyncHttpResponse response, final int downloaded, final int total) {
+    private void invokeProgress(final RequestCallback callback, final AsyncHttpResponse response, final long downloaded, final long total) {
         if (callback != null)
             callback.onProgress(response, downloaded, total);
     }
@@ -487,7 +487,7 @@ public class AsyncHttpClient {
         };
         ret.setParent(cancel);
         execute(req, 0, cancel, new HttpConnectCallback() {
-            int mDownloaded = 0;
+            long mDownloaded = 0;
 
             @Override
             public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
@@ -503,7 +503,7 @@ public class AsyncHttpClient {
                 }
                 invokeConnect(callback, response);
 
-                final int contentLength = response.getHeaders().getContentLength();
+                final long contentLength = response.getHeaders().getContentLength();
 
                 response.setDataCallback(new OutputStreamDataCallback(fout) {
                     @Override
@@ -548,7 +548,7 @@ public class AsyncHttpClient {
                 }
                 invokeConnect(callback, response);
 
-                final int contentLength = response.getHeaders().getContentLength();
+                final long contentLength = response.getHeaders().getContentLength();
 
                 Future<T> parsed = parser.parse(response)
                 .setCallback(new FutureCallback<T>() {
