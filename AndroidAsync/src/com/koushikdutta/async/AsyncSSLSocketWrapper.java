@@ -225,6 +225,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         trustManagers = tmf.getTrustManagers();
                     }
                     boolean trusted = false;
+                    Exception peerUnverifiedCause = null;
                     for (TrustManager tm : trustManagers) {
                         try {
                             X509TrustManager xtm = (X509TrustManager) tm;
@@ -243,15 +244,15 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             break;
                         }
                         catch (GeneralSecurityException ex) {
-                            ex.printStackTrace();
+                            peerUnverifiedCause = ex;
                         }
                         catch (SSLException ex) {
-                            ex.printStackTrace();
+                            peerUnverifiedCause = ex;
                         }
                     }
                     finishedHandshake = true;
                     if (!trusted) {
-                        AsyncSSLException e = new AsyncSSLException();
+                        AsyncSSLException e = new AsyncSSLException(peerUnverifiedCause);
                         report(e);
                         if (!e.getIgnore())
                             throw e;
