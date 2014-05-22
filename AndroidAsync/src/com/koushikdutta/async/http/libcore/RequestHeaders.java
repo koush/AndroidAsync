@@ -16,7 +16,8 @@
 
 package com.koushikdutta.async.http.libcore;
 
-import java.net.URI;
+import android.net.Uri;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,7 @@ import java.util.Map;
  * Parsed HTTP request headers.
  */
 public final class RequestHeaders {
-    private final URI uri;
+    private final Uri uri;
     private final RawHeaders headers;
 
     /** Don't use a cache to satisfy this request. */
@@ -61,7 +62,7 @@ public final class RequestHeaders {
     private String ifNoneMatch;
     private String proxyAuthorization;
 
-    public RequestHeaders(URI uri, RawHeaders headers) {
+    public RequestHeaders(Uri uri, RawHeaders headers) {
         this.uri = uri;
         this.headers = headers;
 
@@ -127,7 +128,7 @@ public final class RequestHeaders {
         return "close".equalsIgnoreCase(connection);
     }
 
-    public URI getUri() {
+    public Uri getUri() {
         return uri;
     }
 

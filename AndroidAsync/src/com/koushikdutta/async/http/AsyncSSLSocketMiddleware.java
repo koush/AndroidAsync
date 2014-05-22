@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import android.net.Uri;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLException;
@@ -42,7 +43,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
     }
 
     @Override
-    protected ConnectCallback wrapCallback(final ConnectCallback callback, final URI uri, final int port, final boolean proxied) {
+    protected ConnectCallback wrapCallback(final ConnectCallback callback, final Uri uri, final int port, final boolean proxied) {
         return new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, final AsyncSocket socket) {

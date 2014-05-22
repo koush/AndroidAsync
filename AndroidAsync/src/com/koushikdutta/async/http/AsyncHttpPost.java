@@ -1,16 +1,15 @@
 package com.koushikdutta.async.http;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import android.net.Uri;
 
 public class AsyncHttpPost extends AsyncHttpRequest {
     public static final String METHOD = "POST";
     
     public AsyncHttpPost(String uri) {
-        this(URI.create(uri));
+        this(Uri.parse(uri));
     }
 
-    public AsyncHttpPost(URI uri) {
+    public AsyncHttpPost(Uri uri) {
         super(uri, METHOD);
     }
 }

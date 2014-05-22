@@ -1,15 +1,15 @@
 package com.koushikdutta.async.http;
 
-import java.net.URI;
+import android.net.Uri;
 
 public class AsyncHttpGet extends AsyncHttpRequest {
     public static final String METHOD = "GET";
     
     public AsyncHttpGet(String uri) {
-        super(URI.create(uri), METHOD);
+        super(Uri.parse(uri), METHOD);
     }
 
-    public AsyncHttpGet(URI uri) {
+    public AsyncHttpGet(Uri uri) {
         super(uri, METHOD);
     }
 }

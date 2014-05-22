@@ -16,6 +16,8 @@
 
 package com.koushikdutta.async.http.libcore;
 
+import android.net.Uri;
+
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Collections;
@@ -37,7 +39,7 @@ public final class ResponseHeaders {
     /** HTTP header name for the local time when the response was received. */
     private static final String RECEIVED_MILLIS = "X-Android-Received-Millis";
 
-    private final URI uri;
+    private final Uri uri;
     private final RawHeaders headers;
 
     /** The server's time when this response was served, if known. */
@@ -110,7 +112,7 @@ public final class ResponseHeaders {
     private String proxyAuthenticate;
     private String wwwAuthenticate;
 
-    public ResponseHeaders(URI uri, RawHeaders headers) {
+    public ResponseHeaders(Uri uri, RawHeaders headers) {
         this.uri = uri;
         this.headers = headers;
 
@@ -199,7 +201,7 @@ public final class ResponseHeaders {
         return "close".equalsIgnoreCase(connection);
     }
 
-    public URI getUri() {
+    public Uri getUri() {
         return uri;
     }
 
@@ -305,7 +307,7 @@ public final class ResponseHeaders {
             long servedMillis = servedDate != null ? servedDate.getTime() : receivedResponseMillis;
             long delta = expires.getTime() - servedMillis;
             return delta > 0 ? delta : 0;
-        } else if (lastModified != null && uri.getRawQuery() == null) {
+        } else if (lastModified != null && uri.getEncodedQuery() == null) {
             /*
              * As recommended by the HTTP RFC and implemented in Firefox, the
              * max age of a document should be defaulted to 10% of the

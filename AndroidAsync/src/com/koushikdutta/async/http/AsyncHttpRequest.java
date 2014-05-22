@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import android.net.Uri;
 import android.util.Log;
 
 import com.koushikdutta.async.AsyncSSLException;
@@ -39,10 +40,10 @@ public class AsyncHttpRequest {
             
             @Override
             public String toString() {
-                String path = AsyncHttpRequest.this.getUri().getRawPath();
+                String path = AsyncHttpRequest.this.getUri().getEncodedPath();
                 if (path == null || path.length() == 0)
                     path = "/";
-                String query = AsyncHttpRequest.this.getUri().getRawQuery();
+                String query = AsyncHttpRequest.this.getUri().getEncodedQuery();
                 if (query != null && query.length() != 0) {
                     path += "?" + query;
                 }
@@ -93,11 +94,11 @@ public class AsyncHttpRequest {
         return this;
     }
 
-    public AsyncHttpRequest(URI uri, String method) {
+    public AsyncHttpRequest(Uri uri, String method) {
         this(uri, method, null);
     }
 
-    public static void setDefaultHeaders(RawHeaders ret, URI uri) {
+    public static void setDefaultHeaders(RawHeaders ret, Uri uri) {
         if (uri != null) {
             String host = uri.getHost();
             if (uri.getPort() != -1)
@@ -111,7 +112,7 @@ public class AsyncHttpRequest {
         ret.set("Accept", "*/*");
     }
 
-    public AsyncHttpRequest(URI uri, String method, RawHeaders headers) {
+    public AsyncHttpRequest(Uri uri, String method, RawHeaders headers) {
         assert uri != null;
         mMethod = method;
         if (headers == null)
@@ -124,7 +125,7 @@ public class AsyncHttpRequest {
         mRawHeaders.setStatusLine(getRequestLine().toString());
     }
 
-    public URI getUri() {
+    public Uri getUri() {
         return mHeaders.getUri();
     }
     
@@ -172,7 +173,7 @@ public class AsyncHttpRequest {
     }
     
     public static AsyncHttpRequest create(HttpRequest request) {
-        AsyncHttpRequest ret = new AsyncHttpRequest(URI.create(request.getRequestLine().getUri()), request.getRequestLine().getMethod());
+        AsyncHttpRequest ret = new AsyncHttpRequest(Uri.parse(request.getRequestLine().getUri()), request.getRequestLine().getMethod());
         for (Header header: request.getAllHeaders()) {
             ret.getHeaders().getHeaders().add(header.getName(), header.getValue());
         }

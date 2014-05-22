@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import android.net.Uri;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLException;
@@ -81,7 +82,7 @@ public class AsyncHttpClient {
     }
 
     public Future<AsyncHttpResponse> execute(String uri, final HttpConnectCallback callback) {
-        return execute(new AsyncHttpGet(URI.create(uri)), callback);
+        return execute(new AsyncHttpGet(uri), callback);
     }
 
     private static final String LOGTAG = "AsyncHttp";
@@ -164,7 +165,7 @@ public class AsyncHttpClient {
             reportConnectedCompleted(cancel, new RedirectLimitExceededException("too many redirects"), null, request, callback);
             return;
         }
-        final URI uri = request.getUri();
+        final Uri uri = request.getUri();
         final OnRequestCompleteData data = new OnRequestCompleteData();
         request.executionTime = System.currentTimeMillis();
         data.request = request;
@@ -259,10 +260,10 @@ public class AsyncHttpClient {
                         int responseCode = headers.getResponseCode();
                         if ((responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == 307) && request.getFollowRedirect()) {
                             String location = headers.get("Location");
-                            URI redirect = URI.create(location);
+                            Uri redirect = Uri.parse(location);
                             if (redirect == null || redirect.getScheme() == null) {
                                 try {
-                                    redirect = new URL(uri.toURL(), location).toURI();
+                                    redirect = Uri.parse(new URL(new URL(uri.toString()), location).toString());
                                 }
                                 catch (Exception e) {
                                     reportConnectedCompleted(cancel, e, this, request, callback);

@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http;
 
+import android.net.Uri;
 import android.util.Base64;
 
 import com.koushikdutta.async.AsyncSSLSocket;
@@ -545,7 +546,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
         }
 
-        public Entry(URI uri, RawHeaders varyHeaders, AsyncHttpRequest request, ResponseHeaders responseHeaders) {
+        public Entry(Uri uri, RawHeaders varyHeaders, AsyncHttpRequest request, ResponseHeaders responseHeaders) {
             this.uri = uri.toString();
             this.varyHeaders = varyHeaders;
             this.requestMethod = request.getMethod();
@@ -637,7 +638,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
         }
 
-        public boolean matches(URI uri, String requestMethod,
+        public boolean matches(Uri uri, String requestMethod,
                 Map<String, List<String>> requestHeaders) {
             return this.uri.equals(uri.toString())
                     && this.requestMethod.equals(requestMethod)

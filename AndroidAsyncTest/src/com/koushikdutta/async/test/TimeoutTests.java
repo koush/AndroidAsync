@@ -1,5 +1,6 @@
 package com.koushikdutta.async.test;
 
+import android.net.Uri;
 import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
@@ -60,7 +61,7 @@ public class TimeoutTests extends TestCase {
     }
 
     public void testTimeout() throws Exception {
-        AsyncHttpRequest req = new AsyncHttpRequest(URI.create("http://localhost:5000/3"), "GET");
+        AsyncHttpRequest req = new AsyncHttpRequest(Uri.parse("http://localhost:5000/3"), "GET");
         req.setTimeout(1000);
         try {
             AsyncHttpClient.getDefaultInstance().executeString(req, null).get();
@@ -71,18 +72,18 @@ public class TimeoutTests extends TestCase {
             assertTrue(e.getCause() instanceof TimeoutException);
         }
 
-        req = new AsyncHttpRequest(URI.create("http://localhost:5000/3"), "GET");
+        req = new AsyncHttpRequest(Uri.parse("http://localhost:5000/3"), "GET");
         assertEquals("3", AsyncHttpClient.getDefaultInstance().executeString(req, null).get());
     }
 
     public void testSlowBody() throws Exception {
-        AsyncHttpRequest req = new AsyncHttpRequest(URI.create("http://localhost:5000/now"), "POST");
+        AsyncHttpRequest req = new AsyncHttpRequest(Uri.parse("http://localhost:5000/now"), "POST");
         req.setTimeout(1000);
         req.setLogging("slowbody", Log.VERBOSE);
         req.setBody(new DelayedStringBody("foo"));
         assertEquals("foo", AsyncHttpClient.getDefaultInstance().executeString(req, null).get());
 
-        req = new AsyncHttpRequest(URI.create("http://localhost:5000/3"), "GET");
+        req = new AsyncHttpRequest(Uri.parse("http://localhost:5000/3"), "GET");
         req.setLogging("slowbody", Log.VERBOSE);
         req.setTimeout(100);
         req.setBody(new DelayedStringBody("foo"));
