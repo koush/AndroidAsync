@@ -17,7 +17,6 @@ import com.koushikdutta.async.future.TransformFuture;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.util.Hashtable;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
@@ -144,7 +143,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
             while (!info.sockets.isEmpty()) {
                 IdleSocketHolder idleSocketHolder = info.sockets.pop();
-                AsyncSocket socket = idleSocketHolder.socket;
+                final AsyncSocket socket = idleSocketHolder.socket;
                 if (idleSocketHolder.idleTime + idleTimeoutMs < System.currentTimeMillis()) {
                     socket.close();
                     continue;
@@ -152,7 +151,6 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 if (!socket.isOpen())
                     continue;
 
-                // use this or the above?
                 data.request.logd("Reusing keep-alive socket");
                 data.connectCallback.onConnectCompleted(null, socket);
 
@@ -362,7 +360,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 data.socket.close();
                 return;
             }
-            if (!HttpUtil.isKeepAlive(data.headers.getHeaders())) {
+            if (!HttpUtil.isKeepAlive(data.headers.getHeaders()) || !HttpUtil.isKeepAlive(data.request.getHeaders().getHeaders())) {
                 data.request.logv("closing out socket (not keep alive)");
                 data.socket.close();
                 return;
