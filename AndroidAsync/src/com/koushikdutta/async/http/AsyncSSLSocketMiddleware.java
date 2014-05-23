@@ -95,8 +95,8 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                                 socket.setEndCallback(new CompletedCallback() {
                                     @Override
                                     public void onCompleted(Exception ex) {
-                                        if (!socket.isOpen())
-                                            ex = new IOException("socket closed before proxy connect response", ex);
+                                        if (!socket.isOpen() && ex == null)
+                                            ex = new IOException("socket closed before proxy connect response");
                                         callback.onConnectCompleted(ex, socket);
                                     }
                                 });
