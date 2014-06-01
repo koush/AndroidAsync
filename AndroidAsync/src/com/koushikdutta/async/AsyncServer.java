@@ -224,7 +224,9 @@ public class AsyncServer {
 //        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
         final SelectorWrapper currentSelector;
         final Semaphore semaphore;
+        final boolean isAffinityThread;
         synchronized (this) {
+            isAffinityThread = isAffinityThread();
             currentSelector = mSelector;
             if (currentSelector == null)
                 return;
@@ -251,7 +253,8 @@ public class AsyncServer {
             mAffinity = null;
         }
         try {
-            semaphore.acquire();
+            if (!isAffinityThread)
+                semaphore.acquire();
         }
         catch (Exception e) {
         }

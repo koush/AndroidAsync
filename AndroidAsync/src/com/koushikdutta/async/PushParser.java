@@ -360,7 +360,6 @@ public class PushParser implements DataCallback {
                     "}\n";
 
         //null != "AndroidAsync: tap callback could not be found. Proguard? Use this in your proguard config:\n" + fail;
-        assert false;
-        return null;
+        throw new AssertionError(fail);
     }
 }
