@@ -42,6 +42,12 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         this.hostnameVerifier = hostnameVerifier;
     }
 
+    String[] enabledProtocols;
+
+    public void setEnabledProtocols(String[] enabledProtocols) {
+        this.enabledProtocols = enabledProtocols;
+    }
+
     @Override
     protected ConnectCallback wrapCallback(final ConnectCallback callback, final Uri uri, final int port, final boolean proxied) {
         return new ConnectCallback() {
@@ -49,7 +55,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             public void onConnectCompleted(Exception ex, final AsyncSocket socket) {
                 if (ex == null) {
                     if (!proxied) {
-                        callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, hostnameVerifier, true));
+                        callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, hostnameVerifier, true, enabledProtocols));
                     }
                     else {
                         // this SSL connection is proxied, must issue a CONNECT request to the proxy server
@@ -81,7 +87,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                                             socket.setDataCallback(null);
                                             socket.setEndCallback(null);
                                             if (TextUtils.isEmpty(s.trim())) {
-                                                callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, hostnameVerifier, true));
+                                                callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, hostnameVerifier, true, enabledProtocols));
                                             }
                                             else {
                                                 callback.onConnectCompleted(new IOException("unknown second status line"), socket);
