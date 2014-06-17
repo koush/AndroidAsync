@@ -5,6 +5,7 @@ import android.os.Build;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.http.AsyncSSLEngineConfigurator;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
@@ -40,13 +41,17 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port) {
-        this(socket, host, port, sslContext, null, null, true);
+        this(socket, host, port, sslContext, null, null, null, true);
     }
 
     TrustManager[] trustManagers;
     boolean clientMode;
 
     public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
+        this(socket, host, port, sslContext, trustManagers, verifier, null, clientMode);
+    }
+
+    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, HostnameVerifier verifier, AsyncSSLEngineConfigurator configurator, boolean clientMode) {
         mSocket = socket;
         hostnameVerifier = verifier;
         this.clientMode = clientMode;
@@ -61,6 +66,11 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         else {
             engine = sslContext.createSSLEngine();
         }
+
+        if (configurator != null) {
+            configurator.configureEngine(engine);
+        }
+
         mHost = host;
         mPort = port;
         engine.setUseClientMode(clientMode);

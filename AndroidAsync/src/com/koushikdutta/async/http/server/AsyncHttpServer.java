@@ -223,7 +223,7 @@ public class AsyncHttpServer {
         AsyncServer.getDefault().listen(null, port, new ListenCallback() {
             @Override
             public void onAccepted(AsyncSocket socket) {
-                AsyncSSLSocketWrapper sslSocket = new AsyncSSLSocketWrapper(socket, null, port, sslContext, null, null, false);
+                AsyncSSLSocketWrapper sslSocket = new AsyncSSLSocketWrapper(socket, null, port, sslContext, null, null, null, false);
                 mListenCallback.onAccepted(sslSocket);
             }
 
