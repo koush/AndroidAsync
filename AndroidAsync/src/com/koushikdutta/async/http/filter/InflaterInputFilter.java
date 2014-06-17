@@ -14,6 +14,7 @@ public class InflaterInputFilter extends FilteredDataEmitter {
 
     @Override
     protected void report(Exception e) {
+        mInflater.end();
         if (e != null && mInflater.getRemaining() > 0) {
             e = new DataRemainingException("data still remaining in inflater", e);
         }
