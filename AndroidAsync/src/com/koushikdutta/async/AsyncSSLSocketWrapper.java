@@ -9,11 +9,13 @@ import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 
+import java.lang.String;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -40,13 +42,13 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port) {
-        this(socket, host, port, sslContext, null, null, true);
+        this(socket, host, port, sslContext, null, null, true, null);
     }
 
     TrustManager[] trustManagers;
     boolean clientMode;
 
-    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
+    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode, String[] enabledProtocols) {
         mSocket = socket;
         hostnameVerifier = verifier;
         this.clientMode = clientMode;
@@ -61,6 +63,10 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         else {
             engine = sslContext.createSSLEngine();
         }
+
+        if (enabledProtocols != null)
+            engine.setEnabledProtocols(enabledProtocols);
+
         mHost = host;
         mPort = port;
         engine.setUseClientMode(clientMode);
