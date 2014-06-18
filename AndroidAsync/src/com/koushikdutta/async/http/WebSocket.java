@@ -16,6 +16,8 @@ public interface WebSocket extends AsyncSocket {
     public StringCallback getStringCallback();
     
     public boolean isBuffering();
+
+    public void setMaxBuffer(int maxBuffer);
     
     public AsyncSocket getSocket();
 }
