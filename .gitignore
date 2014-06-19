@@ -4,3 +4,6 @@ local.properties
 gen
 .gradle
 build
+.idea/
+.DS_Store
+

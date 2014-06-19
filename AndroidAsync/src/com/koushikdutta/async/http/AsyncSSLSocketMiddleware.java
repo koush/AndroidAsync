@@ -1,9 +1,9 @@
 package com.koushikdutta.async.http;
 
 import android.net.Uri;
+import android.os.Build;
 import android.text.TextUtils;
 
-import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.LineEmitter;
@@ -12,14 +12,63 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 
+import java.io.IOException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
-
-import java.io.IOException;
-import java.net.URI;
+import javax.net.ssl.X509TrustManager;
 
 public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
+    static SSLContext defaultSSLContext;
+
+    static {
+        // following is the "trust the system" certs setup
+        try {
+            // critical extension 2.5.29.15 is implemented improperly prior to 4.0.3.
+            // https://code.google.com/p/android/issues/detail?id=9307
+            // https://groups.google.com/forum/?fromgroups=#!topic/netty/UCfqPPk5O4s
+            // certs that use this extension will throw in Cipher.java.
+            // fallback is to use a custom SSLContext, and hack around the x509 extension.
+            if (Build.VERSION.SDK_INT <= 15)
+                throw new Exception();
+            defaultSSLContext = SSLContext.getInstance("Default");
+        }
+        catch (Exception ex) {
+            try {
+                defaultSSLContext = SSLContext.getInstance("TLS");
+                TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                        for (X509Certificate cert : certs) {
+                            if (cert != null && cert.getCriticalExtensionOIDs() != null)
+                                cert.getCriticalExtensionOIDs().remove("2.5.29.15");
+                        }
+                    }
+                } };
+                defaultSSLContext.init(null, trustAllCerts, null);
+            }
+            catch (Exception ex2) {
+                ex.printStackTrace();
+                ex2.printStackTrace();
+            }
+        }
+    }
+
+    public static SSLEngine createDefaultSSLEngine() {
+        return defaultSSLContext.createSSLEngine();
+    }
+
     public AsyncSSLSocketMiddleware(AsyncHttpClient client) {
         super(client, "https", 443);
     }
@@ -42,10 +91,27 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    String[] enabledProtocols;
+    List<AsyncSSLEngineConfigurator> engineConfigurators = new ArrayList<AsyncSSLEngineConfigurator>();
 
-    public void setEnabledProtocols(String[] enabledProtocols) {
-        this.enabledProtocols = enabledProtocols;
+    public void addEngineConfigurator(AsyncSSLEngineConfigurator engineConfigurator) {
+        engineConfigurators.add(engineConfigurator);
+    }
+
+    public void clearEngineConfigurators() {
+        engineConfigurators.clear();
+    }
+
+    protected SSLEngine createConfiguredSSLEngine() {
+        if (sslContext == null) {
+            sslContext = defaultSSLContext;
+        }
+
+        SSLEngine sslEngine = sslContext.createSSLEngine();
+        for (AsyncSSLEngineConfigurator configurator : engineConfigurators) {
+            configurator.configureEngine(sslEngine);
+        }
+
+        return sslEngine;
     }
 
     @Override
@@ -55,7 +121,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             public void onConnectCompleted(Exception ex, final AsyncSocket socket) {
                 if (ex == null) {
                     if (!proxied) {
-                        callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, hostnameVerifier, true, enabledProtocols));
+                        callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, createConfiguredSSLEngine(), trustManagers, hostnameVerifier, true));
                     }
                     else {
                         // this SSL connection is proxied, must issue a CONNECT request to the proxy server
@@ -87,7 +153,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                                             socket.setDataCallback(null);
                                             socket.setEndCallback(null);
                                             if (TextUtils.isEmpty(s.trim())) {
-                                                callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, sslContext, trustManagers, hostnameVerifier, true, enabledProtocols));
+                                                callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, createConfiguredSSLEngine(), trustManagers, hostnameVerifier, true));
                                             }
                                             else {
                                                 callback.onConnectCompleted(new IOException("unknown second status line"), socket);

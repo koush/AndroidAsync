@@ -1,21 +1,18 @@
 package com.koushikdutta.async;
 
-import android.os.Build;
-
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.http.AsyncSSLSocketMiddleware;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 
-import java.lang.String;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -42,30 +39,22 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port) {
-        this(socket, host, port, sslContext, null, null, true, null);
+        this(socket, host, port, AsyncSSLSocketMiddleware.createDefaultSSLEngine(), null, null, true);
     }
 
     TrustManager[] trustManagers;
     boolean clientMode;
 
-    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode, String[] enabledProtocols) {
+    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
+        this(socket, host, port, sslContext.createSSLEngine(), trustManagers, verifier, clientMode);
+    }
+
+    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLEngine sslEngine, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
         mSocket = socket;
         hostnameVerifier = verifier;
         this.clientMode = clientMode;
         this.trustManagers = trustManagers;
-
-        if (sslContext == null)
-            sslContext = AsyncSSLSocketWrapper.sslContext;
-
-        if (host != null) {
-            engine = sslContext.createSSLEngine(host, port);
-        }
-        else {
-            engine = sslContext.createSSLEngine();
-        }
-
-        if (enabledProtocols != null)
-            engine.setEnabledProtocols(enabledProtocols);
+        this.engine = sslEngine;
 
         mHost = host;
         mPort = port;
@@ -148,46 +137,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         }
     }
 
-    static SSLContext sslContext;
-
-    static {
-        // following is the "trust the system" certs setup
-        try {
-            // critical extension 2.5.29.15 is implemented improperly prior to 4.0.3.
-            // https://code.google.com/p/android/issues/detail?id=9307
-            // https://groups.google.com/forum/?fromgroups=#!topic/netty/UCfqPPk5O4s
-            // certs that use this extension will throw in Cipher.java.
-            // fallback is to use a custom SSLContext, and hack around the x509 extension.
-            if (Build.VERSION.SDK_INT <= 15)
-                throw new Exception();
-            sslContext = SSLContext.getInstance("Default");
-        }
-        catch (Exception ex) {
-            try {
-                sslContext = SSLContext.getInstance("TLS");
-                TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        for (X509Certificate cert : certs) {
-                            if (cert != null && cert.getCriticalExtensionOIDs() != null)
-                                cert.getCriticalExtensionOIDs().remove("2.5.29.15");
-                        }
-                    }
-                } };
-                sslContext.init(null, trustAllCerts, null);
-            }
-            catch (Exception ex2) {
-                ex.printStackTrace();
-                ex2.printStackTrace();
-            }
-        }
-    }
 
     SSLEngine engine;
     boolean finishedHandshake = false;
