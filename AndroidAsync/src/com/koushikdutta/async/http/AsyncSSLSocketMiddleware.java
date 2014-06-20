@@ -24,51 +24,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
-    static SSLContext defaultSSLContext;
-
-    static {
-        // following is the "trust the system" certs setup
-        try {
-            // critical extension 2.5.29.15 is implemented improperly prior to 4.0.3.
-            // https://code.google.com/p/android/issues/detail?id=9307
-            // https://groups.google.com/forum/?fromgroups=#!topic/netty/UCfqPPk5O4s
-            // certs that use this extension will throw in Cipher.java.
-            // fallback is to use a custom SSLContext, and hack around the x509 extension.
-            if (Build.VERSION.SDK_INT <= 15)
-                throw new Exception();
-            defaultSSLContext = SSLContext.getInstance("Default");
-        }
-        catch (Exception ex) {
-            try {
-                defaultSSLContext = SSLContext.getInstance("TLS");
-                TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        for (X509Certificate cert : certs) {
-                            if (cert != null && cert.getCriticalExtensionOIDs() != null)
-                                cert.getCriticalExtensionOIDs().remove("2.5.29.15");
-                        }
-                    }
-                } };
-                defaultSSLContext.init(null, trustAllCerts, null);
-            }
-            catch (Exception ex2) {
-                ex.printStackTrace();
-                ex2.printStackTrace();
-            }
-        }
-    }
-
-    public static SSLEngine createDefaultSSLEngine() {
-        return defaultSSLContext.createSSLEngine();
-    }
-
     public AsyncSSLSocketMiddleware(AsyncHttpClient client) {
         super(client, "https", 443);
     }
@@ -102,11 +57,12 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
     }
 
     protected SSLEngine createConfiguredSSLEngine() {
-        if (sslContext == null) {
-            sslContext = defaultSSLContext;
-        }
+        SSLEngine sslEngine;
+        if (sslContext != null)
+            sslEngine = sslContext.createSSLEngine();
+        else
+            sslEngine = AsyncSSLSocketWrapper.createDefaultSSLEngine();
 
-        SSLEngine sslEngine = sslContext.createSSLEngine();
         for (AsyncSSLEngineConfigurator configurator : engineConfigurators) {
             configurator.configureEngine(sslEngine);
         }
