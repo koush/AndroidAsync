@@ -5,7 +5,6 @@ import android.os.Build;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
-import com.koushikdutta.async.http.AsyncSSLSocketMiddleware;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
@@ -36,6 +35,122 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     ByteBuffer mReadTmp = ByteBufferList.obtain(8192);
     boolean mUnwrapping = false;
     HostnameVerifier hostnameVerifier;
+
+    /*
+    private static void initTLS_1_2() {
+        try {
+            defaultSSLContext = SSLContext.getInstance("TLSv1.2");
+        }
+        catch (NoSuchAlgorithmException e) {
+        }
+    }
+
+    private static void initTLS_1_1() {
+        try {
+            defaultSSLContext = SSLContext.getInstance("TLSv1.1");
+        }
+        catch (NoSuchAlgorithmException e) {
+        }
+    }
+
+    private static void initTLS() {
+        try {
+            defaultSSLContext = SSLContext.getInstance("TLS");
+        }
+        catch (NoSuchAlgorithmException e) {
+        }
+    }
+
+    static {
+        try {
+            initTLS_1_2();
+            if (defaultSSLContext == null)
+                initTLS_1_1();
+            if (defaultSSLContext == null)
+                initTLS();
+            if (defaultSSLContext == null)
+                defaultSSLContext = SSLContext.getInstance("SSL");
+            // critical extension 2.5.29.15 is implemented improperly prior to 4.0.3.
+            // https://code.google.com/p/android/issues/detail?id=9307
+            // https://groups.google.com/forum/?fromgroups=#!topic/netty/UCfqPPk5O4s
+            // certs that use this extension will throw in Cipher.java.
+            // fallback is to use a custom SSLContext, and hack around the x509 extension.
+            TrustManager[] trustManagers = null;
+            if (Build.VERSION.SDK_INT <= 15) {
+                trustManagers = new TrustManager[] { new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                        for (X509Certificate cert : certs) {
+                            if (cert != null && cert.getCriticalExtensionOIDs() != null)
+                                cert.getCriticalExtensionOIDs().remove("2.5.29.15");
+                        }
+                    }
+                } };
+            }
+            defaultSSLContext.init(null, trustManagers, null);
+        }
+        catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // android SSL cipher suites were downgraded (!!) for some derpy reason.
+    // Paranoid people would be wise to enable the original/secure suites.
+    // http://op-co.de/blog/posts/android_ssl_downgrade/
+    public static final String RECOMMENDED_CIPHERS[] = {
+    "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+    "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+    "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+    "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+    "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+    "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+    "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
+    "TLS_RSA_WITH_AES_128_CBC_SHA",
+    "TLS_RSA_WITH_AES_256_CBC_SHA",
+    "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
+    "SSL_RSA_WITH_RC4_128_SHA",
+    "SSL_RSA_WITH_RC4_128_MD5",
+    "TLS_RSA_WITH_AES_256_CBC_SHA256",
+    };
+
+    public static final String RECOMMENDED_PROTOCOLS[] = {
+    "TLSv1"
+    };
+
+    public static void setupRecommendedEngineSecurity(SSLEngine engine) {
+        LinkedHashSet<String> ciphers = new LinkedHashSet<String>(Arrays.asList(engine.getSupportedCipherSuites()));
+        ciphers.addAll(Arrays.asList(engine.getSupportedCipherSuites()));
+        LinkedHashSet<String> protocols = new LinkedHashSet<String>();
+        protocols.addAll(Arrays.asList(engine.getSupportedProtocols()));
+
+        ArrayList<String> enabledCiphers = new ArrayList<String>();
+        for (String cipher: RECOMMENDED_CIPHERS) {
+            if (ciphers.contains(cipher))
+                enabledCiphers.add(cipher);
+        }
+
+        ArrayList<String> enabledProtocols = new ArrayList<String>();
+        for (String protocol: RECOMMENDED_PROTOCOLS) {
+            if (protocols.contains(protocol))
+                enabledProtocols.add(protocol);
+        }
+
+        enabledCiphers.addAll(Arrays.asList(engine.getEnabledCipherSuites()));
+        enabledProtocols.addAll(Arrays.asList(engine.getEnabledProtocols()));
+//        engine.setEnabledCipherSuites(enabledCiphers.toArray(new String[enabledCiphers.size()]));
+//        engine.setEnabledProtocols(enabledProtocols.toArray(new String[enabledProtocols.size()]));
+//        engine.setEnabledCipherSuites(RECOMMENDED_CIPHERS);
+        engine.setEnabledProtocols(new String[] {"SSL"});
+    }
+    */
 
     static {
         // following is the "trust the system" certs setup
@@ -91,10 +206,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     TrustManager[] trustManagers;
     boolean clientMode;
-
-    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLContext sslContext, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
-        this(socket, host, port, sslContext.createSSLEngine(), trustManagers, verifier, clientMode);
-    }
 
     public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLEngine sslEngine, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
         mSocket = socket;
