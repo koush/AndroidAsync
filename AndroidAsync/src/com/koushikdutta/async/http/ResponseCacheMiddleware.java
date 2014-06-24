@@ -219,6 +219,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         if (cacheData != null) {
             if (cacheData.cachedResponseHeaders.validate(data.headers)) {
                 data.request.logi("Serving response from conditional cache");
+                data.headers.getHeaders().removeAll("Content-Length");
                 data.headers = cacheData.cachedResponseHeaders.combine(data.headers);
                 data.headers.getHeaders().setStatusLine(cacheData.cachedResponseHeaders.getHeaders().getStatusLine());
 

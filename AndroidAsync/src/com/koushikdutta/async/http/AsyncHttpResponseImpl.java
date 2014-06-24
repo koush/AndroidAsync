@@ -99,9 +99,9 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
             }
         }
     };
-    
+
     protected abstract void onHeadersReceived();
-    
+
     StringCallback mHeaderCallback = new StringCallback() {
         private RawHeaders mRawHeaders = new RawHeaders();
         @Override

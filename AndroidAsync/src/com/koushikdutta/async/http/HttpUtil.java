@@ -35,7 +35,7 @@ public class HttpUtil {
                     return new StringBody();
                 }
                 if (MultipartFormDataBody.CONTENT_TYPE.equals(ct)) {
-                    return new MultipartFormDataBody(contentType, values);
+                    return new MultipartFormDataBody(values);
                 }
             }
         }

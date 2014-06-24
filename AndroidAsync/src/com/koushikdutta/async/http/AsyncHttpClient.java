@@ -260,15 +260,16 @@ public class AsyncHttpClient {
                         int responseCode = headers.getResponseCode();
                         if ((responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == 307) && request.getFollowRedirect()) {
                             String location = headers.get("Location");
-                            Uri redirect = Uri.parse(location);
-                            if (redirect == null || redirect.getScheme() == null) {
-                                try {
+                            Uri redirect;
+                            try {
+                                redirect = Uri.parse(location);
+                                if (redirect.getScheme() == null) {
                                     redirect = Uri.parse(new URL(new URL(uri.toString()), location).toString());
                                 }
-                                catch (Exception e) {
-                                    reportConnectedCompleted(cancel, e, this, request, callback);
-                                    return;
-                                }
+                            }
+                            catch (Exception e) {
+                                reportConnectedCompleted(cancel, e, this, request, callback);
+                                return;
                             }
                             final String method = request.getMethod().equals(AsyncHttpHead.METHOD) ? AsyncHttpHead.METHOD : AsyncHttpGet.METHOD;
                             AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, method);
