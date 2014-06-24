@@ -1,31 +1,39 @@
 package com.koushikdutta.async.future;
 
 import android.os.Handler;
+import android.os.Looper;
 
 /**
  * Created by koush on 12/25/13.
  */
-public class HandlerFuture<T> extends TransformFuture<T, T> {
-    Handler handler = new Handler();
+public class HandlerFuture<T> extends SimpleFuture<T> {
+    Handler handler;
 
-    @Override
-    protected void error(final Exception e) {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                HandlerFuture.super.error(e);
-            }
-        });
+    public HandlerFuture() {
+        Looper looper = Looper.myLooper();
+        if (looper == null)
+            looper = Looper.getMainLooper();
+        handler = new Handler(looper);
     }
 
     @Override
-    protected void transform(final T result) throws Exception {
-        handler.post(new Runnable() {
+    public SimpleFuture<T> setCallback(final FutureCallback<T> callback) {
+        FutureCallback<T> wrapped = new FutureCallback<T>() {
             @Override
-            public void run() {
-                if (!isCancelled())
-                    setComplete(result);
+            public void onCompleted(final Exception e, final T result) {
+                if (Looper.myLooper() == handler.getLooper()) {
+                    callback.onCompleted(e, result);
+                    return;
+                }
+
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onCompleted(e, result);
+                    }
+                });
             }
-        });
+        };
+        return super.setCallback(wrapped);
     }
 }

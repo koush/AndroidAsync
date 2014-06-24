@@ -14,6 +14,17 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     boolean silent;
     FutureCallback<T> callback;
 
+    public SimpleFuture() {
+    }
+
+    public SimpleFuture(T value) {
+        setComplete(value);
+    }
+
+    public SimpleFuture(Exception e) {
+        setComplete(e);
+    }
+
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return cancel();
@@ -166,7 +177,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     @Override
-    public <C extends FutureCallback<T>> C then(C callback) {
+    public final <C extends FutureCallback<T>> C then(C callback) {
         if (callback instanceof DependentCancellable)
             ((DependentCancellable)callback).setParent(this);
         setCallback(callback);
