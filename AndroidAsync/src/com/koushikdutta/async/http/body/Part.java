@@ -24,8 +24,8 @@ public class Part {
         return mContentDisposition.getString("name");
     }
     
-    private int length = -1;
-    public Part(String name, int length, List<NameValuePair> contentDisposition) {
+    private long length = -1;
+    public Part(String name, long length, List<NameValuePair> contentDisposition) {
         this.length = length;
         mHeaders = new RawHeaders();
         StringBuilder builder = new StringBuilder(String.format("form-data; name=\"%s\"", name));
@@ -61,7 +61,7 @@ public class Part {
         return mContentDisposition.containsKey("filename");
     }
     
-    public int length() {
+    public long length() {
         return length;
     }
     

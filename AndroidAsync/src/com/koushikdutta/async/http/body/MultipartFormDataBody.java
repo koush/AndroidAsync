@@ -100,7 +100,8 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     }
 
     public static final String CONTENT_TYPE = "multipart/form-data";
-    public MultipartFormDataBody(String contentType, String[] values) {
+    String contentType = CONTENT_TYPE;
+    public MultipartFormDataBody(String[] values) {
         for (String value: values) {
             String[] splits = value.split("=");
             if (splits.length != 2)
@@ -213,7 +214,11 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     
     public MultipartFormDataBody() {
     }
-    
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+
     public void addFilePart(String name, File file) {
         addPart(new FilePart(name, file));
     }

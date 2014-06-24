@@ -10,7 +10,7 @@ import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 
 public abstract class StreamPart extends Part {
-    public StreamPart(String name, int length, List<NameValuePair> contentDisposition) {
+    public StreamPart(String name, long length, List<NameValuePair> contentDisposition) {
         super(name, length, contentDisposition);
     }
     
