@@ -147,6 +147,9 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         RawHeaders rawResponseHeaders = RawHeaders.fromMultimap(responseHeadersMap);
         ResponseHeaders cachedResponseHeaders = new ResponseHeaders(data.request.getUri(), rawResponseHeaders);
+        rawResponseHeaders.set("Content-Length", String.valueOf(contentLength));
+        rawResponseHeaders.removeAll("Content-Encoding");
+        rawResponseHeaders.removeAll("Transfer-Encoding");
         cachedResponseHeaders.setLocalTimestamps(System.currentTimeMillis(), System.currentTimeMillis());
 
         long now = System.currentTimeMillis();
@@ -155,9 +158,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         if (responseSource == ResponseSource.CACHE) {
             data.request.logi("Response retrieved from cache");
             final CachedSocket socket = entry.isHttps() ? new CachedSSLSocket(candidate, contentLength) : new CachedSocket(candidate, contentLength);
-            rawResponseHeaders.removeAll("Content-Encoding");
-            rawResponseHeaders.removeAll("Transfer-Encoding");
-            rawResponseHeaders.set("Content-Length", String.valueOf(contentLength));
             socket.pending.add(ByteBuffer.wrap(rawResponseHeaders.toHeaderString().getBytes()));
 
             server.post(new Runnable() {
