@@ -5,6 +5,7 @@ import android.util.Log;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.util.Allocator;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -29,7 +30,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
     InetSocketAddress socketAddress;
     void attach(SocketChannel channel, InetSocketAddress socketAddress) throws IOException {
         this.socketAddress = socketAddress;
-        maxAlloc = 256 * 1024; // 256K
+        allocator = new Allocator();
         mChannel = new SocketChannelWrapper(channel);
     }
     
@@ -37,7 +38,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
         mChannel = new DatagramChannelWrapper(channel);
         // keep udp at roughly the mtu, which is 1540 or something
         // letting it grow freaks out nio apparently.
-        maxAlloc = 8192;
+        allocator = new Allocator(8192);
     }
     
     ChannelWrapper getChannel() {
@@ -136,8 +137,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
     private ByteBufferList pending = new ByteBufferList();
 //    private ByteBuffer[] buffers = new ByteBuffer[8];
 
-    int maxAlloc;
-    int mToAlloc = 0;
+    Allocator allocator;
     int onReadable() {
         spitPending();
         // even if the socket is paused,
@@ -150,7 +150,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
             boolean closed = false;
 
 //            ByteBufferList.obtainArray(buffers, Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
-            ByteBuffer b = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
+            ByteBuffer b = allocator.allocate();
             // keep track of the max mount read during this read cycle
             // so we can be quicker about allocations during the next
             // time this socket reads.
@@ -163,7 +163,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
                 total += read;
             }
             if (read > 0) {
-                mToAlloc = (int)read * 2;
+                allocator.track(read);
                 b.flip();
 //                for (int i = 0; i < buffers.length; i++) {
 //                    ByteBuffer b = buffers[i];
