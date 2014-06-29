@@ -10,17 +10,18 @@ import java.nio.ByteBuffer;
 public class Allocator {
     final int maxAlloc;
     int currentAlloc = 0;
+    int minAlloc = 2 << 11;
 
     public Allocator(int maxAlloc) {
         this.maxAlloc = maxAlloc;
     }
 
     public Allocator() {
-        maxAlloc = 256 * 1024;
+        maxAlloc = ByteBufferList.MAX_ITEM_SIZE;
     }
 
     public ByteBuffer allocate() {
-        return ByteBufferList.obtain(Math.min(Math.max(currentAlloc, 2 << 11), maxAlloc));
+        return ByteBufferList.obtain(Math.min(Math.max(currentAlloc, minAlloc), maxAlloc));
     }
 
     public void track(long read) {
@@ -33,6 +34,14 @@ public class Allocator {
 
     public void setCurrentAlloc(int currentAlloc) {
         this.currentAlloc = currentAlloc;
+    }
+
+    public int getMinAlloc() {
+        return minAlloc;
+    }
+
+    public void setMinAlloc(int minAlloc ) {
+        this.minAlloc = minAlloc;
     }
 }
 

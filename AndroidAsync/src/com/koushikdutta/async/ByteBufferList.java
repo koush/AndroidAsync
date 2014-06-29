@@ -387,7 +387,7 @@ public class ByteBufferList {
     }
 
     private static int MAX_SIZE = 1024 * 1024;
-    private static int MAX_ITEM_SIZE = 1024 * 256;
+    public static int MAX_ITEM_SIZE = 1024 * 256;
     static int currentSize = 0;
     static int maxItem = 0;
 

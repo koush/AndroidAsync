@@ -30,7 +30,6 @@ import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import java.io.File;
-import java.net.URI;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;

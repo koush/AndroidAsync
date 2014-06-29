@@ -3,7 +3,6 @@ package com.koushikdutta.async.test;
 import android.test.AndroidTestCase;
 
 import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.server.AsyncHttpServer;

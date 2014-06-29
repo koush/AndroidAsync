@@ -102,5 +102,10 @@ public class StreamUtility {
             }
         }
     }
+
+    public static void eat(InputStream input) throws IOException {
+        byte[] stuff = new byte[1024];
+        while (input.read(stuff) != -1);
+    }
 }
 

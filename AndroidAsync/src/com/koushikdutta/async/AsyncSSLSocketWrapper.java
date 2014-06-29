@@ -5,6 +5,7 @@ import android.os.Build;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.util.Allocator;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
@@ -32,7 +33,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     AsyncSocket mSocket;
     BufferedDataEmitter mEmitter;
     BufferedDataSink mSink;
-    ByteBuffer mReadTmp = ByteBufferList.obtain(8192);
     boolean mUnwrapping = false;
     HostnameVerifier hostnameVerifier;
 
@@ -230,6 +230,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         // aka exhcange.setDatacallback
         mEmitter = new BufferedDataEmitter(socket);
 
+        final Allocator allocator = new Allocator();
+        allocator.setMinAlloc(8192);
         final ByteBufferList transformed = new ByteBufferList();
         mEmitter.setDataCallback(new DataCallback() {
             @Override
@@ -239,8 +241,10 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 try {
                     mUnwrapping = true;
 
-                    mReadTmp.position(0);
-                    mReadTmp.limit(mReadTmp.capacity());
+                    if (bb.hasRemaining()) {
+                        ByteBuffer all = bb.getAll();
+                        bb.add(all);
+                    }
 
                     ByteBuffer b = ByteBufferList.EMPTY_BYTEBUFFER;
                     while (true) {
@@ -248,11 +252,18 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             b = bb.remove();
                         }
                         int remaining = b.remaining();
+                        int before = transformed.remaining();
 
-                        SSLEngineResult res = engine.unwrap(b, mReadTmp);
+                        SSLEngineResult res;
+                        {
+                            // wrap to prevent access to the readBuf
+                            ByteBuffer readBuf = allocator.allocate();
+                            res = engine.unwrap(b, readBuf);
+                            addToPending(transformed, readBuf);
+                            allocator.track(transformed.remaining() - before);
+                        }
                         if (res.getStatus() == Status.BUFFER_OVERFLOW) {
-                            addToPending(transformed);
-                            mReadTmp = ByteBufferList.obtain(mReadTmp.remaining() * 2);
+                            allocator.setMinAlloc(allocator.getMinAlloc() * 2);
                             remaining = -1;
                         }
                         else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
@@ -267,13 +278,12 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             b = ByteBufferList.EMPTY_BYTEBUFFER;
                         }
                         handleResult(res);
-                        if (b.remaining() == remaining) {
+                        if (b.remaining() == remaining && before == transformed.remaining()) {
                             bb.addFirst(b);
                             break;
                         }
                     }
 
-                    addToPending(transformed);
                     Util.emitAllData(AsyncSSLSocketWrapper.this, transformed);
                 }
                 catch (SSLException ex) {
@@ -287,11 +297,13 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         });
     }
 
-    void addToPending(ByteBufferList out) {
-        if (mReadTmp.position() > 0) {
-            mReadTmp.flip();
+    void addToPending(ByteBufferList out, ByteBuffer mReadTmp) {
+        mReadTmp.flip();
+        if (mReadTmp.hasRemaining()) {
             out.add(mReadTmp);
-            mReadTmp = ByteBufferList.obtain(mReadTmp.capacity());
+        }
+        else {
+            ByteBufferList.reclaim(mReadTmp);
         }
     }
 
@@ -477,8 +489,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 }
                 else {
                     mWriteTmp = ByteBufferList.obtain(calculateAlloc(bb.remaining()));
+                    handleResult(res);
                 }
-                handleResult(res);
             }
             catch (SSLException e) {
                 report(e);
