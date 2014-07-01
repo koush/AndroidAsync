@@ -17,9 +17,11 @@ import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpClient.StringCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpHead;
+import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.ResponseCacheMiddleware;
+import com.koushikdutta.async.http.body.JSONObjectBody;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
@@ -28,6 +30,8 @@ import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
+
+import org.json.JSONObject;
 
 import java.io.File;
 import java.util.concurrent.CancellationException;
@@ -345,5 +349,14 @@ public class HttpClientTests extends TestCase {
         AsyncHttpHead req = new AsyncHttpHead(Uri.parse("http://31.media.tumblr.com/9606dcaa33b6877b7c485040393b9392/tumblr_mrtnysMonE1r4vl1yo1_500.jpg"));
         Future<String> str = AsyncHttpClient.getDefaultInstance().executeString(req, null);
         assertTrue(TextUtils.isEmpty(str.get(TIMEOUT, TimeUnit.MILLISECONDS)));
+    }
+
+    public void testPostJsonObject() throws Exception {
+        JSONObject post = new JSONObject();
+        post.put("ping", "pong");
+        AsyncHttpPost p = new AsyncHttpPost("https://koush.clockworkmod.com/test/echo");
+        p.setBody(new JSONObjectBody(post));
+        JSONObject ret = AsyncHttpClient.getDefaultInstance().executeJSONObject(p, null).get();
+        assertEquals("pong", ret.getString("ping"));
     }
 }
