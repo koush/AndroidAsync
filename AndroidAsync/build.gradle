@@ -3,36 +3,35 @@ buildscript {
         maven { url 'http://repo1.maven.org/maven2' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.11.+'
+        classpath 'com.android.tools.build:gradle:0.12.+'
     }
 }
-apply plugin: 'android-library'
+apply plugin: 'com.android.library'
 
 dependencies {
-  compile 'com.android.support:support-v4:13.0.0'
 }
 
 android {
-  sourceSets {
-      main {
-          manifest.srcFile 'AndroidManifest.xml'
-      
-          java {
-              srcDir 'src/'
-          }
-      }
-  }
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+
+            java {
+                srcDir 'src/'
+            }
+        }
+    }
 
     compileSdkVersion 19
-    buildToolsVersion "19.1.0"
+    buildToolsVersion "20.0.0"
 
     defaultConfig {
         minSdkVersion 8
-        targetSdkVersion 19
+        targetSdkVersion 21
     }
 }
 
 // upload to maven task
-if (System.getenv().I_AM_KOUSH == 'true') {
-  apply from: 'https://raw.github.com/koush/mvn-repo/master/maven.gradle'
-}
+//if (System.getenv().I_AM_KOUSH == 'true') {
+//  apply from: 'https://raw.github.com/koush/mvn-repo/master/maven.gradle'
+//}
