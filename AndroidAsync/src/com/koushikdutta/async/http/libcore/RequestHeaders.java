@@ -212,7 +212,9 @@ public final class RequestHeaders {
         if (this.contentLength != -1) {
             headers.removeAll("Content-Length");
         }
-        headers.add("Content-Length", Integer.toString(contentLength));
+        if (contentLength != -1) {
+            headers.add("Content-Length", Integer.toString(contentLength));
+        }
         this.contentLength = contentLength;
     }
 
