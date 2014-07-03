@@ -137,9 +137,8 @@ public class HttpClientTests extends TestCase {
 
     // this testdata file was generated using /dev/random. filename is also the md5 of the file.
     final static String dataNameAndHash = "6691924d7d24237d3b3679310157d640";
-    final static String githubPath = "github.com/koush/AndroidAsync/raw/master/AndroidAsyncTest/testdata/";
+    final static String githubPath = "raw.githubusercontent.com/koush/AndroidAsync/master/AndroidAsync/test/assets/";
     final static String github = "https://" + githubPath + dataNameAndHash;
-    final static String githubInsecure = "http://" + githubPath + dataNameAndHash;
     public void testGithubRandomData() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Md5 md5 = Md5.createInstance();
@@ -176,27 +175,6 @@ public class HttpClientTests extends TestCase {
         final Md5 md5 = Md5.createInstance();
         Future<ByteBufferList> bb = client.executeByteBufferList(new AsyncHttpGet(github), null);
         md5.update(bb.get(TIMEOUT, TimeUnit.MILLISECONDS));
-        assertEquals(md5.digest(), dataNameAndHash);
-    }
-
-    public void testInsecureGithubRandomDataWithFuture() throws Exception {
-        final Md5 md5 = Md5.createInstance();
-        Future<ByteBufferList> bb = client.executeByteBufferList(new AsyncHttpGet(githubInsecure), null);
-        md5.update(bb.get(TIMEOUT, TimeUnit.MILLISECONDS));
-        assertEquals(md5.digest(), dataNameAndHash);
-    }
-
-    public void testInsecureGithubRandomDataWithFutureCallback() throws Exception {
-        final Semaphore semaphore = new Semaphore(0);
-        final Md5 md5 = Md5.createInstance();
-        client.executeByteBufferList(new AsyncHttpGet(githubInsecure), null).setCallback(new FutureCallback<ByteBufferList>() {
-            @Override
-            public void onCompleted(Exception e, ByteBufferList bb) {
-                md5.update(bb);
-                semaphore.release();
-            }
-        });
-        assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
         assertEquals(md5.digest(), dataNameAndHash);
     }
 
