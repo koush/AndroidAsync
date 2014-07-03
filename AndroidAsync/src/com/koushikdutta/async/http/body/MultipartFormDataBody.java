@@ -155,7 +155,9 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
             .add(new ContinuationCallback() {
                 @Override
                 public void onContinue(Continuation continuation, CompletedCallback next) throws Exception {
-                    written += part.length();
+                    long partLength = part.length();
+                    if (partLength >= 0)
+                        written += partLength;
                     part.write(sink, next);
                 }
             })
