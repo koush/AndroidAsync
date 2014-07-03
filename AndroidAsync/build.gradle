@@ -16,10 +16,11 @@ android {
         main {
             manifest.srcFile 'AndroidManifest.xml'
 
-            java {
-                srcDir 'src/'
-            }
+            java.srcDirs=['src/']
         }
+        androidTest.java.srcDirs=['test/src/']
+        androidTest.res.srcDirs=['test/res/']
+        androidTest.assets.srcDirs=['test/assets/']
     }
 
     compileSdkVersion 19
@@ -28,6 +29,8 @@ android {
     defaultConfig {
         minSdkVersion 8
         targetSdkVersion 21
+        testInstrumentationRunner "android.test.InstrumentationTestRunner"
+        testFunctionalTest true
     }
 }
 

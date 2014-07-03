@@ -218,11 +218,6 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     }
 
     @Override
-    public void close() {
-        mSink.close();
-    }
-
-    @Override
     public void setClosedCallback(CompletedCallback handler) {
         mSink.setClosedCallback(handler);
     }

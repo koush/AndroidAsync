@@ -318,11 +318,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void close() {
-        end();
-        if (mSink != null)
-            mSink.close();
-        else
-            mSocket.close();
+        mSocket.close();
     }
 
     @Override

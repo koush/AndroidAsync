@@ -36,8 +36,6 @@ public class BufferedDataSink implements DataSink {
             if (mPendingWrites.remaining() == 0) {
                 if (endPending)
                     mDataSink.end();
-                if (closePending)
-                    mDataSink.close();
             }
         }
         if (!mPendingWrites.hasRemaining() && mWritable != null)
@@ -113,16 +111,11 @@ public class BufferedDataSink implements DataSink {
 
     @Override
     public boolean isOpen() {
-        return !closePending && mDataSink.isOpen();
+        return mDataSink.isOpen();
     }
 
-    boolean closePending;
     @Override
     public void close() {
-        if (mPendingWrites.hasRemaining()) {
-            closePending = true;
-            return;
-        }
         mDataSink.close();
     }
 
