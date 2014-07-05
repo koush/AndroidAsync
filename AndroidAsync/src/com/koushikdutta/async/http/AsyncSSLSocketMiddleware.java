@@ -56,7 +56,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         engineConfigurators.clear();
     }
 
-    protected SSLEngine createConfiguredSSLEngine() {
+    protected SSLEngine createConfiguredSSLEngine(String host, int port) {
         SSLEngine sslEngine;
         if (sslContext != null)
             sslEngine = sslContext.createSSLEngine();
@@ -64,7 +64,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             sslEngine = AsyncSSLSocketWrapper.createDefaultSSLEngine();
 
         for (AsyncSSLEngineConfigurator configurator : engineConfigurators) {
-            configurator.configureEngine(sslEngine);
+            configurator.configureEngine(sslEngine, host, port);
         }
 
         return sslEngine;
@@ -77,7 +77,10 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             public void onConnectCompleted(Exception ex, final AsyncSocket socket) {
                 if (ex == null) {
                     if (!proxied) {
-                        callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, createConfiguredSSLEngine(), trustManagers, hostnameVerifier, true));
+                        callback.onConnectCompleted(null,
+                            new AsyncSSLSocketWrapper(socket, uri.getHost(), port,
+                            createConfiguredSSLEngine(uri.getHost(), port),
+                            trustManagers, hostnameVerifier, true));
                     }
                     else {
                         // this SSL connection is proxied, must issue a CONNECT request to the proxy server
@@ -109,7 +112,10 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                                             socket.setDataCallback(null);
                                             socket.setEndCallback(null);
                                             if (TextUtils.isEmpty(s.trim())) {
-                                                callback.onConnectCompleted(null, new AsyncSSLSocketWrapper(socket, uri.getHost(), port, createConfiguredSSLEngine(), trustManagers, hostnameVerifier, true));
+                                                callback.onConnectCompleted(null,
+                                                new AsyncSSLSocketWrapper(socket, uri.getHost(), port,
+                                                createConfiguredSSLEngine(uri.getHost(), port),
+                                                trustManagers, hostnameVerifier, true));
                                             }
                                             else {
                                                 callback.onConnectCompleted(new IOException("unknown second status line"), socket);
