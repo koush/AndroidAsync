@@ -1,11 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.koushikdutta.async"
-    android:versionCode="128"
-    android:versionName="1.2.8" >
+    android:versionCode="129"
+    android:versionName="1.2.9" >
 
     <uses-sdk
-        android:minSdkVersion="8"
-        android:targetSdkVersion="18" />
+        tools:node="replace" />
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application>
