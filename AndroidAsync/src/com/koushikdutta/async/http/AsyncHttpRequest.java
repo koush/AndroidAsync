@@ -16,7 +16,6 @@ import org.apache.http.RequestLine;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpParams;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 

@@ -1,9 +1,7 @@
 package com.koushikdutta.async.http.socketio;
 
-import android.os.Handler;
 import android.text.TextUtils;
 
-import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
@@ -12,6 +10,7 @@ import com.koushikdutta.async.http.socketio.transport.SocketIOTransport;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+@Deprecated
 public class SocketIOClient extends EventEmitter {
     boolean connected;
     boolean disconnected;
