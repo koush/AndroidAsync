@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.koushikdutta.async"
-    android:versionCode="129"
-    android:versionName="1.2.9" >
+    android:versionCode="130"
+    android:versionName="1.3.0">
 
     <uses-sdk
         tools:node="replace" />
