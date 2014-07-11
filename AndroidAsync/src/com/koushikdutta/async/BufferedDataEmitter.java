@@ -96,4 +96,9 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     public AsyncServer getServer() {
         return mEmitter.getServer();
     }
+
+    @Override
+    public String charset() {
+        return mEmitter.charset();
+    }
 }

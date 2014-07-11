@@ -17,7 +17,7 @@ public class StringParser implements AsyncParser<String> {
         .then(new TransformFuture<String, ByteBufferList>() {
             @Override
             protected void transform(ByteBufferList result) throws Exception {
-                setComplete(result.readString());
+                setComplete(result.readString(null));
             }
         });
     }

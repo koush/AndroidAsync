@@ -602,4 +602,9 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     public X509Certificate[] getPeerCertificates() {
         return peerCertificates;
     }
+
+    @Override
+    public String charset() {
+        return null;
+    }
 }

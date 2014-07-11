@@ -361,4 +361,9 @@ public class AsyncNetworkSocket implements AsyncSocket {
     public Object getSocket() {
         return getChannel().getSocket();
     }
+
+    @Override
+    public String charset() {
+        return null;
+    }
 }

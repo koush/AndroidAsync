@@ -16,6 +16,8 @@
 
 package com.koushikdutta.async.http.libcore;
 
+import com.koushikdutta.async.util.Charsets;
+
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.EOFException;

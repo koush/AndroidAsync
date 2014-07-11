@@ -314,4 +314,9 @@ public class WebSocketImpl implements WebSocket {
     public boolean isPaused() {
         return mSocket.isPaused();
     }
+
+    @Override
+    public String charset() {
+        return null;
+    }
 }

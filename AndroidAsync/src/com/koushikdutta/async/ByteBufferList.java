@@ -1,15 +1,18 @@
 package com.koushikdutta.async;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.os.Looper;
 
-import java.nio.Buffer;
+import com.koushikdutta.async.util.Charsets;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
+import java.nio.charset.Charset;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
 
+@TargetApi(Build.VERSION_CODES.GINGERBREAD)
 public class ByteBufferList {
     ArrayDeque<ByteBuffer> mBuffers = new ArrayDeque<ByteBuffer>();
     
@@ -356,10 +359,16 @@ public class ByteBufferList {
     }
 
     public String readString() {
+        return readString(Charsets.US_ASCII);
+    }
+
+    public String readString(Charset charset) {
+        if (charset == null)
+            charset = Charset.defaultCharset();
         StringBuilder builder = new StringBuilder();
         while (mBuffers.size() > 0) {
             ByteBuffer bb = mBuffers.remove();
-            builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining()));
+            builder.append(new String(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining(), charset));
             reclaim(bb);
         }
         remaining = 0;

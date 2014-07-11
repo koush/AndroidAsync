@@ -41,4 +41,9 @@ public abstract class DataEmitterBase implements DataEmitter {
     public DataCallback getDataCallback() {
         return mDataCallback;
     }
+
+    @Override
+    public String charset() {
+        return null;
+    }
 }

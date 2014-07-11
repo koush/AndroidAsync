@@ -14,4 +14,5 @@ public interface DataEmitter {
     public void setEndCallback(CompletedCallback callback);
     public CompletedCallback getEndCallback();
     public AsyncServer getServer();
+    public String charset();
 }

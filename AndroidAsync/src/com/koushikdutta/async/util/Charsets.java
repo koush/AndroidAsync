@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http.libcore;
+package com.koushikdutta.async.util;
 
 import java.nio.charset.Charset;
 

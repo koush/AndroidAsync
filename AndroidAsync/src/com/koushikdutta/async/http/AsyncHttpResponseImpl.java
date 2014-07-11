@@ -15,8 +15,10 @@ import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
+import com.koushikdutta.async.util.Charsets;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncHttpResponse {
     private AsyncHttpRequestBody mWriter;
@@ -230,5 +232,15 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     @Override
     public AsyncServer getServer() {
         return mSocket.getServer();
+    }
+
+    @Override
+    public String charset() {
+        Multimap mm = Multimap.parseHeader(getHeaders().getHeaders(), "Content-Type");
+        String cs;
+        if (mm != null && null != (cs = mm.getString("charset")) && Charset.isSupported(cs)) {
+            return cs;
+        }
+        return null;
     }
 }

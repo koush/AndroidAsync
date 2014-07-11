@@ -50,6 +50,8 @@ public class Multimap extends Hashtable<String, List<String>> implements Iterabl
     }
 
     public static Multimap parseHeader(String header) {
+        if (header == null)
+            return null;
         Multimap map = new Multimap();
         String[] parts = header.split(";");
         for (String part: parts) {

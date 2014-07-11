@@ -146,4 +146,9 @@ public class InputStreamDataEmitter implements DataEmitter {
         catch (Exception e) {
         }
     }
+
+    @Override
+    public String charset() {
+        return null;
+    }
 }
