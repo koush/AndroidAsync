@@ -1,6 +1,8 @@
 package com.koushikdutta.async.http;
 
+import android.annotation.SuppressLint;
 import android.net.Uri;
+import android.os.Build;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLException;
@@ -36,9 +38,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 public class AsyncHttpClient {
@@ -65,6 +72,36 @@ public class AsyncHttpClient {
         mServer = server;
         insertMiddleware(socketMiddleware = new AsyncSocketMiddleware(this));
         insertMiddleware(sslSocketMiddleware = new AsyncSSLSocketMiddleware(this));
+    }
+
+
+    @SuppressLint("NewApi")
+    private static void setupAndroidProxy(AsyncHttpRequest request) {
+        // using a explicit proxy?
+        if (request.proxyHost != null)
+            return;
+
+        List<Proxy> proxies = ProxySelector.getDefault().select(URI.create(request.getUri().toString()));
+        if (proxies.isEmpty())
+            return;
+        Proxy proxy = proxies.get(0);
+        if (proxy.type() != Proxy.Type.HTTP)
+            return;
+        if (!(proxy.address() instanceof InetSocketAddress))
+            return;
+        InetSocketAddress proxyAddress = (InetSocketAddress) proxy.address();
+        String proxyHost;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            proxyHost = proxyAddress.getHostString();
+        }
+        else {
+            InetAddress address = proxyAddress.getAddress();
+            if (address!=null)
+                proxyHost = address.getHostAddress();
+            else
+                proxyHost = proxyAddress.getHostName();
+        }
+        request.enableProxy(proxyHost, proxyAddress.getPort());
     }
 
     public AsyncSocketMiddleware getSocketMiddleware() {
@@ -278,7 +315,7 @@ public class AsyncHttpClient {
                             newReq.LOGTAG = request.LOGTAG;
                             newReq.proxyHost = request.proxyHost;
                             newReq.proxyPort = request.proxyPort;
-                            newReq.useAndroidProxy = request.useAndroidProxy;
+                            setupAndroidProxy(newReq);
                             copyHeader(request, newReq, "User-Agent");
                             copyHeader(request, newReq, "Range");
                             request.logi("Redirecting");
@@ -372,6 +409,9 @@ public class AsyncHttpClient {
                 ret.setSocket(socket);
             }
         };
+
+        // set up the system default proxy and connect
+        setupAndroidProxy(request);
 
         synchronized (mMiddleware) {
             for (AsyncHttpClientMiddleware middleware: mMiddleware) {

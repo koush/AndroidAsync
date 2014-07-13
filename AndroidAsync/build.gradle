@@ -8,9 +8,6 @@ buildscript {
 }
 apply plugin: 'com.android.library'
 
-dependencies {
-}
-
 android {
     sourceSets {
         main {
@@ -25,14 +22,6 @@ android {
 
     compileSdkVersion 19
     buildToolsVersion "20.0.0"
-
-    android {
-        lintOptions {
-            abortOnError false
-        }
-    }
-
-    publishNonDefault true
 }
 
 // upload to maven task
