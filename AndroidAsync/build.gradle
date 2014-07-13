@@ -32,7 +32,7 @@ android {
         }
     }
 
-//    publishNonDefault true
+    publishNonDefault true
 }
 
 // upload to maven task
