@@ -1,6 +1,8 @@
 package com.koushikdutta.async.http;
 
+import android.annotation.SuppressLint;
 import android.net.Uri;
+import android.os.Build;
 import android.util.Log;
 
 import com.koushikdutta.async.AsyncSSLException;
@@ -16,6 +18,11 @@ import org.apache.http.RequestLine;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpParams;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -317,21 +324,61 @@ public class AsyncHttpRequest {
 
     String proxyHost;
     int proxyPort = -1;
+    boolean useAndroidProxy = true;
     public void enableProxy(String host, int port) {
         proxyHost = host;
         proxyPort = port;
+        useAndroidProxy = proxyPort == 0;
+    }
+
+    public void enableSystemProxy(boolean enable) {
+        useAndroidProxy = enable;
     }
 
     public void disableProxy() {
         proxyHost = null;
         proxyPort = -1;
+        useAndroidProxy = false;
+    }
+
+    @SuppressLint("NewApi")
+    private void setupAndroidProxy() {
+        List<Proxy> proxies = ProxySelector.getDefault().select(URI.create(getUri().toString()));
+        if (proxies.isEmpty()) {
+            disableProxy();
+        } else {
+            Proxy proxy = proxies.get(0);
+            if (proxy.type() == Proxy.Type.DIRECT) {
+                disableProxy();
+            } else if (proxy.type() == Proxy.Type.HTTP && proxy.address() instanceof InetSocketAddress) {
+                InetSocketAddress proxyAddress = (InetSocketAddress) proxy.address();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+                    proxyHost = proxyAddress.getHostString();
+                else {
+                    InetAddress address = proxyAddress.getAddress();
+                    if (address!=null)
+                        proxyHost = address.getHostAddress();
+                    else
+                        proxyHost = proxyAddress.getHostName();
+                }
+                proxyPort = proxyAddress.getPort();
+            }
+        }
     }
 
     public String getProxyHost() {
+        if (useAndroidProxy) {
+            setupAndroidProxy();
+            useAndroidProxy = false;
+        }
         return proxyHost;
     }
 
     public int getProxyPort() {
+        if (useAndroidProxy) {
+            setupAndroidProxy();
+            useAndroidProxy = false;
+        }
         return proxyPort;
     }
 

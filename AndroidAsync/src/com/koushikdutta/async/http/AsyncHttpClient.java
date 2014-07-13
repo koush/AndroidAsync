@@ -278,6 +278,7 @@ public class AsyncHttpClient {
                             newReq.LOGTAG = request.LOGTAG;
                             newReq.proxyHost = request.proxyHost;
                             newReq.proxyPort = request.proxyPort;
+                            newReq.useAndroidProxy = request.useAndroidProxy;
                             copyHeader(request, newReq, "User-Agent");
                             copyHeader(request, newReq, "Range");
                             request.logi("Redirecting");
