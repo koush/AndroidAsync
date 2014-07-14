@@ -28,129 +28,28 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket {
+    public interface HandshakeCallback {
+        public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket);
+    }
+
     static SSLContext defaultSSLContext;
 
     AsyncSocket mSocket;
     BufferedDataEmitter mEmitter;
     BufferedDataSink mSink;
-    boolean mUnwrapping = false;
+    boolean mUnwrapping;
+    SSLEngine engine;
+    boolean finishedHandshake;
+    private int mPort;
+    private String mHost;
+    private boolean mWrapping;
     HostnameVerifier hostnameVerifier;
-
-    /*
-    private static void initTLS_1_2() {
-        try {
-            defaultSSLContext = SSLContext.getInstance("TLSv1.2");
-        }
-        catch (NoSuchAlgorithmException e) {
-        }
-    }
-
-    private static void initTLS_1_1() {
-        try {
-            defaultSSLContext = SSLContext.getInstance("TLSv1.1");
-        }
-        catch (NoSuchAlgorithmException e) {
-        }
-    }
-
-    private static void initTLS() {
-        try {
-            defaultSSLContext = SSLContext.getInstance("TLS");
-        }
-        catch (NoSuchAlgorithmException e) {
-        }
-    }
-
-    static {
-        try {
-            initTLS_1_2();
-            if (defaultSSLContext == null)
-                initTLS_1_1();
-            if (defaultSSLContext == null)
-                initTLS();
-            if (defaultSSLContext == null)
-                defaultSSLContext = SSLContext.getInstance("SSL");
-            // critical extension 2.5.29.15 is implemented improperly prior to 4.0.3.
-            // https://code.google.com/p/android/issues/detail?id=9307
-            // https://groups.google.com/forum/?fromgroups=#!topic/netty/UCfqPPk5O4s
-            // certs that use this extension will throw in Cipher.java.
-            // fallback is to use a custom SSLContext, and hack around the x509 extension.
-            TrustManager[] trustManagers = null;
-            if (Build.VERSION.SDK_INT <= 15) {
-                trustManagers = new TrustManager[] { new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        for (X509Certificate cert : certs) {
-                            if (cert != null && cert.getCriticalExtensionOIDs() != null)
-                                cert.getCriticalExtensionOIDs().remove("2.5.29.15");
-                        }
-                    }
-                } };
-            }
-            defaultSSLContext.init(null, trustManagers, null);
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    // android SSL cipher suites were downgraded (!!) for some derpy reason.
-    // Paranoid people would be wise to enable the original/secure suites.
-    // http://op-co.de/blog/posts/android_ssl_downgrade/
-    public static final String RECOMMENDED_CIPHERS[] = {
-    "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-    "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-    "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-    "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-    "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-    "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
-    "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
-    "TLS_RSA_WITH_AES_128_CBC_SHA",
-    "TLS_RSA_WITH_AES_256_CBC_SHA",
-    "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
-    "SSL_RSA_WITH_RC4_128_SHA",
-    "SSL_RSA_WITH_RC4_128_MD5",
-    "TLS_RSA_WITH_AES_256_CBC_SHA256",
-    };
-
-    public static final String RECOMMENDED_PROTOCOLS[] = {
-    "TLSv1"
-    };
-
-    public static void setupRecommendedEngineSecurity(SSLEngine engine) {
-        LinkedHashSet<String> ciphers = new LinkedHashSet<String>(Arrays.asList(engine.getSupportedCipherSuites()));
-        ciphers.addAll(Arrays.asList(engine.getSupportedCipherSuites()));
-        LinkedHashSet<String> protocols = new LinkedHashSet<String>();
-        protocols.addAll(Arrays.asList(engine.getSupportedProtocols()));
-
-        ArrayList<String> enabledCiphers = new ArrayList<String>();
-        for (String cipher: RECOMMENDED_CIPHERS) {
-            if (ciphers.contains(cipher))
-                enabledCiphers.add(cipher);
-        }
-
-        ArrayList<String> enabledProtocols = new ArrayList<String>();
-        for (String protocol: RECOMMENDED_PROTOCOLS) {
-            if (protocols.contains(protocol))
-                enabledProtocols.add(protocol);
-        }
-
-        enabledCiphers.addAll(Arrays.asList(engine.getEnabledCipherSuites()));
-        enabledProtocols.addAll(Arrays.asList(engine.getEnabledProtocols()));
-//        engine.setEnabledCipherSuites(enabledCiphers.toArray(new String[enabledCiphers.size()]));
-//        engine.setEnabledProtocols(enabledProtocols.toArray(new String[enabledProtocols.size()]));
-//        engine.setEnabledCipherSuites(RECOMMENDED_CIPHERS);
-        engine.setEnabledProtocols(new String[] {"SSL"});
-    }
-    */
+    HandshakeCallback handshakeCallback;
+    X509Certificate[] peerCertificates;
+    WritableCallback mWriteableCallback;
+    DataCallback mDataCallback;
+    TrustManager[] trustManagers;
+    boolean clientMode;
 
     static {
         // following is the "trust the system" certs setup
@@ -195,19 +94,25 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         return defaultSSLContext.createSSLEngine();
     }
 
-    @Override
-    public void end() {
-        mSocket.end();
+    public static void handshake(AsyncSocket socket,
+                                 String host, int port,
+                                 SSLEngine sslEngine,
+                                 TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode,
+                                 HandshakeCallback callback) {
+        AsyncSSLSocketWrapper wrapper = new AsyncSSLSocketWrapper(socket, host, port, sslEngine, trustManagers, verifier, clientMode);
+        wrapper.handshakeCallback = callback;
+        try {
+            wrapper.engine.beginHandshake();
+            wrapper.handleHandshakeStatus(wrapper.engine.getHandshakeStatus());
+        } catch (SSLException e) {
+            wrapper.report(e);
+        }
     }
 
-    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port) {
-        this(socket, host, port, createDefaultSSLEngine(), null, null, true);
-    }
-
-    TrustManager[] trustManagers;
-    boolean clientMode;
-
-    public AsyncSSLSocketWrapper(AsyncSocket socket, String host, int port, SSLEngine sslEngine, TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
+    private AsyncSSLSocketWrapper(AsyncSocket socket,
+                                  String host, int port,
+                                  SSLEngine sslEngine,
+                                  TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode) {
         mSocket = socket;
         hostnameVerifier = verifier;
         this.clientMode = clientMode;
@@ -277,7 +182,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             bb.addFirst(b);
                             b = ByteBufferList.EMPTY_BYTEBUFFER;
                         }
-                        handleResult(res);
+                        handleHandshakeStatus(res.getHandshakeStatus());
                         if (b.remaining() == remaining && before == transformed.remaining()) {
                             bb.addFirst(b);
                             break;
@@ -308,32 +213,30 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
 
-    SSLEngine engine;
-    boolean finishedHandshake = false;
-
-    private String mHost;
+    @Override
+    public void end() {
+        mSocket.end();
+    }
 
     public String getHost() {
         return mHost;
     }
 
-    private int mPort;
-
     public int getPort() {
         return mPort;
     }
 
-    private void handleResult(SSLEngineResult res) {
-        if (res.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
+    private void handleHandshakeStatus(HandshakeStatus status) {
+        if (status == HandshakeStatus.NEED_TASK) {
             final Runnable task = engine.getDelegatedTask();
             task.run();
         }
 
-        if (res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP) {
+        if (status == HandshakeStatus.NEED_WRAP) {
             write(ByteBufferList.EMPTY_BYTEBUFFER);
         }
 
-        if (res.getHandshakeStatus() == HandshakeStatus.NEED_UNWRAP) {
+        if (status == HandshakeStatus.NEED_UNWRAP) {
             mEmitter.onDataAvailable();
         }
 
@@ -380,6 +283,11 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                             throw e;
                     }
                 }
+                else {
+                    finishedHandshake = true;
+                }
+                handshakeCallback.onHandshakeCompleted(null, this);
+                handshakeCallback = null;
                 if (mWriteableCallback != null)
                     mWriteableCallback.onWriteable();
                 mEmitter.onDataAvailable();
@@ -403,7 +311,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         assert !mWriteTmp.hasRemaining();
     }
 
-    private boolean mWrapping = false;
 
     int calculateAlloc(int remaining) {
         // alloc 50% more than we need for writing
@@ -445,7 +352,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 else {
                     mWriteTmp = ByteBufferList.obtain(calculateAlloc(bb.remaining()));
                 }
-                handleResult(res);
+                handleHandshakeStatus(res.getHandshakeStatus());
             }
             catch (SSLException e) {
                 report(e);
@@ -489,7 +396,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 }
                 else {
                     mWriteTmp = ByteBufferList.obtain(calculateAlloc(bb.remaining()));
-                    handleResult(res);
+                    handleHandshakeStatus(res.getHandshakeStatus());
                 }
             }
             catch (SSLException e) {
@@ -500,8 +407,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         ByteBufferList.reclaim(mWriteTmp);
         mWrapping = false;
     }
-
-    WritableCallback mWriteableCallback;
 
     @Override
     public void setWriteableCallback(WritableCallback handler) {
@@ -514,12 +419,20 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     private void report(Exception e) {
+        final HandshakeCallback hs = handshakeCallback;
+        if (hs != null) {
+            handshakeCallback = null;
+            mSocket.setDataCallback(new NullDataCallback());
+            mSocket.end();
+            mSocket.close();
+            hs.onHandshakeCompleted(e, null);
+            return;
+        }
+
         CompletedCallback cb = getEndCallback();
         if (cb != null)
             cb.onCompleted(e);
     }
-
-    DataCallback mDataCallback;
 
     @Override
     public void setDataCallback(DataCallback callback) {
@@ -595,8 +508,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     public DataEmitter getDataEmitter() {
         return mSocket;
     }
-
-    X509Certificate[] peerCertificates;
 
     @Override
     public X509Certificate[] getPeerCertificates() {

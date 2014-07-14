@@ -4,6 +4,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 
+import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.LineEmitter;
@@ -70,6 +71,17 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         return sslEngine;
     }
 
+    protected void tryHandshake(final ConnectCallback callback, AsyncSocket socket, final Uri uri, final int port) {
+        AsyncSSLSocketWrapper.handshake(socket, uri.getHost(), port,
+        createConfiguredSSLEngine(uri.getHost(), port),
+        trustManagers, hostnameVerifier, true, new AsyncSSLSocketWrapper.HandshakeCallback() {
+            @Override
+            public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
+                callback.onConnectCompleted(e, socket);
+            }
+        });
+    }
+
     @Override
     protected ConnectCallback wrapCallback(final ConnectCallback callback, final Uri uri, final int port, final boolean proxied) {
         return new ConnectCallback() {
@@ -77,10 +89,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             public void onConnectCompleted(Exception ex, final AsyncSocket socket) {
                 if (ex == null) {
                     if (!proxied) {
-                        callback.onConnectCompleted(null,
-                            new AsyncSSLSocketWrapper(socket, uri.getHost(), port,
-                            createConfiguredSSLEngine(uri.getHost(), port),
-                            trustManagers, hostnameVerifier, true));
+                        tryHandshake(callback, socket, uri, port);
                     }
                     else {
                         // this SSL connection is proxied, must issue a CONNECT request to the proxy server
@@ -112,10 +121,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                                             socket.setDataCallback(null);
                                             socket.setEndCallback(null);
                                             if (TextUtils.isEmpty(s.trim())) {
-                                                callback.onConnectCompleted(null,
-                                                new AsyncSSLSocketWrapper(socket, uri.getHost(), port,
-                                                createConfiguredSSLEngine(uri.getHost(), port),
-                                                trustManagers, hostnameVerifier, true));
+                                                tryHandshake(callback, socket, uri, port);
                                             }
                                             else {
                                                 callback.onConnectCompleted(new IOException("unknown second status line"), socket);

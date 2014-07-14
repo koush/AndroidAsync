@@ -1,9 +1,12 @@
 package com.koushikdutta.async.http.server;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.os.Build;
 import android.text.TextUtils;
 
+import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
@@ -39,6 +42,7 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 
+@TargetApi(Build.VERSION_CODES.ECLAIR)
 public class AsyncHttpServer {
     ArrayList<AsyncServerSocket> mListeners = new ArrayList<AsyncServerSocket>();
     public void stop() {
@@ -223,8 +227,14 @@ public class AsyncHttpServer {
         AsyncServer.getDefault().listen(null, port, new ListenCallback() {
             @Override
             public void onAccepted(AsyncSocket socket) {
-                AsyncSSLSocketWrapper sslSocket = new AsyncSSLSocketWrapper(socket, null, port, sslContext.createSSLEngine(), null, null, false);
-                mListenCallback.onAccepted(sslSocket);
+                AsyncSSLSocketWrapper.handshake(socket, null, port, sslContext.createSSLEngine(), null, null, false,
+                new AsyncSSLSocketWrapper.HandshakeCallback() {
+                    @Override
+                    public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
+                        if (socket != null)
+                            mListenCallback.onAccepted(socket);
+                    }
+                });
             }
 
             @Override
