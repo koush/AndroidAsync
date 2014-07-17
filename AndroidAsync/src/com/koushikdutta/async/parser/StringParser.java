@@ -20,7 +20,7 @@ public class StringParser implements AsyncParser<String> {
         .then(new TransformFuture<String, ByteBufferList>() {
             @Override
             protected void transform(ByteBufferList result) throws Exception {
-                setComplete(result.readString(Charset.forName(charset)));
+                setComplete(result.readString(charset != null ? Charset.forName(charset) : null));
             }
         });
     }

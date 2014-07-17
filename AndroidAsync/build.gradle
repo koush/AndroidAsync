@@ -18,7 +18,7 @@ android {
         main {
             manifest.srcFile 'AndroidManifest.xml'
 
-            jniLibs.srcDirs = ['libs/']
+//            jniLibs.srcDirs = ['libs/']
 
             java.srcDirs=['src/'
 //                          , 'okhttp/'

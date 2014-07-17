@@ -83,7 +83,25 @@ public class ByteBufferList {
     public boolean hasRemaining() {
         return remaining() > 0;
     }
-    
+
+    public short peekShort() {
+        return read(2).duplicate().getShort();
+    }
+
+    public int peekInt() {
+        return read(4).duplicate().getInt();
+    }
+
+    public long peekLong() {
+        return read(8).duplicate().getLong();
+    }
+
+    public byte[] peekBytes(int size) {
+        byte[] ret = new byte[size];
+        read(size).duplicate().get(ret);
+        return ret;
+    }
+
     public int getInt() {
         int ret = read(4).getInt();
         remaining -= 4;
