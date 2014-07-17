@@ -40,8 +40,9 @@ public class Allocator {
         return minAlloc;
     }
 
-    public void setMinAlloc(int minAlloc ) {
+    public Allocator setMinAlloc(int minAlloc ) {
         this.minAlloc = minAlloc;
+        return this;
     }
 }
 

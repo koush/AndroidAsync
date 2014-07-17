@@ -43,6 +43,8 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.SSLEngine;
+
 public class ResponseCacheMiddleware extends SimpleMiddleware {
     public static final int ENTRY_METADATA = 0;
     public static final int ENTRY_BODY = 1;
@@ -339,7 +341,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                         while (!bb.isEmpty()) {
                             ByteBuffer b = bb.remove();
                             try {
-                                outputStream.write(b.array(), b.arrayOffset() + b.position(), b.remaining());
+                                ByteBufferList.writeOutputStream(outputStream, b);
                             }
                             finally {
                                 copy.add(b);
@@ -674,6 +676,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     private class CachedSSLSocket extends CachedSocket implements AsyncSSLSocket {
         public CachedSSLSocket(EntryCacheResponse cacheResponse, long contentLength) {
             super(cacheResponse, contentLength);
+        }
+
+        @Override
+        public SSLEngine getSSLEngine() {
+            return null;
         }
 
         @Override

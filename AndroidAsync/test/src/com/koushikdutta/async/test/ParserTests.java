@@ -36,6 +36,11 @@ public class ParserTests extends TestCase {
         StringParser p = new StringParser();
         FilteredDataEmitter f = new FilteredDataEmitter() {
             @Override
+            public String charset() {
+                return Charsets.UTF_8.name();
+            }
+
+            @Override
             public boolean isPaused() {
                 return false;
             }

@@ -7,17 +7,20 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.TransformFuture;
 
+import java.nio.charset.Charset;
+
 /**
  * Created by koush on 5/27/13.
  */
 public class StringParser implements AsyncParser<String> {
     @Override
     public Future<String> parse(DataEmitter emitter) {
+        final String charset = emitter.charset();
         return new ByteBufferListParser().parse(emitter)
         .then(new TransformFuture<String, ByteBufferList>() {
             @Override
             protected void transform(ByteBufferList result) throws Exception {
-                setComplete(result.readString(null));
+                setComplete(result.readString(Charset.forName(charset)));
             }
         });
     }

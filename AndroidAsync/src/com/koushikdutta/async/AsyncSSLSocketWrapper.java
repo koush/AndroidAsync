@@ -90,17 +90,23 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         }
     }
 
-    public static SSLEngine createDefaultSSLEngine() {
-        return defaultSSLContext.createSSLEngine();
+    public static SSLContext getDefaultSSLContext() {
+        return defaultSSLContext;
     }
 
     public static void handshake(AsyncSocket socket,
                                  String host, int port,
                                  SSLEngine sslEngine,
                                  TrustManager[] trustManagers, HostnameVerifier verifier, boolean clientMode,
-                                 HandshakeCallback callback) {
+                                 final HandshakeCallback callback) {
         AsyncSSLSocketWrapper wrapper = new AsyncSSLSocketWrapper(socket, host, port, sslEngine, trustManagers, verifier, clientMode);
         wrapper.handshakeCallback = callback;
+        socket.setClosedCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                callback.onHandshakeCompleted(new SSLException(ex), null);
+            }
+        });
         try {
             wrapper.engine.beginHandshake();
             wrapper.handleHandshakeStatus(wrapper.engine.getHandshakeStatus());
@@ -200,6 +206,11 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 }
             }
         });
+    }
+
+    @Override
+    public SSLEngine getSSLEngine() {
+        return engine;
     }
 
     void addToPending(ByteBufferList out, ByteBuffer mReadTmp) {
