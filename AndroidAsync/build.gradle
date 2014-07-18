@@ -9,24 +9,15 @@ buildscript {
 apply plugin: 'com.android.library'
 
 android {
-    dependencies {
-//        compile 'com.squareup.okio:okio:+'
-//        androidTestCompile 'com.squareup.okhttp:okhttp:1.+'
-    }
-
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
 
-//            jniLibs.srcDirs = ['libs/']
+            jniLibs.srcDirs = ['libs/']
 
             java.srcDirs=['src/'
-//                          , 'okhttp/'
-//                          , 'okhttp-shim/'
-//                          , '../okio/okio/src/main/java/'
-                          , '../conscrypt/'
-                          , '../compat/'
-//                          , '../okhttp/okhttp/src/main/java/'
+//                          , '../conscrypt/'
+//                          , '../compat/'
             ]
         }
         androidTest.java.srcDirs=['test/src/']
@@ -34,9 +25,13 @@ android {
         androidTest.assets.srcDirs=['test/assets/']
     }
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+    lintOptions {
+        abortOnError false
+    }
+
+    defaultConfig {
+        minSdkVersion 9
+        targetSdkVersion 19
     }
 
     compileSdkVersion 19
