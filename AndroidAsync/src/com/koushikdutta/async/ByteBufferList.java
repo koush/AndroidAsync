@@ -114,8 +114,8 @@ public class ByteBufferList {
         return ret;
     }
     
-    public int getShort() {
-        int ret = read(2).getShort();
+    public short getShort() {
+        short ret = read(2).getShort();
         remaining -= 2;
         return ret;
     }
