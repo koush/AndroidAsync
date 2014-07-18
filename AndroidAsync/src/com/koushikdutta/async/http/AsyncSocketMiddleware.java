@@ -50,7 +50,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         this(client, "http", 80);
     }
 
-    AsyncHttpClient mClient;
+    protected AsyncHttpClient mClient;
 
     protected ConnectCallback wrapCallback(ConnectCallback callback, Uri uri, int port, boolean proxied) {
         return callback;
