@@ -51,7 +51,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                     return;
                 }
                 try {
-                    long ptr = (long)sslNativePointer.get(socket.getSSLEngine());
+                    long ptr = (Long)sslNativePointer.get(socket.getSSLEngine());
                     byte[] proto = (byte[])nativeGetAlpnNegotiatedProtocol.invoke(null, ptr);
                     String protoString = new String(proto);
                     AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString));

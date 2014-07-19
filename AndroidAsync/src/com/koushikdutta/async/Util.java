@@ -3,6 +3,7 @@ package com.koushikdutta.async;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.util.Allocator;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;
 
@@ -67,7 +68,7 @@ public class Util {
             private void cleanup() {
                 ds.setClosedCallback(null);
                 ds.setWriteableCallback(null);
-                ByteBufferList.reclaim(pending);
+                pending.recycle();
                 pending = null;
                 try {
                     is.close();
@@ -76,29 +77,28 @@ public class Util {
                     e.printStackTrace();
                 }
             }
-            ByteBuffer pending;
-            int mToAlloc = 0;
-            int maxAlloc = 256 * 1024;
+            ByteBufferList pending = new ByteBufferList();
+            Allocator allocator = new Allocator();
 
             @Override
             public void onWriteable() {
                 try {
                     do {
-                        if (pending == null || pending.remaining() == 0) {
-                            ByteBufferList.reclaim(pending);
-                            pending = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
+                        if (!pending.hasRemaining()) {
+                            ByteBuffer b = allocator.allocate();
 
-                            long toRead = Math.min(max - totalRead, pending.capacity());
-                            int read = is.read(pending.array(), 0, (int)toRead);
+                            long toRead = Math.min(max - totalRead, b.capacity());
+                            int read = is.read(b.array(), 0, (int)toRead);
                             if (read == -1 || totalRead == max) {
                                 cleanup();
                                 wrapper.onCompleted(null);
                                 return;
                             }
-                            mToAlloc = read * 2;
+                            allocator.track(read);
                             totalRead += read;
-                            pending.position(0);
-                            pending.limit(read);
+                            b.position(0);
+                            b.limit(read);
+                            pending.add(b);
                         }
                         
                         ds.write(pending);

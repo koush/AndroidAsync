@@ -20,7 +20,7 @@ import com.koushikdutta.async.util.Charsets;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
-abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncHttpResponse {
+abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncSocket, AsyncHttpResponse {
     private AsyncHttpRequestBody mWriter;
     
     public AsyncSocket getSocket() {
@@ -183,13 +183,6 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     }
 
     DataSink mSink;
-
-    @Override
-    public void write(ByteBuffer bb) {
-        assertContent();
-        mSink.write(bb);
-    }
-
     @Override
     public void write(ByteBufferList bb) {
         assertContent();
@@ -198,10 +191,9 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
     @Override
     public void end() {
-
-        write(ByteBuffer.wrap(new byte[0]));
+        if (mSink instanceof ChunkedOutputFilter)
+            mSink.end();
     }
-
 
     @Override
     public void setWriteableCallback(WritableCallback handler) {

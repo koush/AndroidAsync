@@ -18,4 +18,13 @@ public class ChunkedOutputFilter extends FilteredDataSink {
         bb.add(ByteBuffer.wrap("\r\n".getBytes()));
         return bb;
     }
+
+    @Override
+    public void end() {
+        setMaxBuffer(Integer.MAX_VALUE);
+        ByteBufferList fin = new ByteBufferList();
+        write(fin);
+        setMaxBuffer(0);
+        super.end();
+    }
 }

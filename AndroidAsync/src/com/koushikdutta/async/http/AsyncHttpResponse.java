@@ -6,7 +6,7 @@ import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.libcore.ResponseHeaders;
 
-public interface AsyncHttpResponse extends AsyncSocket {
+public interface AsyncHttpResponse extends DataEmitter {
     public void setEndCallback(CompletedCallback handler);
     public CompletedCallback getEndCallback();
     public ResponseHeaders getHeaders();

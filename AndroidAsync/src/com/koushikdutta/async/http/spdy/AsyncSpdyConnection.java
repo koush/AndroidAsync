@@ -46,6 +46,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
     FrameReader reader;
     FrameWriter writer;
     Variant variant;
+    SpdySocket zero = new SpdySocket(0, false, false, null);
     ByteBufferListSource source = new ByteBufferListSource();
     Hashtable<Integer, SpdySocket> sockets = new Hashtable<Integer, SpdySocket>();
     Protocol protocol;
@@ -135,11 +136,6 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         @Override
         public String charset() {
             return null;
-        }
-
-        @Override
-        public void write(ByteBuffer bb) {
-
         }
 
         @Override
@@ -238,6 +234,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
     private int nextStreamId;
     @Override
     public void headers(boolean outFinished, boolean inFinished, int streamId, int associatedStreamId, List<Header> headerBlock, HeadersMode headersMode) {
+        /*
         if (pushedStream(streamId)) {
             throw new AssertionError("push");
 //            pushHeadersLater(streamId, headerBlock, inFinished);
@@ -285,6 +282,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         // Update an existing stream.
         stream.receiveHeaders(headerBlock, headersMode);
         if (inFinished) stream.receiveFin();
+        */
     }
 
     @Override
@@ -318,7 +316,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         if (peerInitialWindowSize != -1 && peerInitialWindowSize != priorWriteWindowSize) {
             delta = peerInitialWindowSize - priorWriteWindowSize;
             if (!receivedInitialPeerSettings) {
-                addBytesToWriteWindow(delta);
+                zero.addBytesToWriteWindow(delta);
                 receivedInitialPeerSettings = true;
             }
         }

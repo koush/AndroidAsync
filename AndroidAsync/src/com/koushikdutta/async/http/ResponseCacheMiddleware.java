@@ -713,12 +713,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         @Override
-        public void write(ByteBuffer bb) {
-            // it's gonna write headers and stuff... whatever
-            bb.limit(bb.position());
-        }
-
-        @Override
         public void write(ByteBufferList bb) {
             // it's gonna write headers and stuff... whatever
             bb.recycle();

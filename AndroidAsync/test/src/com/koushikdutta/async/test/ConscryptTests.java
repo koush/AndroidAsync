@@ -186,7 +186,7 @@ public class ConscryptTests extends TestCase {
 
 
         System.out.println("Done handshaking! Thank you come again.");
-        long ptr = (long)sslNativePointer.get(engine);
+        long ptr = (Long)sslNativePointer.get(engine);
         byte[] proto = (byte[]) nativeGetAlpnNegotiatedProtocol.invoke(null, ptr);
 //        byte[] proto = (byte[]) nativeGetNpnNegotiatedProtocol.invoke(null, ptr);
         String protoString = new String(proto);

@@ -48,28 +48,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         if (HttpUtil.isKeepAlive(req.getHeaders().getHeaders()))
             mRawHeaders.set("Connection", "Keep-Alive");
     }
-    
-    @Override
-    public void write(ByteBuffer bb) {
-        if (bb.remaining() == 0)
-            return;
-        writeInternal(bb);
-    }
 
     @Override
     public void write(ByteBufferList bb) {
         if (bb.remaining() == 0)
             return;
         writeInternal(bb);
-    }
-
-    private void writeInternal(ByteBuffer bb) {
-        assert !mEnded;
-        if (!mHasWritten) {
-            initFirstWrite();
-            return;
-        }
-        mSink.write(bb);
     }
 
     private void writeInternal(ByteBufferList bb) {
@@ -314,11 +298,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         if (mSink != null)
             return mSink.isOpen();
         return mSocket.isOpen();
-    }
-
-    @Override
-    public void close() {
-        mSocket.close();
     }
 
     @Override

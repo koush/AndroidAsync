@@ -96,7 +96,7 @@ public class WebSocketImpl implements WebSocket {
             }
             @Override
             protected void sendFrame(byte[] frame) {
-                mSink.write(ByteBuffer.wrap(frame));
+                mSink.write(new ByteBufferList(frame));
             }
         };
         mParser.setMasking(masking);
@@ -215,17 +215,17 @@ public class WebSocketImpl implements WebSocket {
 
     @Override
     public void send(byte[] bytes) {
-        mSink.write(ByteBuffer.wrap(mParser.frame(bytes)));
+        mSink.write(new ByteBufferList((mParser.frame(bytes))));
     }
     
     @Override
     public void send(byte[] bytes, int offset, int len) {
-    	mSink.write(ByteBuffer.wrap(mParser.frame(bytes, offset, len)));
+    	mSink.write(new ByteBufferList(mParser.frame(bytes, offset, len)));
     }
 
     @Override
     public void send(String string) {
-        mSink.write(ByteBuffer.wrap(mParser.frame(string)));
+        mSink.write(new ByteBufferList((mParser.frame(string))));
     }
 
     private StringCallback mStringCallback;
@@ -258,15 +258,6 @@ public class WebSocketImpl implements WebSocket {
     @Override
     public boolean isBuffering() {
         return mSink.remaining() > 0;
-    }
-
-    @Override
-    public void write(ByteBuffer bb) {
-        byte[] buf = new byte[bb.remaining()];
-        bb.get(buf);
-        bb.position(0);
-        bb.limit(0);
-        send(buf);
     }
 
     @Override

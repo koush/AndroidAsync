@@ -33,7 +33,7 @@ public class Issue59 extends TestCase {
                     Util.writeAll(response, "foobarbeepboop".getBytes(), new CompletedCallback() {
                         @Override
                         public void onCompleted(Exception ex) {
-                            response.close();
+                            response.end();
                         }
                     });
                 }
