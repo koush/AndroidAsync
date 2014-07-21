@@ -1,7 +1,5 @@
 package com.koushikdutta.async.http.server;
 
-import java.util.regex.Matcher;
-
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
@@ -9,10 +7,11 @@ import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.HttpUtil;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.RequestHeaders;
+
+import java.util.regex.Matcher;
 
 public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter implements AsyncHttpServerRequest, CompletedCallback {
     private RawHeaders mRawHeaders = new RawHeaders();
@@ -68,7 +67,6 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                             mBody = new UnknownRequestBody(mRawHeaders.get("Content-Type"));
                     }
                     mBody.parse(emitter, mReporter);
-                    mHeaders = new RequestHeaders(null, mRawHeaders);
                     onHeadersReceived();
                 }
             }
@@ -77,10 +75,6 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
             }
         }
     };
-
-    RawHeaders getRawHeaders() {
-        return mRawHeaders;
-    }
 
     String method;
     @Override
@@ -101,10 +95,9 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         return mSocket;
     }
 
-    private RequestHeaders mHeaders;
     @Override
-    public RequestHeaders getHeaders() {
-        return mHeaders;
+    public RawHeaders getHeaders() {
+        return mRawHeaders;
     }
 
     @Override

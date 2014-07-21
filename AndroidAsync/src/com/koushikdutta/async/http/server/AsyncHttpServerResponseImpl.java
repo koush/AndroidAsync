@@ -45,7 +45,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     AsyncHttpServerResponseImpl(AsyncSocket socket, AsyncHttpServerRequestImpl req) {
         mSocket = socket;
         mRequest = req;
-        if (HttpUtil.isKeepAlive(req.getHeaders().getHeaders()))
+        if (HttpUtil.isKeepAlive(req.getHeaders()))
             mRawHeaders.set("Connection", "Keep-Alive");
     }
 
@@ -204,7 +204,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         long start = 0;
         long end = totalLength - 1;
 
-        String range = mRequest.getHeaders().getHeaders().get("Range");
+        String range = mRequest.getHeaders().get("Range");
         if (range != null) {
             String[] parts = range.split("=");
             if (parts.length != 2 || !"bytes".equals(parts[0])) {

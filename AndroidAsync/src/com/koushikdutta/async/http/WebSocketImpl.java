@@ -110,16 +110,16 @@ public class WebSocketImpl implements WebSocket {
     public WebSocketImpl(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
         this(request.getSocket());
         
-        String key = request.getHeaders().getHeaders().get("Sec-WebSocket-Key");
+        String key = request.getHeaders().get("Sec-WebSocket-Key");
         String concat = key + MAGIC;
         String sha1 = SHA1(concat);
-        String origin = request.getHeaders().getHeaders().get("Origin");
+        String origin = request.getHeaders().get("Origin");
         
         response.responseCode(101);
         response.getHeaders().getHeaders().set("Upgrade", "WebSocket");
         response.getHeaders().getHeaders().set("Connection", "Upgrade");
         response.getHeaders().getHeaders().set("Sec-WebSocket-Accept", sha1);
-        String protocol = request.getHeaders().getHeaders().get("Sec-WebSocket-Protocol");
+        String protocol = request.getHeaders().get("Sec-WebSocket-Protocol");
         // match the protocol (sanity checking and enforcement is done in the caller)
         if (!TextUtils.isEmpty(protocol))
             response.getHeaders().getHeaders().set("Sec-WebSocket-Protocol", protocol);
