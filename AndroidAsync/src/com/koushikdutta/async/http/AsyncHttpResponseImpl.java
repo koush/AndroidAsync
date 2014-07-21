@@ -40,14 +40,14 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
         mWriter = mRequest.getBody();
         if (mWriter != null) {
-            if (mRequest.getHeaders().getContentType() == null)
-                mRequest.getHeaders().setContentType(mWriter.getContentType());
+            if (mRequest.getHeaders().get("Content-Type") == null)
+                mRequest.getHeaders().set("Content-Type", mWriter.getContentType());
             if (mWriter.length() >= 0) {
-                mRequest.getHeaders().setContentLength(mWriter.length());
+                mRequest.getHeaders().set("Content-Length", String.valueOf(mWriter.length()));
                 mSink = mSocket;
             }
             else {
-                mRequest.getHeaders().getHeaders().set("Transfer-Encoding", "Chunked");
+                mRequest.getHeaders().set("Transfer-Encoding", "Chunked");
                 mSink = new ChunkedOutputFilter(mSocket);
             }
         }
@@ -116,7 +116,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
                     mRawHeaders.addLine(s);
                 }
                 else {
-                    mHeaders = new ResponseHeaders(mRequest.getUri(), mRawHeaders);
+                    mHeaders = mRawHeaders;
                     onHeadersReceived();
                     // socket may get detached after headers (websocket)
                     if (mSocket == null)
@@ -161,7 +161,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     
     private AsyncHttpRequest mRequest;
     private AsyncSocket mSocket;
-    ResponseHeaders mHeaders;
+    protected RawHeaders mHeaders;
     public AsyncHttpResponseImpl(AsyncHttpRequest request) {
         mRequest = request;
     }
@@ -169,8 +169,23 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     boolean mCompleted = false;
 
     @Override
-    public ResponseHeaders getHeaders() {
+    public RawHeaders headers() {
         return mHeaders;
+    }
+
+    @Override
+    public int code() {
+        return headers().getResponseCode();
+    }
+
+    @Override
+    public String protocol() {
+        return "HTTP/1." + headers().getHttpMinorVersion();
+    }
+
+    @Override
+    public String message() {
+        return headers().getResponseMessage();
     }
 
     private boolean mFirstWrite = true;
@@ -178,8 +193,8 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         if (!mFirstWrite)
             return;
         mFirstWrite = false;
-        assert null != mRequest.getHeaders().getHeaders().get("Content-Type");
-        assert mRequest.getHeaders().getHeaders().get("Transfer-Encoding") != null || mRequest.getHeaders().getContentLength() != -1;
+        assert null != mRequest.getHeaders().get("Content-Type");
+        assert mRequest.getHeaders().get("Transfer-Encoding") != null || HttpUtil.contentLength(mRequest.getHeaders()) != -1;
     }
 
     DataSink mSink;
@@ -228,7 +243,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
     @Override
     public String charset() {
-        Multimap mm = Multimap.parseHeader(getHeaders().getHeaders(), "Content-Type");
+        Multimap mm = Multimap.parseHeader(headers(), "Content-Type");
         String cs;
         if (mm != null && null != (cs = mm.getString("charset")) && Charset.isSupported(cs)) {
             return cs;

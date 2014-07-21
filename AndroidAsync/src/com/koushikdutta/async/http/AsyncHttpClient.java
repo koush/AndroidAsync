@@ -191,9 +191,9 @@ public class AsyncHttpClient {
     }
 
     private static void copyHeader(AsyncHttpRequest from, AsyncHttpRequest to, String header) {
-        String value = from.getHeaders().getHeaders().get(header);
+        String value = from.getHeaders().get(header);
         if (!TextUtils.isEmpty(value))
-            to.getHeaders().getHeaders().set(header, value);
+            to.getHeaders().set(header, value);
     }
 
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
@@ -283,6 +283,7 @@ public class AsyncHttpClient {
 
                     @Override
                     public void setDataEmitter(DataEmitter emitter) {
+                        data.response = this;
                         data.bodyEmitter = emitter;
                         synchronized (mMiddleware) {
                             for (AsyncHttpClientMiddleware middleware: mMiddleware) {
@@ -293,8 +294,8 @@ public class AsyncHttpClient {
 
                         super.setDataEmitter(data.bodyEmitter);
 
-                        RawHeaders headers = mHeaders.getHeaders();
-                        int responseCode = headers.getResponseCode();
+                        RawHeaders headers = mHeaders;
+                        int responseCode = code();
                         if ((responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == 307) && request.getFollowRedirect()) {
                             String location = headers.get("Location");
                             Uri redirect;
@@ -326,7 +327,7 @@ public class AsyncHttpClient {
                             return;
                         }
 
-                        request.logv("Final (post cache response) headers:\n" + mHeaders.getHeaders().toHeaderString());
+                        request.logv("Final (post cache response) headers:\n" + mHeaders.toHeaderString());
 
                         // at this point the headers are done being modified
                         reportConnectedCompleted(cancel, null, this, request, callback);
@@ -342,7 +343,7 @@ public class AsyncHttpClient {
                                 mServer.removeAllCallbacks(cancel.scheduled);
 
                             // allow the middleware to massage the headers before the body is decoded
-                            request.logv("Received headers:\n" + mHeaders.getHeaders().toHeaderString());
+                            request.logv("Received headers:\n" + mHeaders.toHeaderString());
 
                             data.headers = mHeaders;
                             synchronized (mMiddleware) {
@@ -378,7 +379,7 @@ public class AsyncHttpClient {
                             return;
                         super.report(ex);
                         if (!socket.isOpen() || ex != null) {
-                            if (getHeaders() == null && ex != null)
+                            if (headers() == null && ex != null)
                                 reportConnectedCompleted(cancel, ex, null, request, callback);
                         }
 
@@ -546,7 +547,7 @@ public class AsyncHttpClient {
                 }
                 invokeConnect(callback, response);
 
-                final long contentLength = response.getHeaders().getContentLength();
+                final long contentLength = HttpUtil.contentLength(response.headers());
 
                 response.setDataCallback(new OutputStreamDataCallback(fout) {
                     @Override
@@ -591,8 +592,6 @@ public class AsyncHttpClient {
                 }
                 invokeConnect(callback, response);
 
-                final long contentLength = response.getHeaders().getContentLength();
-
                 Future<T> parsed = parser.parse(response)
                 .setCallback(new FutureCallback<T>() {
                     @Override
@@ -626,7 +625,7 @@ public class AsyncHttpClient {
                     }
                     return;
                 }
-                WebSocket ws = WebSocketImpl.finishHandshake(req.getHeaders().getHeaders(), response);
+                WebSocket ws = WebSocketImpl.finishHandshake(req.getHeaders(), response);
                 if (ws == null) {
                     if (!ret.setComplete(new WebSocketHandshakeException("Unable to complete websocket handshake")))
                         return;

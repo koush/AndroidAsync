@@ -26,6 +26,8 @@ final class HeaderParser {
      * Parse a comma-separated list of cache control header values.
      */
     public static void parseCacheControl(String value, CacheControlHandler handler) {
+        if (value == null)
+            return;
         int pos = 0;
         while (pos < value.length()) {
             int tokenStart = pos;

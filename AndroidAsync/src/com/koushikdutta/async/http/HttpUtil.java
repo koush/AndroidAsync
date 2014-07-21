@@ -14,7 +14,13 @@ import com.koushikdutta.async.http.filter.ContentLengthFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
 import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.server.UnknownRequestBody;
+import com.koushikdutta.async.http.libcore.RequestHeaders;
+import com.koushikdutta.async.http.libcore.ResponseHeaders;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public class HttpUtil {
     public static AsyncHttpRequestBody getBody(DataEmitter emitter, CompletedCallback reporter, RawHeaders headers) {
@@ -129,5 +135,37 @@ public class HttpUtil {
         }
 
         return keepAlive;
+    }
+
+    public static int contentLength(RawHeaders headers) {
+        String cl = headers.get("Content-Length");
+        if (cl == null)
+            return -1;
+        try {
+            return Integer.parseInt(cl);
+        }
+        catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    public static Set<String> varyFields(RawHeaders headers) {
+        HashSet<String> ret = new HashSet<String>();
+        String value = headers.get("Vary");
+        if (value == null)
+            return ret;
+        for (String varyField : value.split(",")) {
+            ret.add(varyField.trim());
+        }
+        return ret;
+    }
+
+    public static boolean isCacheable(RawHeaders requestHeaders, RawHeaders responseHeaders) {
+        ResponseHeaders r = new ResponseHeaders(null, responseHeaders);
+        return r.isCacheable(new RequestHeaders(null, requestHeaders));
+    }
+
+    public static boolean isNoCache(RawHeaders headers) {
+        return new RequestHeaders(null, headers).isNoCache();
     }
 }

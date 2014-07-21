@@ -43,8 +43,8 @@ public class Issue59 extends TestCase {
 
             AsyncHttpGet get = new AsyncHttpGet("http://localhost:5959/");
             get.setLogging("issue59", Log.VERBOSE);
-            get.getHeaders().getHeaders().removeAll("Connection");
-            get.getHeaders().getHeaders().removeAll("Accept-Encoding");
+            get.getHeaders().removeAll("Connection");
+            get.getHeaders().removeAll("Accept-Encoding");
 
             assertEquals("foobarbeepboop", AsyncHttpClient.getDefaultInstance().executeString(get, null).get(1000, TimeUnit.MILLISECONDS));
         }

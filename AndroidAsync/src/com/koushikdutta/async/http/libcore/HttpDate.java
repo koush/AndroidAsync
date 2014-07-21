@@ -69,6 +69,8 @@ public final class HttpDate {
      * parsed.
      */
     public static Date parse(String value) {
+        if (value == null)
+            return null;
         try {
             return STANDARD_DATE_FORMAT.get().parse(value);
         } catch (ParseException ignore) {

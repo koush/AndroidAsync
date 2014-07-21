@@ -115,7 +115,7 @@ public class HttpClientTests extends TestCase {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
                 // make sure gzip decoding works, as that is generally what github sends.
-                Assert.assertEquals("gzip", response.getHeaders().getContentEncoding());
+                Assert.assertEquals("gzip", response.headers().get("Content-Encoding"));
                 response.setDataCallback(new DataCallback() {
                     @Override
                     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {

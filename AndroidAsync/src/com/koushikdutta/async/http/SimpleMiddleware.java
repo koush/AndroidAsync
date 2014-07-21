@@ -11,22 +11,22 @@ public class SimpleMiddleware implements AsyncHttpClientMiddleware {
 
     @Override
     public void onSocket(OnSocketData data) {
-        
     }
 
     @Override
     public void onHeadersReceived(OnHeadersReceivedData data) {
-        
     }
 
     @Override
     public void onBodyDecoder(OnBodyData data) {
-        
     }
 
     @Override
     public void onRequestComplete(OnRequestCompleteData data) {
-        
     }
 
+    @Override
+    public boolean sendHeaders(SendHeaderData data) {
+        return false;
+    }
 }

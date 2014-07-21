@@ -131,7 +131,7 @@ public class WebSocketImpl implements WebSocket {
     }
     
     public static void addWebSocketUpgradeHeaders(AsyncHttpRequest req, String protocol) {
-        RawHeaders headers = req.getHeaders().getHeaders();
+        RawHeaders headers = req.getHeaders();
         final String key = Base64.encodeToString(toByteArray(UUID.randomUUID()),Base64.NO_WRAP);
         headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
@@ -142,8 +142,8 @@ public class WebSocketImpl implements WebSocket {
             headers.set("Sec-WebSocket-Protocol", protocol);
         headers.set("Pragma", "no-cache");
         headers.set("Cache-Control", "no-cache");
-        if (TextUtils.isEmpty(req.getHeaders().getUserAgent()))
-            req.getHeaders().setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.15 Safari/537.36");
+        if (TextUtils.isEmpty(req.getHeaders().get("User-Agent")))
+            req.getHeaders().set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.15 Safari/537.36");
     }
     
     public WebSocketImpl(AsyncSocket socket) {
@@ -154,12 +154,12 @@ public class WebSocketImpl implements WebSocket {
     public static WebSocket finishHandshake(RawHeaders requestHeaders, AsyncHttpResponse response) {
         if (response == null)
             return null;
-        if (response.getHeaders().getHeaders().getResponseCode() != 101)
+        if (response.headers().getResponseCode() != 101)
             return null;
-        if (!"websocket".equalsIgnoreCase(response.getHeaders().getHeaders().get("Upgrade")))
+        if (!"websocket".equalsIgnoreCase(response.headers().get("Upgrade")))
             return null;
         
-        String sha1 = response.getHeaders().getHeaders().get("Sec-WebSocket-Accept");
+        String sha1 = response.headers().get("Sec-WebSocket-Accept");
         if (sha1 == null)
             return null;
         String key = requestHeaders.get("Sec-WebSocket-Key");
