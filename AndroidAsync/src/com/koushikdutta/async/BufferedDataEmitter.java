@@ -32,7 +32,7 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
         if (mDataCallback != null && !mPaused && mBuffers.remaining() > 0)
             mDataCallback.onDataAvailable(this, mBuffers);
         
-        if (mEnded && mBuffers.remaining() == 0)
+        if (mEnded && mBuffers.remaining() == 0 && mEndCallback != null)
             mEndCallback.onCompleted(mEndException);
     }
     
