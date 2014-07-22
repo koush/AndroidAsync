@@ -3,12 +3,11 @@ package com.koushikdutta.async.http.body;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.Multimap;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import org.apache.http.NameValuePair;
 
 import java.io.File;
 import java.util.List;
-import java.util.Map;
 
 public class Part {
     public static final String CONTENT_DISPOSITION = "Content-Disposition";

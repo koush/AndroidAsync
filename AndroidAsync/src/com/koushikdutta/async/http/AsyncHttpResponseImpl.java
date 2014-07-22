@@ -13,11 +13,8 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.ResponseHeaders;
-import com.koushikdutta.async.util.Charsets;
+import com.koushikdutta.async.http.cache.RawHeaders;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncSocket, AsyncHttpResponse {

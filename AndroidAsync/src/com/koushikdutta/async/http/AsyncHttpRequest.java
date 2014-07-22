@@ -5,8 +5,7 @@ import android.util.Log;
 
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.RequestHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 
 import org.apache.http.Header;
 import org.apache.http.HeaderIterator;

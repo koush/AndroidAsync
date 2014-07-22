@@ -9,7 +9,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 
 import java.util.regex.Matcher;
 

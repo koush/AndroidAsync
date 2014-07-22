@@ -1,7 +1,7 @@
 package com.koushikdutta.async.http;
 
 import android.net.Uri;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 

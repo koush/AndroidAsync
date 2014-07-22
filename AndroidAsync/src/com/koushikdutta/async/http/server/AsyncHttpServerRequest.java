@@ -4,7 +4,7 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 
 import java.util.regex.Matcher;
 

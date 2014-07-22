@@ -20,7 +20,7 @@ import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.callback.RequestCallback;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.parser.AsyncParser;
 import com.koushikdutta.async.parser.ByteBufferListParser;
 import com.koushikdutta.async.parser.JSONArrayParser;

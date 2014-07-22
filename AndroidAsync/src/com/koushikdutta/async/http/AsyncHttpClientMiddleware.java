@@ -5,7 +5,7 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.util.UntypedHashtable;
 
 public interface AsyncHttpClientMiddleware {

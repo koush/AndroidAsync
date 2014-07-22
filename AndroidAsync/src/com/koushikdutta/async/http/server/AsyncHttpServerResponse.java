@@ -1,14 +1,14 @@
 package com.koushikdutta.async.http.server;
 
-import java.io.File;
-import java.io.InputStream;
-
-import org.json.JSONObject;
-
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.http.libcore.ResponseHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
+
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.InputStream;
 
 public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void end();
@@ -18,7 +18,7 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void sendFile(File file);
     public void sendStream(InputStream inputStream, long totalLength);
     public void responseCode(int code);
-    public ResponseHeaders getHeaders();
+    public RawHeaders getHeaders();
     public void writeHead();
     public void setContentType(String contentType);
     public void redirect(String location);

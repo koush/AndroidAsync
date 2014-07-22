@@ -1,6 +1,6 @@
 package com.koushikdutta.async.http.callback;
 
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 
 /**
  * Created by koush on 6/30/13.

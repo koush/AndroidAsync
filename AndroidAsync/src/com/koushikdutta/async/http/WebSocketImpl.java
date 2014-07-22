@@ -1,11 +1,5 @@
 package com.koushikdutta.async.http;
 
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
-import java.security.MessageDigest;
-import java.util.LinkedList;
-import java.util.UUID;
-
 import android.text.TextUtils;
 import android.util.Base64;
 
@@ -17,9 +11,15 @@ import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
+import java.security.MessageDigest;
+import java.util.LinkedList;
+import java.util.UUID;
 
 public class WebSocketImpl implements WebSocket {
     @Override
@@ -116,13 +116,13 @@ public class WebSocketImpl implements WebSocket {
         String origin = request.getHeaders().get("Origin");
         
         response.responseCode(101);
-        response.getHeaders().getHeaders().set("Upgrade", "WebSocket");
-        response.getHeaders().getHeaders().set("Connection", "Upgrade");
-        response.getHeaders().getHeaders().set("Sec-WebSocket-Accept", sha1);
+        response.getHeaders().set("Upgrade", "WebSocket");
+        response.getHeaders().set("Connection", "Upgrade");
+        response.getHeaders().set("Sec-WebSocket-Accept", sha1);
         String protocol = request.getHeaders().get("Sec-WebSocket-Protocol");
         // match the protocol (sanity checking and enforcement is done in the caller)
         if (!TextUtils.isEmpty(protocol))
-            response.getHeaders().getHeaders().set("Sec-WebSocket-Protocol", protocol);
+            response.getHeaders().set("Sec-WebSocket-Protocol", protocol);
 //        if (origin != null)
 //            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
         response.writeHead();

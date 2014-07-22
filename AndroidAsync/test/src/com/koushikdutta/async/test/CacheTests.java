@@ -6,8 +6,8 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpGet;
-import com.koushikdutta.async.http.ResponseCacheMiddleware;
-import com.koushikdutta.async.http.libcore.HttpDate;
+import com.koushikdutta.async.http.HttpDate;
+import com.koushikdutta.async.http.cache.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
@@ -30,8 +30,8 @@ public class CacheTests extends TestCase {
             httpServer.get("/uname/(.*)", new HttpServerRequestCallback() {
                 @Override
                 public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                    response.getHeaders().getHeaders().set("Date", HttpDate.format(new Date()));
-                    response.getHeaders().getHeaders().set("Cache-Control", "private, max-age=10000");
+                    response.getHeaders().set("Date", HttpDate.format(new Date()));
+                    response.getHeaders().set("Cache-Control", "private, max-age=10000");
                     response.send(request.getMatcher().group(1));
                 }
             });

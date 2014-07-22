@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.koushikdutta.async.http.libcore;
+package com.koushikdutta.async.http.cache;
 
 final class HeaderParser {
 

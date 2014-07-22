@@ -28,7 +28,7 @@ public class Issue59 extends TestCase {
                 public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                     // setting this to empty is a hacky way of telling the framework not to use
                     // transfer-encoding. It will get removed.
-                    response.getHeaders().getHeaders().set("Transfer-Encoding", "");
+                    response.getHeaders().set("Transfer-Encoding", "");
                     response.responseCode(200);
                     Util.writeAll(response, "foobarbeepboop".getBytes(), new CompletedCallback() {
                         @Override

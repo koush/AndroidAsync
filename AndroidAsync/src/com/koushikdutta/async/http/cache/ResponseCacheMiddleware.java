@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.cache;
 
 import android.net.Uri;
 import android.util.Base64;
@@ -14,13 +14,13 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.SimpleCancellable;
-import com.koushikdutta.async.http.libcore.RequestHeaders;
-import com.koushikdutta.async.util.Charsets;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.ResponseHeaders;
-import com.koushikdutta.async.http.libcore.ResponseSource;
-import com.koushikdutta.async.http.libcore.StrictLineReader;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpClientMiddleware;
+import com.koushikdutta.async.http.AsyncHttpGet;
+import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.http.SimpleMiddleware;
 import com.koushikdutta.async.util.Allocator;
+import com.koushikdutta.async.util.Charsets;
 import com.koushikdutta.async.util.FileCache;
 import com.koushikdutta.async.util.StreamUtility;
 
@@ -95,7 +95,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     // also see if this can be turned into a conditional cache request.
     @Override
     public Cancellable getSocket(final GetSocketData data) {
-        if (cache == null || !caching || HttpUtil.isNoCache(data.request.getHeaders())) {
+        if (cache == null || !caching || CacheUtil.isNoCache(data.request.getHeaders())) {
             networkCount++;
             return null;
         }
@@ -244,7 +244,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         if (!caching)
             return;
 
-        if (!HttpUtil.isCacheable(data.request.getHeaders(), data.headers) || !data.request.getMethod().equals(AsyncHttpGet.METHOD)) {
+        if (!CacheUtil.isCacheable(data.request.getHeaders(), data.headers) || !data.request.getMethod().equals(AsyncHttpGet.METHOD)) {
             /*
              * Don't cache non-GET responses. We're technically allowed to cache
              * HEAD requests and some POST requests, but the complexity of doing
@@ -256,7 +256,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         String key = FileCache.toKeyString(data.request.getUri());
-        RawHeaders varyHeaders = data.request.getHeaders().getAll(HttpUtil.varyFields(data.headers));
+        RawHeaders varyHeaders = data.request.getHeaders().getAll(CacheUtil.varyFields(data.headers));
         Entry entry = new Entry(data.request.getUri(), varyHeaders, data.request, data.headers);
         BodyCacher cacher = new BodyCacher();
         EntryEditor editor = new EntryEditor(key);

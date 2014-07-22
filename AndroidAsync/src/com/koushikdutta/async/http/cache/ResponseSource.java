@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 The Android Open Source Project
+ * Copyright (C) 2011 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,27 @@
  * limitations under the License.
  */
 
-package com.koushikdutta.async.http.libcore;
+package com.koushikdutta.async.http.cache;
 
-public final class Objects {
-    private Objects() {}
+enum ResponseSource {
 
     /**
-     * Returns true if two possibly-null objects are equal.
+     * Return the response from the cache immediately.
      */
-    public static boolean equal(Object a, Object b) {
-        return a == b || (a != null && a.equals(b));
-    }
+    CACHE,
 
-    public static int hashCode(Object o) {
-        return (o == null) ? 0 : o.hashCode();
+    /**
+     * Make a conditional request to the host, returning the cache response if
+     * the cache is valid and the network response otherwise.
+     */
+    CONDITIONAL_CACHE,
+
+    /**
+     * Return the response from the network.
+     */
+    NETWORK;
+
+    public boolean requiresConnection() {
+        return this == CONDITIONAL_CACHE || this == NETWORK;
     }
 }

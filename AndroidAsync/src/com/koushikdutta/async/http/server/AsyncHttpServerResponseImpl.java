@@ -12,9 +12,8 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.HttpUtil;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.ResponseHeaders;
 import com.koushikdutta.async.util.StreamUtility;
 
 import org.json.JSONObject;
@@ -24,16 +23,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private RawHeaders mRawHeaders = new RawHeaders();
     private long mContentLength = -1;
-    private ResponseHeaders mHeaders = new ResponseHeaders(null, mRawHeaders);
-    
+
     @Override
-    public ResponseHeaders getHeaders() {
-        return mHeaders;
+    public RawHeaders getHeaders() {
+        return mRawHeaders;
     }
     
     public AsyncSocket getSocket() {
@@ -226,7 +223,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                     end = totalLength - 1;
 
                 responseCode(206);
-                getHeaders().getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, totalLength));
+                getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, totalLength));
             }
             catch (Exception e) {
                 responseCode(416);
@@ -240,7 +237,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             mContentLength = end - start + 1;
             mRawHeaders.set("Content-Length", String.valueOf(mContentLength));
             mRawHeaders.set("Accept-Ranges", "bytes");
-            if (getHeaders().getHeaders().getStatusLine() == null)
+            if (getHeaders().getStatusLine() == null)
                 responseCode(200);
             if (mRequest.getMethod().equals(AsyncHttpHead.METHOD)) {
                 writeHead();

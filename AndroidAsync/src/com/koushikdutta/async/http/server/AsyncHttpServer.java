@@ -25,8 +25,7 @@ import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.RequestHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.File;
@@ -150,7 +149,7 @@ public class AsyncHttpServer {
                 @Override
                 public void onCompleted(Exception e) {
                     // if the protocol was switched off http, ignore this request/response.
-                    if (res.getHeaders().getHeaders().getResponseCode() == 101)
+                    if (res.getHeaders().getResponseCode() == 101)
                         return;
                     requestComplete = true;
                     super.onCompleted(e);
@@ -381,14 +380,14 @@ public class AsyncHttpServer {
                 String path = request.getMatcher().replaceAll("");
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
                 final InputStream is = pair.second;
-                response.getHeaders().getHeaders().set("Content-Length", String.valueOf(pair.first));
+                response.getHeaders().set("Content-Length", String.valueOf(pair.first));
                 if (is == null) {
                     response.responseCode(404);
                     response.end();
                     return;
                 }
                 response.responseCode(200);
-                response.getHeaders().getHeaders().add("Content-Type", getContentType(assetPath + path));
+                response.getHeaders().add("Content-Type", getContentType(assetPath + path));
                 Util.pump(is, response, new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
@@ -405,14 +404,14 @@ public class AsyncHttpServer {
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
                 final InputStream is = pair.second;
                 StreamUtility.closeQuietly(is);
-                response.getHeaders().getHeaders().set("Content-Length", String.valueOf(pair.first));
+                response.getHeaders().set("Content-Length", String.valueOf(pair.first));
                 if (is == null) {
                     response.responseCode(404);
                     response.end();
                     return;
                 }
                 response.responseCode(200);
-                response.getHeaders().getHeaders().add("Content-Type", getContentType(assetPath + path));
+                response.getHeaders().add("Content-Type", getContentType(assetPath + path));
                 response.writeHead();
                 response.end();
             }

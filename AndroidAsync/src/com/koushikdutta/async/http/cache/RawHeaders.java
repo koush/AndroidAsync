@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http.libcore;
+package com.koushikdutta.async.http.cache;
 
 /*
  *  Licensed to the Apache Software Foundation (ASF) under one or more

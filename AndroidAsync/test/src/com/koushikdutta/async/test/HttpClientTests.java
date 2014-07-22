@@ -20,7 +20,7 @@ import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpResponse;
-import com.koushikdutta.async.http.ResponseCacheMiddleware;
+import com.koushikdutta.async.http.cache.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.body.JSONObjectBody;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
