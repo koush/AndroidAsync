@@ -26,7 +26,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         super(client, "https", 443);
     }
 
-    SSLContext sslContext;
+    protected SSLContext sslContext;
 
     public void setSSLContext(SSLContext sslContext) {
         this.sslContext = sslContext;
@@ -36,13 +36,13 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         return sslContext != null ? sslContext : AsyncSSLSocketWrapper.getDefaultSSLContext();
     }
 
-    TrustManager[] trustManagers;
+    protected TrustManager[] trustManagers;
 
     public void setTrustManagers(TrustManager[] trustManagers) {
         this.trustManagers = trustManagers;
     }
 
-    HostnameVerifier hostnameVerifier;
+    protected HostnameVerifier hostnameVerifier;
 
     public void setHostnameVerifier(HostnameVerifier hostnameVerifier) {
         this.hostnameVerifier = hostnameVerifier;
