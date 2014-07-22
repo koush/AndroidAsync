@@ -1,7 +1,9 @@
 package com.koushikdutta.async.http;
 
 import android.net.Uri;
+
 import com.koushikdutta.async.http.cache.RawHeaders;
+
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -9,12 +11,13 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
  * Created by koush on 5/27/13.
  */
-public class Multimap extends Hashtable<String, List<String>> implements Iterable<NameValuePair> {
+public class Multimap extends LinkedHashMap<String, List<String>> implements Iterable<NameValuePair> {
     public Multimap() {
     }
 
