@@ -141,8 +141,21 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             }
         });
 
-        // SSL needs buffering of data written during handshake.
-        // aka exhcange.setDatacallback
+
+        // here's the stack of emitters
+        // ssl emitter
+        // buffered data emitter
+        // socket
+
+        // ssl emitter needs a buffered emitter
+        // in case there is an underflow.
+        // buffered emitter will read from the socket,
+        // and replay data forever.
+
+        // on pause, the emitter is paused to prevent the buffered
+        // socket and itself from firing.
+        // on resume, emitter is resumed, ssl buffer is flushed as well
+
         mEmitter = new BufferedDataEmitter(socket);
         mEmitter.setEndCallback(new CompletedCallback() {
             @Override
@@ -467,14 +480,13 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     @Override
     public void pause() {
-        mSocket.pause();
+        mEmitter.pause();
     }
 
     @Override
     public void resume() {
+        mEmitter.resume();
         onDataAvailable();
-        mEmitter.onDataAvailable();
-        mSocket.resume();
     }
 
     @Override
