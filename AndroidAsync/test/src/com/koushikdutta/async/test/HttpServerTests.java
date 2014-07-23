@@ -49,7 +49,7 @@ public class HttpServerTests extends TestCase {
         httpServer.get("/hello", new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-                assertNotNull(request.getHeaders().getHost());
+                assertNotNull(request.getHeaders().get("Host"));
                 response.send("hello");
             }
         });
@@ -58,7 +58,7 @@ public class HttpServerTests extends TestCase {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 try {
-                    assertNotNull(request.getHeaders().getHost());
+                    assertNotNull(request.getHeaders().get("Host"));
                     JSONObject json = new JSONObject();
                     if (request.getBody() instanceof UrlEncodedFormBody) {
                         UrlEncodedFormBody body = (UrlEncodedFormBody)request.getBody();

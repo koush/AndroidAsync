@@ -10,7 +10,7 @@ import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 
 import java.io.IOException;
 import java.util.ArrayList;

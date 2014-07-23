@@ -5,8 +5,7 @@ import android.util.Log;
 
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.RequestHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 
 import org.apache.http.Header;
 import org.apache.http.HeaderIterator;
@@ -114,25 +113,25 @@ public class AsyncHttpRequest {
     public AsyncHttpRequest(Uri uri, String method, RawHeaders headers) {
         assert uri != null;
         mMethod = method;
+        this.uri = uri;
         if (headers == null)
             mRawHeaders = new RawHeaders();
         else
             mRawHeaders = headers;
         if (headers == null)
             setDefaultHeaders(mRawHeaders, uri);
-        mHeaders = new RequestHeaders(uri, mRawHeaders);
         mRawHeaders.setStatusLine(getRequestLine().toString());
     }
 
+    Uri uri;
     public Uri getUri() {
-        return mHeaders.getUri();
+        return uri;
     }
     
     private RawHeaders mRawHeaders = new RawHeaders();
-    private RequestHeaders mHeaders;
 
-    public RequestHeaders getHeaders() {
-        return mHeaders;
+    public RawHeaders getHeaders() {
+        return mRawHeaders;
     }
 
     public String getRequestString() {
@@ -174,7 +173,7 @@ public class AsyncHttpRequest {
     public static AsyncHttpRequest create(HttpRequest request) {
         AsyncHttpRequest ret = new AsyncHttpRequest(Uri.parse(request.getRequestLine().getUri()), request.getRequestLine().getMethod());
         for (Header header: request.getAllHeaders()) {
-            ret.getHeaders().getHeaders().add(header.getName(), header.getValue());
+            ret.getHeaders().add(header.getName(), header.getValue());
         }
         return ret;
     }
@@ -194,25 +193,25 @@ public class AsyncHttpRequest {
 
         @Override
         public void addHeader(Header header) {
-            request.getHeaders().getHeaders().add(header.getName(), header.getValue());
+            request.getHeaders().add(header.getName(), header.getValue());
         }
 
         @Override
         public void addHeader(String name, String value) {
-            request.getHeaders().getHeaders().add(name, value);
+            request.getHeaders().add(name, value);
         }
 
         @Override
         public boolean containsHeader(String name) {
-            return request.getHeaders().getHeaders().get(name) != null;
+            return request.getHeaders().get(name) != null;
         }
 
         @Override
         public Header[] getAllHeaders() {
-            Header[] ret = new Header[request.getHeaders().getHeaders().length()];
+            Header[] ret = new Header[request.getHeaders().length()];
             for (int i = 0; i < ret.length; i++) {
-                String name = request.getHeaders().getHeaders().getFieldName(i);
-                String value = request.getHeaders().getHeaders().getValue(i);
+                String name = request.getHeaders().getFieldName(i);
+                String value = request.getHeaders().getValue(i);
                 ret[i] = new BasicHeader(name, value);
             }
             return ret;
@@ -220,7 +219,7 @@ public class AsyncHttpRequest {
 
         @Override
         public Header getFirstHeader(String name) {
-            String value = request.getHeaders().getHeaders().get(name);
+            String value = request.getHeaders().get(name);
             if (value == null)
                 return null;
             return new BasicHeader(name, value);
@@ -228,7 +227,7 @@ public class AsyncHttpRequest {
 
         @Override
         public Header[] getHeaders(String name) {
-            Map<String, List<String>> map = request.getHeaders().getHeaders().toMultimap();
+            Map<String, List<String>> map = request.getHeaders().toMultimap();
             List<String> vals = map.get(name);
             if (vals == null)
                 return new Header[0];
@@ -271,12 +270,12 @@ public class AsyncHttpRequest {
 
         @Override
         public void removeHeader(Header header) {
-            request.getHeaders().getHeaders().removeAll(header.getName());
+            request.getHeaders().removeAll(header.getName());
         }
 
         @Override
         public void removeHeaders(String name) {
-            request.getHeaders().getHeaders().removeAll(name);
+            request.getHeaders().removeAll(name);
         }
 
         @Override
@@ -286,7 +285,7 @@ public class AsyncHttpRequest {
 
         @Override
         public void setHeader(String name, String value) {
-            request.getHeaders().getHeaders().set(name, value);
+            request.getHeaders().set(name, value);
         }
 
         @Override
@@ -306,12 +305,12 @@ public class AsyncHttpRequest {
     }
 
     public AsyncHttpRequest setHeader(String name, String value) {
-        getHeaders().getHeaders().set(name, value);
+        getHeaders().set(name, value);
         return this;
     }
 
     public AsyncHttpRequest addHeader(String name, String value) {
-        getHeaders().getHeaders().add(name, value);
+        getHeaders().add(name, value);
         return this;
     }
 

@@ -102,38 +102,6 @@ public class AsyncNetworkSocket implements AsyncSocket {
             mKey.interestOps(SelectionKey.OP_READ);
         }
     }
-
-    @Override
-    public void write(final ByteBuffer b) {
-        if (mServer.getAffinity() != Thread.currentThread()) {
-            mServer.run(new Runnable() {
-                @Override
-                public void run() {
-                    write(b);
-                }
-            });
-            return;
-        }
-        try {
-            if (!mChannel.isConnected()) {
-                assert !mChannel.isChunked();
-                return;
-            }
-
-            // keep writing until the the socket can't write any more, or the
-            // data is exhausted.
-            int before = b.remaining();
-            mChannel.write(b);
-            handleRemaining(b.remaining());
-            mServer.onDataSent(before - b.remaining());
-        }
-        catch (IOException ex) {
-            closeInternal();
-            reportEndPending(ex);
-            reportClose(ex);
-        }
-    }
-
     private ByteBufferList pending = new ByteBufferList();
 //    private ByteBuffer[] buffers = new ByteBuffer[8];
 

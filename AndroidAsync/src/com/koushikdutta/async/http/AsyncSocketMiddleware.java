@@ -171,14 +171,14 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 unresolvedHost = data.request.getProxyHost();
                 unresolvedPort = data.request.getProxyPort();
                 // set the host and port explicitly for proxied connections
-                data.request.getHeaders().getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
+                data.request.getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
                 proxied = true;
             }
             else if (proxyHost != null) {
                 unresolvedHost = proxyHost;
                 unresolvedPort = proxyPort;
                 // set the host and port explicitly for proxied connections
-                data.request.getHeaders().getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
+                data.request.getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
                 proxied = true;
             }
             else {
@@ -360,7 +360,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 data.socket.close();
                 return;
             }
-            if (!HttpUtil.isKeepAlive(data.headers.getHeaders()) || !HttpUtil.isKeepAlive(data.request.getHeaders().getHeaders())) {
+            if (!HttpUtil.isKeepAlive(data.headers) || !HttpUtil.isKeepAlive(data.request.getHeaders())) {
                 data.request.logv("closing out socket (not keep alive)");
                 data.socket.close();
                 return;

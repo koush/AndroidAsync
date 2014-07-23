@@ -1,9 +1,11 @@
 package com.koushikdutta.async.http.filter;
 
-import com.koushikdutta.async.*;
-import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.http.libcore.Memory;
+import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.PushParser;
 import com.koushikdutta.async.PushParser.ParseCallback;
+import com.koushikdutta.async.callback.DataCallback;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -13,6 +15,14 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.Inflater;
 
 public class GZIPInputFilter extends InflaterInputFilter {
+    static short peekShort(byte[] src, int offset, ByteOrder order) {
+        if (order == ByteOrder.BIG_ENDIAN) {
+            return (short) ((src[offset] << 8) | (src[offset + 1] & 0xff));
+        } else {
+            return (short) ((src[offset + 1] << 8) | (src[offset] & 0xff));
+        }
+    }
+
     private static final int FCOMMENT = 16;
 
     private static final int FEXTRA = 4;
@@ -44,7 +54,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
                 boolean hcrc;
 
                 public void parsed(byte[] header) {
-                    short magic = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
+                    short magic = peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
                     if (magic != (short) GZIPInputStream.GZIP_MAGIC) {
                         report(new IOException(String.format("unknown format (magic number %x)", magic)));
                         emitter.setDataCallback(new NullDataCallback());
@@ -61,7 +71,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
                                 if (hcrc) {
                                     crc.update(header, 0, 2);
                                 }
-                                int length = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN) & 0xffff;
+                                int length = peekShort(header, 0, ByteOrder.LITTLE_ENDIAN) & 0xffff;
                                 parser.readByteArray(length, new ParseCallback<byte[]>() {
                                     public void parsed(byte[] buf) {
                                         if (hcrc) {
@@ -100,7 +110,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
                     if (hcrc) {
                         parser.readByteArray(2, new ParseCallback<byte[]>() {
                             public void parsed(byte[] header) {
-                                short crc16 = Memory.peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
+                                short crc16 = peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
                                 if ((short) crc.getValue() != crc16) {
                                     report(new IOException("CRC mismatch"));
                                     return;

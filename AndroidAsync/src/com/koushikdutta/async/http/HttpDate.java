@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.koushikdutta.async.http.libcore;
+package com.koushikdutta.async.http;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -69,6 +69,8 @@ public final class HttpDate {
      * parsed.
      */
     public static Date parse(String value) {
+        if (value == null)
+            return null;
         try {
             return STANDARD_DATE_FORMAT.get().parse(value);
         } catch (ParseException ignore) {

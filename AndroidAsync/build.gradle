@@ -16,8 +16,8 @@ android {
             jniLibs.srcDirs = ['libs/']
 
             java.srcDirs=['src/'
-//                          , '../conscrypt/'
-//                          , '../compat/'
+                          , '../conscrypt/'
+                          , '../compat/'
             ]
         }
         androidTest.java.srcDirs=['test/src/']
@@ -27,11 +27,6 @@ android {
 
     lintOptions {
         abortOnError false
-    }
-
-    defaultConfig {
-        minSdkVersion 9
-        targetSdkVersion 19
     }
 
     compileSdkVersion 19

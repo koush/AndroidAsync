@@ -21,6 +21,10 @@ public class Allocator {
     }
 
     public ByteBuffer allocate() {
+        return allocate(currentAlloc);
+    }
+
+    public ByteBuffer allocate(int currentAlloc) {
         return ByteBufferList.obtain(Math.min(Math.max(currentAlloc, minAlloc), maxAlloc));
     }
 

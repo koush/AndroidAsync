@@ -12,7 +12,7 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.Multimap;
-import com.koushikdutta.async.http.libcore.RawHeaders;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.http.server.BoundaryEmitter;
 
 import java.io.File;

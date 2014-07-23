@@ -9,12 +9,11 @@ import com.koushikdutta.async.http.body.JSONObjectBody;
 import com.koushikdutta.async.http.body.MultipartFormDataBody;
 import com.koushikdutta.async.http.body.StringBody;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;
+import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
 import com.koushikdutta.async.http.filter.ContentLengthFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.server.UnknownRequestBody;
 
 public class HttpUtil {
     public static AsyncHttpRequestBody getBody(DataEmitter emitter, CompletedCallback reporter, RawHeaders headers) {
@@ -129,5 +128,17 @@ public class HttpUtil {
         }
 
         return keepAlive;
+    }
+
+    public static int contentLength(RawHeaders headers) {
+        String cl = headers.get("Content-Length");
+        if (cl == null)
+            return -1;
+        try {
+            return Integer.parseInt(cl);
+        }
+        catch (NumberFormatException e) {
+            return -1;
+        }
     }
 }

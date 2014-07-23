@@ -28,12 +28,12 @@ public class Issue59 extends TestCase {
                 public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                     // setting this to empty is a hacky way of telling the framework not to use
                     // transfer-encoding. It will get removed.
-                    response.getHeaders().getHeaders().set("Transfer-Encoding", "");
+                    response.getHeaders().set("Transfer-Encoding", "");
                     response.responseCode(200);
                     Util.writeAll(response, "foobarbeepboop".getBytes(), new CompletedCallback() {
                         @Override
                         public void onCompleted(Exception ex) {
-                            response.close();
+                            response.end();
                         }
                     });
                 }
@@ -43,8 +43,8 @@ public class Issue59 extends TestCase {
 
             AsyncHttpGet get = new AsyncHttpGet("http://localhost:5959/");
             get.setLogging("issue59", Log.VERBOSE);
-            get.getHeaders().getHeaders().removeAll("Connection");
-            get.getHeaders().getHeaders().removeAll("Accept-Encoding");
+            get.getHeaders().removeAll("Connection");
+            get.getHeaders().removeAll("Accept-Encoding");
 
             assertEquals("foobarbeepboop", AsyncHttpClient.getDefaultInstance().executeString(get, null).get(1000, TimeUnit.MILLISECONDS));
         }

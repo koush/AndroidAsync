@@ -20,7 +20,7 @@ import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpResponse;
-import com.koushikdutta.async.http.ResponseCacheMiddleware;
+import com.koushikdutta.async.http.cache.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.body.JSONObjectBody;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
@@ -115,7 +115,7 @@ public class HttpClientTests extends TestCase {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
                 // make sure gzip decoding works, as that is generally what github sends.
-                Assert.assertEquals("gzip", response.getHeaders().getContentEncoding());
+                Assert.assertEquals("gzip", response.headers().get("Content-Encoding"));
                 response.setDataCallback(new DataCallback() {
                     @Override
                     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {

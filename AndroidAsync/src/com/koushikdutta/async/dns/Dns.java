@@ -143,7 +143,7 @@ public class Dns {
                 }
             });
             if (!multicast)
-                dgram.write(packet);
+                dgram.write(new ByteBufferList(packet));
             else
                 dgram.send(new InetSocketAddress("224.0.0.251", 5353), packet);
             return ret;
