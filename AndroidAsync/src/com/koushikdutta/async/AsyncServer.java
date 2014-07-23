@@ -126,7 +126,12 @@ public class AsyncServer {
         synchronousWorkers.execute(new Runnable() {
             @Override
             public void run() {
-                selector.wakeupOnce();
+                try {
+                    selector.wakeupOnce();
+                }
+                catch (Exception e) {
+                    Log.i(LOGTAG, "Selector shit the bed.");
+                }
             }
         });
     }

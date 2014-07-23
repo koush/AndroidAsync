@@ -5,7 +5,7 @@ import android.test.AndroidTestCase;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.http.spdy.okhttp.Handshake;
-import com.koushikdutta.async.http.spdy.okhttp.Protocol;
+import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.util.Charsets;
 
 import org.conscrypt.OpenSSLProvider;

@@ -11,8 +11,10 @@ import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.AsyncHttpHead;
+import com.koushikdutta.async.http.AsyncHttpResponse;
+import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.HttpUtil;
-import com.koushikdutta.async.http.cache.RawHeaders;
+import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.util.StreamUtility;
 
@@ -21,15 +23,16 @@ import org.json.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
-    private RawHeaders mRawHeaders = new RawHeaders();
+    private Headers mRawHeaders = new Headers();
     private long mContentLength = -1;
 
     @Override
-    public RawHeaders getHeaders() {
+    public Headers getHeaders() {
         return mRawHeaders;
     }
     
@@ -42,7 +45,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     AsyncHttpServerResponseImpl(AsyncSocket socket, AsyncHttpServerRequestImpl req) {
         mSocket = socket;
         mRequest = req;
-        if (HttpUtil.isKeepAlive(req.getHeaders()))
+        if (HttpUtil.isKeepAlive(Protocol.HTTP_1_1, req.getHeaders()))
             mRawHeaders.set("Connection", "Keep-Alive");
     }
 
@@ -69,7 +72,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             return;
 
         mHasWritten = true;
-        assert null != mRawHeaders.getStatusLine();
         String currentEncoding = mRawHeaders.get("Transfer-Encoding");
         if ("".equals(currentEncoding))
             mRawHeaders.removeAll("Transfer-Encoding");
@@ -129,7 +131,9 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private void writeHeadInternal() {
         assert !mHeadWritten;
         mHeadWritten = true;
-        Util.writeAll(mSocket, mRawHeaders.toHeaderString().getBytes(), new CompletedCallback() {
+        String statusLine = String.format("HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
+        String rh = mRawHeaders.toPrefixString(statusLine);
+        Util.writeAll(mSocket, rh.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
                 // TODO: HACK!!!
@@ -153,8 +157,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void send(String contentType, final String string) {
         try {
-            if (mRawHeaders.getStatusLine() == null)
-                responseCode(200);
             assert mContentLength < 0;
             byte[] bytes = string.getBytes("UTF-8");
             mContentLength = bytes.length;
@@ -184,7 +186,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void send(String string) {
-        responseCode(200);
         String contentType = mRawHeaders.get("Content-Type");
         if (contentType == null)
             contentType = "text/html; charset=utf8";
@@ -206,7 +207,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             String[] parts = range.split("=");
             if (parts.length != 2 || !"bytes".equals(parts[0])) {
                 // Requested range not satisfiable
-                responseCode(416);
+                code(416);
                 end();
                 return;
             }
@@ -222,11 +223,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 else
                     end = totalLength - 1;
 
-                responseCode(206);
+                code(206);
                 getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, totalLength));
             }
             catch (Exception e) {
-                responseCode(416);
+                code(416);
                 end();
                 return;
             }
@@ -237,8 +238,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             mContentLength = end - start + 1;
             mRawHeaders.set("Content-Length", String.valueOf(mContentLength));
             mRawHeaders.set("Accept-Ranges", "bytes");
-            if (getHeaders().getStatusLine() == null)
-                responseCode(200);
             if (mRequest.getMethod().equals(AsyncHttpHead.METHOD)) {
                 writeHead();
                 onEnd();
@@ -253,7 +252,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             });
         }
         catch (Exception e) {
-            responseCode(404);
+            code(500);
             end();
         }
     }
@@ -266,21 +265,27 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             FileInputStream fin = new FileInputStream(file);
             sendStream(new BufferedInputStream(fin, 64000), file.length());
         }
-        catch (Exception e) {
-            responseCode(404);
+        catch (FileNotFoundException e) {
+            code(404);
             end();
         }
     }
 
+    int code = 200;
     @Override
-    public void responseCode(int code) {
-        String status = AsyncHttpServer.getResponseCodeDescription(code);
-        mRawHeaders.setStatusLine(String.format("HTTP/1.1 %d %s", code, status));
+    public AsyncHttpServerResponse code(int code) {
+        this.code = code;
+        return this;
+    }
+
+    @Override
+    public int code() {
+        return code;
     }
 
     @Override
     public void redirect(String location) {
-        responseCode(302);
+        code(302);
         mRawHeaders.set("Location", location);
         end();
     }
@@ -310,5 +315,13 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public AsyncServer getServer() {
         return mSocket.getServer();
+    }
+
+    @Override
+    public String toString() {
+        if (mRawHeaders == null)
+            return super.toString();
+        String statusLine = String.format("HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
+        return mRawHeaders.toPrefixString(statusLine);
     }
 }

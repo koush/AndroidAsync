@@ -4,9 +4,9 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpClient.WebSocketConnectCallback;
+import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocket.StringCallback;
-import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServer.WebSocketRequestCallback;
 
@@ -34,7 +34,7 @@ public class WebSocketTests extends TestCase {
     
         httpServer.websocket("/ws", new WebSocketRequestCallback() {
             @Override
-            public void onConnected(final WebSocket webSocket, RawHeaders headers) {
+            public void onConnected(final WebSocket webSocket, Headers headers) {
                 webSocket.setStringCallback(new StringCallback() {
                     @Override
                     public void onStringAvailable(String s) {

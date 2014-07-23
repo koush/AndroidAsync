@@ -1,11 +1,28 @@
 package com.koushikdutta.async.http;
 
+
+import android.text.TextUtils;
+
+import com.koushikdutta.async.http.server.AsyncHttpServer;
+
+import org.apache.http.Header;
+import org.apache.http.message.BasicHeader;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by koush on 7/21/14.
  */
 public class Headers {
+    public Headers() {
+    }
+
+    public Headers(Map<String, List<String>> mm) {
+        map.putAll(mm);
+    }
+
     Multimap map = new Multimap();
     public Multimap getMultiMap() {
         return map;
@@ -29,33 +46,93 @@ public class Headers {
         return this;
     }
 
-    public List<String> remove(String header) {
+    public Headers addLine(String line) {
+        if (line != null) {
+            line = line.trim();
+            String[] parts = line.split(":", 2);
+            if (parts.length == 2)
+                add(parts[0].trim(), parts[1].trim());
+            else
+                add(parts[0].trim(), "");
+        }
+        return this;
+    }
+
+    public Headers addAll(String header, List<String> values) {
+        for (String v: values) {
+            add(header, v);
+        }
+        return this;
+    }
+
+    public Headers addAll(Map<String, List<String>> m) {
+        map.putAll(m);
+        return this;
+    }
+
+    public Headers addAll(Headers headers) {
+        map.putAll(headers.map);
+        return this;
+    }
+
+    public List<String> removeAll(String header) {
         return map.remove(header);
     }
 
-    int responseCode;
-    public int getResponseCode() {
-        return responseCode;
-    }
-    public void setResponseCode(int responseCode) {
-        this.responseCode = responseCode;
-    }
-
-    String protocol;
-    public String getProtocol() {
-        return protocol;
-    }
-    public void setProtocol(String protocol) {
-        this.protocol = protocol;
+    public String remove(String header) {
+        List<String> r = removeAll(header);
+        if (r == null || r.size() == 0)
+            return null;
+        return r.get(0);
     }
 
-    String responseMessage;
-
-    public String getResponseMessage() {
-        return responseMessage;
+    public Header[] toHeaderArray() {
+        ArrayList<Header> ret = new ArrayList<Header>();
+        for (String key: map.keySet()) {
+            for (String v: map.get(key)) {
+                ret.add(new BasicHeader(key, v));
+            }
+        }
+        return ret.toArray(new Header[ret.size()]);
     }
 
-    public void setResponseMessage(String responseMessage) {
-        this.responseMessage = responseMessage;
+    public StringBuilder toStringBuilder() {
+        StringBuilder result = new StringBuilder(256);
+        for (String key: map.keySet()) {
+            for (String v: map.get(key)) {
+                result.append(key)
+                .append(": ")
+                .append(v)
+                .append("\r\n");
+            }
+        }
+        result.append("\r\n");
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return toStringBuilder().toString();
+    }
+
+    public String toPrefixString(String prefix) {
+        return
+        toStringBuilder()
+        .insert(0, prefix + "\r\n")
+        .toString();
+    }
+
+    public static Headers parse(String payload) {
+        String[] lines = payload.split("\n");
+
+        Headers headers = new Headers();
+        for (String line: lines) {
+            line = line.trim();
+            if (TextUtils.isEmpty(line))
+                continue;
+
+            headers.addLine(line);
+        }
+        return headers;
     }
 }

@@ -8,7 +8,7 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncSSLEngineConfigurator;
 import com.koushikdutta.async.http.AsyncSSLSocketMiddleware;
-import com.koushikdutta.async.http.spdy.okhttp.Protocol;
+import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.util.Charsets;
 
 import java.lang.reflect.Field;

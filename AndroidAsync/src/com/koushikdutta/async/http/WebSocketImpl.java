@@ -11,7 +11,6 @@ import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
-import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 
@@ -115,7 +114,7 @@ public class WebSocketImpl implements WebSocket {
         String sha1 = SHA1(concat);
         String origin = request.getHeaders().get("Origin");
         
-        response.responseCode(101);
+        response.code(101);
         response.getHeaders().set("Upgrade", "WebSocket");
         response.getHeaders().set("Connection", "Upgrade");
         response.getHeaders().set("Sec-WebSocket-Accept", sha1);
@@ -131,7 +130,7 @@ public class WebSocketImpl implements WebSocket {
     }
     
     public static void addWebSocketUpgradeHeaders(AsyncHttpRequest req, String protocol) {
-        RawHeaders headers = req.getHeaders();
+        Headers headers = req.getHeaders();
         final String key = Base64.encodeToString(toByteArray(UUID.randomUUID()),Base64.NO_WRAP);
         headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
@@ -151,10 +150,10 @@ public class WebSocketImpl implements WebSocket {
         mSink = new BufferedDataSink(mSocket);
     }
     
-    public static WebSocket finishHandshake(RawHeaders requestHeaders, AsyncHttpResponse response) {
+    public static WebSocket finishHandshake(Headers requestHeaders, AsyncHttpResponse response) {
         if (response == null)
             return null;
-        if (response.headers().getResponseCode() != 101)
+        if (response.code() != 101)
             return null;
         if (!"websocket".equalsIgnoreCase(response.headers().get("Upgrade")))
             return null;

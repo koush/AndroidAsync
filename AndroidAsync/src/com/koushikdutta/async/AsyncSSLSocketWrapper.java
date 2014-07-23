@@ -115,6 +115,10 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         }
     }
 
+    boolean mEnded;
+    Exception mEndException;
+    final ByteBufferList transformed = new ByteBufferList();
+
     private AsyncSSLSocketWrapper(AsyncSocket socket,
                                   String host, int port,
                                   SSLEngine sslEngine,
@@ -140,10 +144,20 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         // SSL needs buffering of data written during handshake.
         // aka exhcange.setDatacallback
         mEmitter = new BufferedDataEmitter(socket);
+        mEmitter.setEndCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                if (mEnded)
+                    return;
+                mEnded = true;
+                mEndException = ex;
+                if (!transformed.hasRemaining() && mEndCallback != null)
+                    mEndCallback.onCompleted(ex);
+            }
+        });
 
         final Allocator allocator = new Allocator();
         allocator.setMinAlloc(8192);
-        final ByteBufferList transformed = new ByteBufferList();
         mEmitter.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -195,7 +209,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         }
                     }
 
-                    Util.emitAllData(AsyncSSLSocketWrapper.this, transformed);
+                    AsyncSSLSocketWrapper.this.onDataAvailable();
                 }
                 catch (SSLException ex) {
                     ex.printStackTrace();
@@ -207,6 +221,14 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             }
         });
     }
+
+    public void onDataAvailable() {
+        Util.emitAllData(this, transformed);
+
+        if (mEnded && !transformed.hasRemaining())
+            mEndCallback.onCompleted(mEndException);
+    }
+
 
     @Override
     public SSLEngine getSSLEngine() {
@@ -432,14 +454,15 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         return mSocket.getClosedCallback();
     }
 
+    CompletedCallback mEndCallback;
     @Override
     public void setEndCallback(CompletedCallback callback) {
-        mSocket.setEndCallback(callback);
+        mEndCallback = callback;
     }
 
     @Override
     public CompletedCallback getEndCallback() {
-        return mSocket.getEndCallback();
+        return mEndCallback;
     }
 
     @Override
@@ -449,6 +472,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     @Override
     public void resume() {
+        onDataAvailable();
+        mEmitter.onDataAvailable();
         mSocket.resume();
     }
 

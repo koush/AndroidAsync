@@ -5,7 +5,6 @@ import android.util.Log;
 
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.cache.RawHeaders;
 
 import org.apache.http.Header;
 import org.apache.http.HeaderIterator;
@@ -35,7 +34,7 @@ public class AsyncHttpRequest {
             public String getMethod() {
                 return mMethod;
             }
-            
+
             @Override
             public String toString() {
                 String path = AsyncHttpRequest.this.getUri().getEncodedPath();
@@ -88,7 +87,6 @@ public class AsyncHttpRequest {
         if (getClass() != AsyncHttpRequest.class)
             throw new UnsupportedOperationException("can't change method on a subclass of AsyncHttpRequest");
         mMethod = method;
-        mRawHeaders.setStatusLine(getRequestLine().toString());
         return this;
     }
 
@@ -96,7 +94,7 @@ public class AsyncHttpRequest {
         this(uri, method, null);
     }
 
-    public static void setDefaultHeaders(RawHeaders ret, Uri uri) {
+    public static void setDefaultHeaders(Headers ret, Uri uri) {
         if (uri != null) {
             String host = uri.getHost();
             if (uri.getPort() != -1)
@@ -110,17 +108,16 @@ public class AsyncHttpRequest {
         ret.set("Accept", "*/*");
     }
 
-    public AsyncHttpRequest(Uri uri, String method, RawHeaders headers) {
+    public AsyncHttpRequest(Uri uri, String method, Headers headers) {
         assert uri != null;
         mMethod = method;
         this.uri = uri;
         if (headers == null)
-            mRawHeaders = new RawHeaders();
+            mRawHeaders = new Headers();
         else
             mRawHeaders = headers;
         if (headers == null)
             setDefaultHeaders(mRawHeaders, uri);
-        mRawHeaders.setStatusLine(getRequestLine().toString());
     }
 
     Uri uri;
@@ -128,16 +125,12 @@ public class AsyncHttpRequest {
         return uri;
     }
     
-    private RawHeaders mRawHeaders = new RawHeaders();
+    private Headers mRawHeaders = new Headers();
 
-    public RawHeaders getHeaders() {
+    public Headers getHeaders() {
         return mRawHeaders;
     }
 
-    public String getRequestString() {
-        return mRawHeaders.toHeaderString();
-    }
-    
     private boolean mFollowRedirect = true;
     public boolean getFollowRedirect() {
         return mFollowRedirect;
@@ -208,13 +201,7 @@ public class AsyncHttpRequest {
 
         @Override
         public Header[] getAllHeaders() {
-            Header[] ret = new Header[request.getHeaders().length()];
-            for (int i = 0; i < ret.length; i++) {
-                String name = request.getHeaders().getFieldName(i);
-                String value = request.getHeaders().getValue(i);
-                ret[i] = new BasicHeader(name, value);
-            }
-            return ret;
+            return request.getHeaders().toHeaderArray();
         }
 
         @Override
@@ -227,7 +214,7 @@ public class AsyncHttpRequest {
 
         @Override
         public Header[] getHeaders(String name) {
-            Map<String, List<String>> map = request.getHeaders().toMultimap();
+            Map<String, List<String>> map = request.getHeaders().getMultiMap();
             List<String> vals = map.get(name);
             if (vals == null)
                 return new Header[0];
@@ -270,12 +257,12 @@ public class AsyncHttpRequest {
 
         @Override
         public void removeHeader(Header header) {
-            request.getHeaders().removeAll(header.getName());
+            request.getHeaders().remove(header.getName());
         }
 
         @Override
         public void removeHeaders(String name) {
-            request.getHeaders().removeAll(name);
+            request.getHeaders().remove(name);
         }
 
         @Override
@@ -332,6 +319,13 @@ public class AsyncHttpRequest {
 
     public int getProxyPort() {
         return proxyPort;
+    }
+
+    @Override
+    public String toString() {
+        if (mRawHeaders == null)
+            return super.toString();
+        return mRawHeaders.toPrefixString(uri.toString());
     }
 
     public void setLogging(String tag, int level) {

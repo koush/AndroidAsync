@@ -9,14 +9,13 @@ import com.koushikdutta.async.http.body.JSONObjectBody;
 import com.koushikdutta.async.http.body.MultipartFormDataBody;
 import com.koushikdutta.async.http.body.StringBody;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;
-import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.http.filter.ChunkedInputFilter;
 import com.koushikdutta.async.http.filter.ContentLengthFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
 
 public class HttpUtil {
-    public static AsyncHttpRequestBody getBody(DataEmitter emitter, CompletedCallback reporter, RawHeaders headers) {
+    public static AsyncHttpRequestBody getBody(DataEmitter emitter, CompletedCallback reporter, Headers headers) {
         String contentType = headers.get("Content-Type");
         if (contentType != null) {
             String[] values = contentType.split(";");
@@ -60,7 +59,7 @@ public class HttpUtil {
         }
     }
     
-    public static DataEmitter getBodyDecoder(DataEmitter emitter, RawHeaders headers, boolean server) {
+    public static DataEmitter getBodyDecoder(DataEmitter emitter, Protocol protocol, Headers headers, boolean server) {
         long _contentLength;
         try {
             _contentLength = Long.parseLong(headers.get("Content-Length"));
@@ -92,7 +91,7 @@ public class HttpUtil {
             emitter = chunker;
         }
         else {
-            if ((server || headers.getStatusLine().contains("HTTP/1.1")) && !"close".equalsIgnoreCase(headers.get("Connection"))) {
+            if ((server || protocol == Protocol.HTTP_1_1) && !"close".equalsIgnoreCase(headers.get("Connection"))) {
                 // if this is the server, and the client has not indicated a request body, the client is done
                 EndEmitter ender = EndEmitter.create(emitter.getServer(), null);
                 ender.setDataEmitter(emitter);
@@ -117,20 +116,23 @@ public class HttpUtil {
         return emitter;
     }
 
-    public static boolean isKeepAlive(RawHeaders headers) {
-        boolean keepAlive;
+    public static boolean isKeepAlive(Protocol protocol, Headers headers) {
+        // connection is always keep alive as this is an http/1.1 client
         String connection = headers.get("Connection");
-        if (connection != null) {
-            keepAlive = "keep-alive".equalsIgnoreCase(connection);
-        }
-        else {
-            keepAlive = headers.getHttpMinorVersion() >= 1;
-        }
-
-        return keepAlive;
+        if (connection == null)
+            return protocol == Protocol.HTTP_1_1;
+        return "keep-alive".equalsIgnoreCase(connection);
     }
 
-    public static int contentLength(RawHeaders headers) {
+    public static boolean isKeepAlive(String protocol, Headers headers) {
+        // connection is always keep alive as this is an http/1.1 client
+        String connection = headers.get("Connection");
+        if (connection == null)
+            return Protocol.get(protocol) == Protocol.HTTP_1_1;
+        return "keep-alive".equalsIgnoreCase(connection);
+    }
+
+    public static int contentLength(Headers headers) {
         String cl = headers.get("Content-Length");
         if (cl == null)
             return -1;

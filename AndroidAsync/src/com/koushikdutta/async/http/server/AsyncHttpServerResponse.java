@@ -3,7 +3,7 @@ package com.koushikdutta.async.http.server;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.http.cache.RawHeaders;
+import com.koushikdutta.async.http.Headers;
 
 import org.json.JSONObject;
 
@@ -17,8 +17,9 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void send(JSONObject json);
     public void sendFile(File file);
     public void sendStream(InputStream inputStream, long totalLength);
-    public void responseCode(int code);
-    public RawHeaders getHeaders();
+    public AsyncHttpServerResponse code(int code);
+    public int code();
+    public Headers getHeaders();
     public void writeHead();
     public void setContentType(String contentType);
     public void redirect(String location);

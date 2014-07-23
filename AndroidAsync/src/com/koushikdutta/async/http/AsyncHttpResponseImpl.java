@@ -9,12 +9,13 @@ import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.NullDataCallback;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
-import com.koushikdutta.async.http.cache.RawHeaders;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 
 abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncSocket, AsyncHttpResponse {
@@ -60,9 +61,10 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
             }
         });
 
-        String rs = mRequest.getRequestString();
+        String rl = mRequest.getRequestLine().toString();
+        String rs = mRequest.getHeaders().toPrefixString(rl);
         mRequest.logv("\n" + rs);
-        com.koushikdutta.async.Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
+        Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
                 if (mWriter != null) {
@@ -72,8 +74,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
                             onRequestCompleted(ex);
                         }
                     });
-                }
-                else {
+                } else {
                     onRequestCompleted(null);
                 }
             }
@@ -102,17 +103,25 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     protected abstract void onHeadersReceived();
 
     StringCallback mHeaderCallback = new StringCallback() {
-        private RawHeaders mRawHeaders = new RawHeaders();
+        private Headers mRawHeaders = new Headers();
+        private String statusLine;
         @Override
         public void onStringAvailable(String s) {
             try {
-                if (mRawHeaders.getStatusLine() == null) {
-                    mRawHeaders.setStatusLine(s);
+                if (statusLine == null) {
+                    statusLine = s;
                 }
                 else if (!"\r".equals(s)) {
                     mRawHeaders.addLine(s);
                 }
                 else {
+                    String[] parts = statusLine.split(" ", 3);
+                    if (parts.length != 3)
+                        throw new Exception(new IOException("Not HTTP"));
+
+                    protocol = parts[0];
+                    code = Integer.parseInt(parts[1]);
+                    message = parts[2];
                     mHeaders = mRawHeaders;
                     onHeadersReceived();
                     // socket may get detached after headers (websocket)
@@ -125,7 +134,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
                         emitter = HttpUtil.EndEmitter.create(getServer(), null);
                     }
                     else {
-                        emitter = HttpUtil.getBodyDecoder(mSocket, mRawHeaders, false);
+                        emitter = HttpUtil.getBodyDecoder(mSocket, Protocol.get(protocol), mHeaders, false);
                     }
                     setDataEmitter(emitter);
                 }
@@ -158,7 +167,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     
     private AsyncHttpRequest mRequest;
     private AsyncSocket mSocket;
-    protected RawHeaders mHeaders;
+    protected Headers mHeaders;
     public AsyncHttpResponseImpl(AsyncHttpRequest request) {
         mRequest = request;
     }
@@ -166,23 +175,51 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     boolean mCompleted = false;
 
     @Override
-    public RawHeaders headers() {
+    public Headers headers() {
         return mHeaders;
     }
 
+    int code;
     @Override
     public int code() {
-        return headers().getResponseCode();
+        return code;
     }
 
+    @Override
+    public AsyncHttpResponse code(int code) {
+        this.code = code;
+        return this;
+    }
+
+    @Override
+    public AsyncHttpResponse protocol(String protocol) {
+        this.protocol = protocol;
+        return this;
+    }
+
+    @Override
+    public AsyncHttpResponse message(String message) {
+        this.message = message;
+        return this;
+    }
+
+    String protocol;
     @Override
     public String protocol() {
-        return "HTTP/1." + headers().getHttpMinorVersion();
+        return protocol;
+    }
+
+    String message;
+    @Override
+    public String message() {
+        return message;
     }
 
     @Override
-    public String message() {
-        return headers().getResponseMessage();
+    public String toString() {
+        if (mHeaders == null)
+            return super.toString();
+        return mHeaders.toPrefixString(protocol + " " + code + " " + message);
     }
 
     private boolean mFirstWrite = true;
@@ -240,7 +277,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
     @Override
     public String charset() {
-        Multimap mm = Multimap.parseHeader(headers(), "Content-Type");
+        Multimap mm = Multimap.parseSemicolonDelimited(headers().get("Content-Type"));
         String cs;
         if (mm != null && null != (cs = mm.getString("charset")) && Charset.isSupported(cs)) {
             return cs;

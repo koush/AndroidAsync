@@ -29,7 +29,7 @@ public class Issue59 extends TestCase {
                     // setting this to empty is a hacky way of telling the framework not to use
                     // transfer-encoding. It will get removed.
                     response.getHeaders().set("Transfer-Encoding", "");
-                    response.responseCode(200);
+                    response.code(200);
                     Util.writeAll(response, "foobarbeepboop".getBytes(), new CompletedCallback() {
                         @Override
                         public void onCompleted(Exception ex) {

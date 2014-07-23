@@ -26,6 +26,7 @@ import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+import com.koushikdutta.async.http.server.AsyncProxyServer;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
 import junit.framework.Assert;
@@ -281,23 +282,13 @@ public class HttpClientTests extends TestCase {
         wasProxied = false;
         final AsyncServer proxyServer = new AsyncServer();
         try {
-            AsyncHttpServer httpServer = new AsyncHttpServer();
-            httpServer.get(".*", new HttpServerRequestCallback() {
+            AsyncProxyServer httpServer = new AsyncProxyServer(proxyServer) {
                 @Override
-                public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                    Log.i("Proxy", "Proxying request");
+                protected boolean onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
                     wasProxied = true;
-                    AsyncHttpClient proxying = new AsyncHttpClient(proxyServer);
-
-                    String url = request.getPath();
-                    proxying.executeString(new AsyncHttpGet(url), new StringCallback() {
-                        @Override
-                        public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
-                            response.send(result);
-                        }
-                    });
+                    return super.onRequest(request, response);
                 }
-            });
+            };
 
             AsyncServerSocket socket = httpServer.listen(proxyServer, 0);
 

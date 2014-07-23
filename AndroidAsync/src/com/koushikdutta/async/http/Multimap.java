@@ -2,14 +2,11 @@ package com.koushikdutta.async.http;
 
 import android.net.Uri;
 
-import com.koushikdutta.async.http.cache.RawHeaders;
-
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,67 +40,69 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
         put(name, ret);
     }
 
-    public Multimap(RawHeaders headers) {
-        headers.toMultimap().putAll(this);
-    }
-
     public Multimap(List<NameValuePair> pairs) {
         for (NameValuePair pair: pairs)
             add(pair.getName(), pair.getValue());
     }
 
-    public static Multimap parseHeader(String header) {
-        if (header == null)
-            return null;
+    public Multimap(Multimap m) {
+        putAll(m);
+    }
+
+    public interface StringDecoder {
+        public String decode(String s);
+    }
+
+    public static Multimap parse(String value, String delimiter, boolean unquote, StringDecoder decoder) {
         Multimap map = new Multimap();
-        String[] parts = header.split(";");
+        if (value == null)
+            return map;
+        String[] parts = value.split(delimiter);
         for (String part: parts) {
             String[] pair = part.split("=", 2);
             String key = pair[0].trim();
             String v = null;
             if (pair.length > 1)
                 v = pair[1];
-            if (v != null && v.endsWith("\"") && v.startsWith("\""))
+            if (unquote && v != null && v.endsWith("\"") && v.startsWith("\""))
                 v = v.substring(1, v.length() - 1);
+            if (decoder != null) {
+                key = decoder.decode(key);
+                v = decoder.decode(v);
+            }
             map.add(key, v);
         }
         return map;
     }
 
-    public static Multimap parseHeader(RawHeaders headers, String header) {
-        return parseHeader(headers.get(header));
+    public static Multimap parseSemicolonDelimited(String header) {
+        return parse(header, ";", true, null);
     }
+
+    public static Multimap parseCommaDelimited(String header) {
+        return parse(header, ",", true, null);
+    }
+
+    private static final StringDecoder QUERY_DECODER = new StringDecoder() {
+        @Override
+        public String decode(String s) {
+            return Uri.decode(s);
+        }
+    };
 
     public static Multimap parseQuery(String query) {
-        Multimap map = new Multimap();
-        String[] pairs = query.split("&");
-        for (String p : pairs) {
-            String[] pair = p.split("=", 2);
-            if (pair.length == 0)
-                continue;
-            String name = Uri.decode(pair[0]);
-            String value = null;
-            if (pair.length == 2)
-                value = Uri.decode(pair[1]);
-            map.add(name, value);
-        }
-        return map;
+        return parse(query, "&", false, QUERY_DECODER);
     }
 
-    public static Multimap parseUrlEncoded(String query) {
-        Multimap map = new Multimap();
-        String[] pairs = query.split("&");
-        for (String p : pairs) {
-            String[] pair = p.split("=", 2);
-            if (pair.length == 0)
-                continue;
-            String name = URLDecoder.decode(pair[0]);
-            String value = null;
-            if (pair.length == 2)
-                value = URLDecoder.decode(pair[1]);
-            map.add(name, value);
+    private static final StringDecoder URL_DECODER = new StringDecoder() {
+        @Override
+        public String decode(String s) {
+            return URLDecoder.decode(s);
         }
-        return map;
+    };
+
+    public static Multimap parseUrlEncoded(String query) {
+        return parse(query, "&", false, URL_DECODER);
     }
 
     @Override

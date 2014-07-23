@@ -20,7 +20,6 @@ import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.callback.RequestCallback;
-import com.koushikdutta.async.http.cache.RawHeaders;
 import com.koushikdutta.async.parser.AsyncParser;
 import com.koushikdutta.async.parser.ByteBufferListParser;
 import com.koushikdutta.async.parser.JSONArrayParser;
@@ -209,6 +208,12 @@ public class AsyncHttpClient {
 
         request.logd("Executing request.");
 
+        synchronized (mMiddleware) {
+            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                middleware.onRequest(data);
+            }
+        }
+
         // flow:
         // 1) set a connect timeout
         // 2) wait for connect
@@ -252,12 +257,6 @@ public class AsyncHttpClient {
                     mServer.removeAllCallbacks(cancel.scheduled);
 
                 data.socket = socket;
-                synchronized (mMiddleware) {
-                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                        middleware.onSocket(data);
-                    }
-                }
-
                 cancel.socket = socket;
 
                 if (ex != null) {
@@ -294,7 +293,7 @@ public class AsyncHttpClient {
 
                         super.setDataEmitter(data.bodyEmitter);
 
-                        RawHeaders headers = mHeaders;
+                        Headers headers = mHeaders;
                         int responseCode = code();
                         if ((responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == 307) && request.getFollowRedirect()) {
                             String location = headers.get("Location");
@@ -327,7 +326,7 @@ public class AsyncHttpClient {
                             return;
                         }
 
-                        request.logv("Final (post cache response) headers:\n" + mHeaders.toHeaderString());
+                        request.logv("Final (post cache response) headers:\n" + toString());
 
                         // at this point the headers are done being modified
                         reportConnectedCompleted(cancel, null, this, request, callback);
@@ -343,7 +342,7 @@ public class AsyncHttpClient {
                                 mServer.removeAllCallbacks(cancel.scheduled);
 
                             // allow the middleware to massage the headers before the body is decoded
-                            request.logv("Received headers:\n" + mHeaders.toHeaderString());
+                            request.logv("Received headers:\n" + toString());
 
                             data.headers = mHeaders;
                             synchronized (mMiddleware) {

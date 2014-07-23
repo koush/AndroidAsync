@@ -52,7 +52,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
     protected AsyncHttpClient mClient;
 
-    protected ConnectCallback wrapCallback(ConnectCallback callback, Uri uri, int port, boolean proxied) {
+    protected ConnectCallback wrapCallback(GetSocketData data, Uri uri, int port, boolean proxied, ConnectCallback callback) {
         return callback;
     }
 
@@ -170,22 +170,19 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             if (data.request.getProxyHost() != null) {
                 unresolvedHost = data.request.getProxyHost();
                 unresolvedPort = data.request.getProxyPort();
-                // set the host and port explicitly for proxied connections
-                data.request.getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
                 proxied = true;
             }
             else if (proxyHost != null) {
                 unresolvedHost = proxyHost;
                 unresolvedPort = proxyPort;
-                // set the host and port explicitly for proxied connections
-                data.request.getHeaders().setStatusLine(data.request.getProxyRequestLine().toString());
                 proxied = true;
             }
             else {
                 unresolvedHost = uri.getHost();
                 unresolvedPort = port;
             }
-            return mClient.getServer().connectSocket(unresolvedHost, unresolvedPort, wrapCallback(data.connectCallback, uri, port, proxied));
+            return mClient.getServer().connectSocket(unresolvedHost, unresolvedPort,
+                wrapCallback(data, uri, port, proxied, data.connectCallback));
         }
 
         // try to connect to everything...
@@ -216,7 +213,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                     keepTrying.add(new ContinuationCallback() {
                         @Override
                         public void onContinue(Continuation continuation, final CompletedCallback next) throws Exception {
-                            mClient.getServer().connectSocket(new InetSocketAddress(address, port), wrapCallback(new ConnectCallback() {
+                            mClient.getServer().connectSocket(new InetSocketAddress(address, port),
+                                wrapCallback(data, uri, port, false, new ConnectCallback() {
                                 @Override
                                 public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                                     if (isDone()) {
@@ -244,7 +242,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                                         data.connectCallback.onConnectCompleted(ex, socket);
                                     }
                                 }
-                            }, uri, port, false));
+                            }));
                         }
                     });
                 }
@@ -360,7 +358,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 data.socket.close();
                 return;
             }
-            if (!HttpUtil.isKeepAlive(data.headers) || !HttpUtil.isKeepAlive(data.request.getHeaders())) {
+            if (!HttpUtil.isKeepAlive(data.response.protocol(), data.headers)
+                || !HttpUtil.isKeepAlive(Protocol.HTTP_1_1, data.request.getHeaders())) {
                 data.request.logv("closing out socket (not keep alive)");
                 data.socket.close();
                 return;

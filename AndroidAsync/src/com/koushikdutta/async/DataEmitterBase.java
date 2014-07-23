@@ -8,9 +8,6 @@ import com.koushikdutta.async.callback.DataCallback;
  */
 public abstract class DataEmitterBase implements DataEmitter {
     private boolean ended;
-    protected void resetEnded() {
-        ended = false;
-    }
     protected void report(Exception e) {
         if (ended)
             return;

@@ -131,7 +131,6 @@ public class Util {
         sink.setWriteableCallback(new WritableCallback() {
             @Override
             public void onWriteable() {
-                dataCallback.onDataAvailable(emitter, new ByteBufferList());
                 emitter.resume();
             }
         });

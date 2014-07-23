@@ -2,8 +2,9 @@ package com.koushikdutta.async.http.body;
 
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.Multimap;
-import com.koushikdutta.async.http.cache.RawHeaders;
+
 import org.apache.http.NameValuePair;
 
 import java.io.File;
@@ -12,11 +13,11 @@ import java.util.List;
 public class Part {
     public static final String CONTENT_DISPOSITION = "Content-Disposition";
     
-    RawHeaders mHeaders;
+    Headers mHeaders;
     Multimap mContentDisposition;
-    public Part(RawHeaders headers) {
+    public Part(Headers headers) {
         mHeaders = headers;
-        mContentDisposition = Multimap.parseHeader(mHeaders, CONTENT_DISPOSITION);
+        mContentDisposition = Multimap.parseSemicolonDelimited(mHeaders.get(CONTENT_DISPOSITION));
     }
     
     public String getName() {
@@ -26,7 +27,7 @@ public class Part {
     private long length = -1;
     public Part(String name, long length, List<NameValuePair> contentDisposition) {
         this.length = length;
-        mHeaders = new RawHeaders();
+        mHeaders = new Headers();
         StringBuilder builder = new StringBuilder(String.format("form-data; name=\"%s\"", name));
         if (contentDisposition != null) {
             for (NameValuePair pair: contentDisposition) {
@@ -34,10 +35,10 @@ public class Part {
             }
         }
         mHeaders.set(CONTENT_DISPOSITION, builder.toString());
-        mContentDisposition = Multimap.parseHeader(mHeaders, CONTENT_DISPOSITION);
+        mContentDisposition = Multimap.parseSemicolonDelimited(mHeaders.get(CONTENT_DISPOSITION));
     }
 
-    public RawHeaders getRawHeaders() {
+    public Headers getRawHeaders() {
         return mHeaders;
     }
 

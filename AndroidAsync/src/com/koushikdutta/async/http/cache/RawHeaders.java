@@ -44,7 +44,7 @@ import java.util.TreeMap;
  * <p>This class trims whitespace from values. It never returns values with
  * leading or trailing whitespace.
  */
-public final class RawHeaders {
+final class RawHeaders {
     private static final Comparator<String> FIELD_NAME_COMPARATOR = new Comparator<String>() {
         @Override public int compare(String a, String b) {
             if (a == b) {

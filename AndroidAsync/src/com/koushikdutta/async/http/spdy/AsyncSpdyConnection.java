@@ -1,7 +1,5 @@
 package com.koushikdutta.async.http.spdy;
 
-import android.text.TextUtils;
-
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataEmitter;
@@ -11,8 +9,7 @@ import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
-import com.koushikdutta.async.http.spdy.okhttp.Protocol;
-import com.koushikdutta.async.http.spdy.okhttp.internal.NamedRunnable;
+import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.ErrorCode;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameReader;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameWriter;
@@ -22,14 +19,11 @@ import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Http20Draft13;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Ping;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Spdy3;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.SpdyConnection;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.SpdyStream;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Variant;
 import com.koushikdutta.async.http.spdy.okio.BufferedSource;
 import com.koushikdutta.async.http.spdy.okio.ByteString;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;

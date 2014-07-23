@@ -12,7 +12,7 @@ public class ContentLengthFilter extends FilteredDataEmitter {
     @Override
     protected void report(Exception e) {
         if (e == null && totalRead != contentLength)
-            e = new PrematureDataEndException("End of data reached before content length was read");
+            e = new PrematureDataEndException("End of data reached before content length was read: " + totalRead + "/" + contentLength + " Paused: " + isPaused());
         super.report(e);
     }
 
