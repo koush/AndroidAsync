@@ -35,7 +35,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     static SSLContext defaultSSLContext;
 
     AsyncSocket mSocket;
-    BufferedDataEmitter mEmitter;
     BufferedDataSink mSink;
     boolean mUnwrapping;
     SSLEngine engine;
@@ -117,7 +116,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     boolean mEnded;
     Exception mEndException;
-    final ByteBufferList transformed = new ByteBufferList();
+    final ByteBufferList pending = new ByteBufferList();
 
     private AsyncSSLSocketWrapper(AsyncSocket socket,
                                   String host, int port,
@@ -155,90 +154,93 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         // on pause, the emitter is paused to prevent the buffered
         // socket and itself from firing.
         // on resume, emitter is resumed, ssl buffer is flushed as well
-
-        mEmitter = new BufferedDataEmitter(socket);
-        mEmitter.setEndCallback(new CompletedCallback() {
+        mSocket.setEndCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
                 if (mEnded)
                     return;
                 mEnded = true;
                 mEndException = ex;
-                if (!transformed.hasRemaining() && mEndCallback != null)
+                if (!pending.hasRemaining() && mEndCallback != null)
                     mEndCallback.onCompleted(ex);
             }
         });
 
-        final Allocator allocator = new Allocator();
-        allocator.setMinAlloc(8192);
-        mEmitter.setDataCallback(new DataCallback() {
-            @Override
-            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                if (mUnwrapping)
-                    return;
-                try {
-                    mUnwrapping = true;
-
-                    if (bb.hasRemaining()) {
-                        ByteBuffer all = bb.getAll();
-                        bb.add(all);
-                    }
-
-                    ByteBuffer b = ByteBufferList.EMPTY_BYTEBUFFER;
-                    while (true) {
-                        if (b.remaining() == 0 && bb.size() > 0) {
-                            b = bb.remove();
-                        }
-                        int remaining = b.remaining();
-                        int before = transformed.remaining();
-
-                        SSLEngineResult res;
-                        {
-                            // wrap to prevent access to the readBuf
-                            ByteBuffer readBuf = allocator.allocate();
-                            res = engine.unwrap(b, readBuf);
-                            addToPending(transformed, readBuf);
-                            allocator.track(transformed.remaining() - before);
-                        }
-                        if (res.getStatus() == Status.BUFFER_OVERFLOW) {
-                            allocator.setMinAlloc(allocator.getMinAlloc() * 2);
-                            remaining = -1;
-                        }
-                        else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
-                            bb.addFirst(b);
-                            if (bb.size() <= 1) {
-                                break;
-                            }
-                            // pack it
-                            remaining = -1;
-                            b = bb.getAll();
-                            bb.addFirst(b);
-                            b = ByteBufferList.EMPTY_BYTEBUFFER;
-                        }
-                        handleHandshakeStatus(res.getHandshakeStatus());
-                        if (b.remaining() == remaining && before == transformed.remaining()) {
-                            bb.addFirst(b);
-                            break;
-                        }
-                    }
-
-                    AsyncSSLSocketWrapper.this.onDataAvailable();
-                }
-                catch (SSLException ex) {
-                    ex.printStackTrace();
-                    report(ex);
-                }
-                finally {
-                    mUnwrapping = false;
-                }
-            }
-        });
+        mSocket.setDataCallback(dataCallback);
     }
 
-    public void onDataAvailable() {
-        Util.emitAllData(this, transformed);
+    final DataCallback dataCallback = new DataCallback() {
+        final Allocator allocator = new Allocator().setMinAlloc(8192);
+        final ByteBufferList buffered = new ByteBufferList();
 
-        if (mEnded && !transformed.hasRemaining())
+        @Override
+        public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+            if (mUnwrapping)
+                return;
+            try {
+                mUnwrapping = true;
+
+                bb.get(buffered);
+
+                if (buffered.hasRemaining()) {
+                    ByteBuffer all = buffered.getAll();
+                    buffered.add(all);
+                }
+
+                ByteBuffer b = ByteBufferList.EMPTY_BYTEBUFFER;
+                while (true) {
+                    if (b.remaining() == 0 && buffered.size() > 0) {
+                        b = buffered.remove();
+                    }
+                    int remaining = b.remaining();
+                    int before = pending.remaining();
+
+                    SSLEngineResult res;
+                    {
+                        // wrap to prevent access to the readBuf
+                        ByteBuffer readBuf = allocator.allocate();
+                        res = engine.unwrap(b, readBuf);
+                        addToPending(pending, readBuf);
+                        allocator.track(pending.remaining() - before);
+                    }
+                    if (res.getStatus() == Status.BUFFER_OVERFLOW) {
+                        allocator.setMinAlloc(allocator.getMinAlloc() * 2);
+                        remaining = -1;
+                    }
+                    else if (res.getStatus() == Status.BUFFER_UNDERFLOW) {
+                        buffered.addFirst(b);
+                        if (buffered.size() <= 1) {
+                            break;
+                        }
+                        // pack it
+                        remaining = -1;
+                        b = buffered.getAll();
+                        buffered.addFirst(b);
+                        b = ByteBufferList.EMPTY_BYTEBUFFER;
+                    }
+                    handleHandshakeStatus(res.getHandshakeStatus());
+                    if (b.remaining() == remaining && before == pending.remaining()) {
+                        buffered.addFirst(b);
+                        break;
+                    }
+                }
+
+                AsyncSSLSocketWrapper.this.onDataAvailable();
+            }
+            catch (SSLException ex) {
+                ex.printStackTrace();
+                report(ex);
+            }
+            finally {
+                mUnwrapping = false;
+            }
+        }
+    };
+
+    public void onDataAvailable() {
+        Util.emitAllData(this, pending);
+
+        if (mEnded && !pending.hasRemaining())
             mEndCallback.onCompleted(mEndException);
     }
 
@@ -283,7 +285,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         }
 
         if (status == HandshakeStatus.NEED_UNWRAP) {
-            mEmitter.onDataAvailable();
+            dataCallback.onDataAvailable(this, new ByteBufferList());
         }
 
         try {
@@ -336,7 +338,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 handshakeCallback = null;
                 if (mWriteableCallback != null)
                     mWriteableCallback.onWriteable();
-                mEmitter.onDataAvailable();
+                onDataAvailable();
             }
         }
         catch (NoSuchAlgorithmException ex) {
@@ -480,12 +482,12 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     @Override
     public void pause() {
-        mEmitter.pause();
+        mSocket.pause();
     }
 
     @Override
     public void resume() {
-        mEmitter.resume();
+        mSocket.resume();
         onDataAvailable();
     }
 
