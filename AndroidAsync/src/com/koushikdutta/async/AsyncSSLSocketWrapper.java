@@ -140,17 +140,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             }
         });
 
-
-        // here's the stack of emitters
-        // ssl emitter
-        // buffered data emitter
-        // socket
-
-        // ssl emitter needs a buffered emitter
-        // in case there is an underflow.
-        // buffered emitter will read from the socket,
-        // and replay data forever.
-
         // on pause, the emitter is paused to prevent the buffered
         // socket and itself from firing.
         // on resume, emitter is resumed, ssl buffer is flushed as well

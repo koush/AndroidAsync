@@ -51,18 +51,21 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void write(ByteBufferList bb) {
+        // order is important here...
+        assert !mEnded;
+        // do the header write... this will call onWritable, which may be reentrant
+        if (!mHasWritten)
+            initFirstWrite();
+
+        // now check to see if the list is empty. reentrancy may cause it to empty itself.
         if (bb.remaining() == 0)
             return;
 
-        assert !mEnded;
-        if (!mHasWritten) {
-            initFirstWrite();
+        // null sink means that the header has not finished writing
+        if (mSink == null)
             return;
-        }
-        if (mSink == null) {
-            System.out.println("poop squat");
-            return;
-        }
+
+        // can successfully write!
         mSink.write(bb);
     }
 
@@ -74,23 +77,32 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
         mHasWritten = true;
 
+        final boolean isChunked;
+        String currentEncoding = mRawHeaders.get("Transfer-Encoding");
+        if ("".equals(currentEncoding))
+            mRawHeaders.removeAll("Transfer-Encoding");
+        boolean canUseChunked = ("Chunked".equalsIgnoreCase(currentEncoding) || currentEncoding == null)
+        && !"close".equalsIgnoreCase(mRawHeaders.get("Connection"));
+        if (mContentLength < 0) {
+            String contentLength = mRawHeaders.get("Content-Length");
+            if (!TextUtils.isEmpty(contentLength))
+                mContentLength = Long.valueOf(contentLength);
+        }
+        if (mContentLength < 0 && canUseChunked) {
+            mRawHeaders.set("Transfer-Encoding", "Chunked");
+            isChunked = true;
+        }
+        else {
+            isChunked = false;
+        }
+
         String statusLine = String.format("HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
         String rh = mRawHeaders.toPrefixString(statusLine);
+
         Util.writeAll(mSocket, rh.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                String currentEncoding = mRawHeaders.get("Transfer-Encoding");
-                if ("".equals(currentEncoding))
-                    mRawHeaders.removeAll("Transfer-Encoding");
-                boolean canUseChunked = ("Chunked".equalsIgnoreCase(currentEncoding) || currentEncoding == null)
-                && !"close".equalsIgnoreCase(mRawHeaders.get("Connection"));
-                if (mContentLength < 0) {
-                    String contentLength = mRawHeaders.get("Content-Length");
-                    if (!TextUtils.isEmpty(contentLength))
-                        mContentLength = Long.valueOf(contentLength);
-                }
-                if (mContentLength < 0 && canUseChunked) {
-                    mRawHeaders.set("Transfer-Encoding", "Chunked");
+                if (isChunked) {
                     ChunkedOutputFilter chunked = new ChunkedOutputFilter(mSocket);
                     chunked.setMaxBuffer(0);
                     mSink = chunked;
