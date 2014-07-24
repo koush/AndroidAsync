@@ -130,7 +130,7 @@ public class AsyncServer {
                     selector.wakeupOnce();
                 }
                 catch (Exception e) {
-                    Log.i(LOGTAG, "Selector shit the bed.");
+                    Log.i(LOGTAG, "Selector Exception? L Preview?");
                 }
             }
         });
