@@ -4,6 +4,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.util.Allocator;
+import com.koushikdutta.async.util.StreamUtility;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;
 
@@ -69,13 +70,7 @@ public class Util {
                 ds.setClosedCallback(null);
                 ds.setWriteableCallback(null);
                 pending.recycle();
-                pending = null;
-                try {
-                    is.close();
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
+                StreamUtility.closeQuietly(is);
             }
             ByteBufferList pending = new ByteBufferList();
             Allocator allocator = new Allocator();

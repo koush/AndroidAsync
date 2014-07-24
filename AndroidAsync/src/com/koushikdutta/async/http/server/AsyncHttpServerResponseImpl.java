@@ -114,10 +114,15 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 mSink.setClosedCallback(closedCallback);
                 closedCallback = null;
                 mSink.setWriteableCallback(writable);
-                if (writable != null) {
-                    writable.onWriteable();
-                    writable = null;
-                }
+                writable = null;
+                getServer().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        WritableCallback wb = getWriteableCallback();
+                        if (wb != null)
+                            wb.onWriteable();
+                    }
+                });
             }
         });
     }
