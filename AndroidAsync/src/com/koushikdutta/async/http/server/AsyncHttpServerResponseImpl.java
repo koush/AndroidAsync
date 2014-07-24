@@ -53,13 +53,14 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     public void write(ByteBufferList bb) {
         if (bb.remaining() == 0)
             return;
-        writeInternal(bb);
-    }
 
-    private void writeInternal(ByteBufferList bb) {
         assert !mEnded;
         if (!mHasWritten) {
             initFirstWrite();
+            return;
+        }
+        if (mSink == null) {
+            System.out.println("poop squat");
             return;
         }
         mSink.write(bb);
@@ -72,36 +73,57 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             return;
 
         mHasWritten = true;
-        String currentEncoding = mRawHeaders.get("Transfer-Encoding");
-        if ("".equals(currentEncoding))
-            mRawHeaders.removeAll("Transfer-Encoding");
-        boolean canUseChunked = ("Chunked".equalsIgnoreCase(currentEncoding) || currentEncoding == null)
-           && !"close".equalsIgnoreCase(mRawHeaders.get("Connection"));
-        if (mContentLength < 0) {
-            String contentLength = mRawHeaders.get("Content-Length");
-            if (!TextUtils.isEmpty(contentLength))
-                mContentLength = Long.valueOf(contentLength);
-        }
-        if (mContentLength < 0 && canUseChunked) {
-            mRawHeaders.set("Transfer-Encoding", "Chunked");
-            mSink = new ChunkedOutputFilter(mSocket);
-        }
-        else {
-            mSink = mSocket;
-        }
-        writeHeadInternal();
+
+        String statusLine = String.format("HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
+        String rh = mRawHeaders.toPrefixString(statusLine);
+        Util.writeAll(mSocket, rh.getBytes(), new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                String currentEncoding = mRawHeaders.get("Transfer-Encoding");
+                if ("".equals(currentEncoding))
+                    mRawHeaders.removeAll("Transfer-Encoding");
+                boolean canUseChunked = ("Chunked".equalsIgnoreCase(currentEncoding) || currentEncoding == null)
+                && !"close".equalsIgnoreCase(mRawHeaders.get("Connection"));
+                if (mContentLength < 0) {
+                    String contentLength = mRawHeaders.get("Content-Length");
+                    if (!TextUtils.isEmpty(contentLength))
+                        mContentLength = Long.valueOf(contentLength);
+                }
+                if (mContentLength < 0 && canUseChunked) {
+                    mRawHeaders.set("Transfer-Encoding", "Chunked");
+                    ChunkedOutputFilter chunked = new ChunkedOutputFilter(mSocket);
+                    chunked.setMaxBuffer(0);
+                    mSink = chunked;
+                }
+                else {
+                    mSink = mSocket;
+                }
+
+                mSink.setClosedCallback(closedCallback);
+                closedCallback = null;
+                mSink.setWriteableCallback(writable);
+                if (writable != null) {
+                    writable.onWriteable();
+                    writable = null;
+                }
+            }
+        });
     }
 
+    WritableCallback writable;
     @Override
     public void setWriteableCallback(WritableCallback handler) {
-        initFirstWrite();
-        mSink.setWriteableCallback(handler);
+        if (mSink != null)
+            mSink.setWriteableCallback(handler);
+        else
+            writable = handler;
     }
 
     @Override
     public WritableCallback getWriteableCallback() {
-        initFirstWrite();
-        return mSink.getWriteableCallback();
+        if (mSink != null)
+            return mSink.getWriteableCallback();
+        return writable;
     }
 
     @Override
@@ -120,37 +142,18 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 onEnd();
             }
         }
+        else {
+            onEnd();
+        }
     }
 
-    private boolean mHeadWritten = false;
     @Override
     public void writeHead() {
         initFirstWrite();
     }
 
-    private void writeHeadInternal() {
-        assert !mHeadWritten;
-        mHeadWritten = true;
-        String statusLine = String.format("HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
-        String rh = mRawHeaders.toPrefixString(statusLine);
-        Util.writeAll(mSocket, rh.getBytes(), new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                // TODO: HACK!!!
-                // this really needs to be fixed. Not sure how to deal w/ writehead and
-                // first write
-                if (mSink instanceof BufferedDataSink)
-                    ((BufferedDataSink)mSink).setDataSink(mSocket);
-                WritableCallback writableCallback = getWriteableCallback();
-                if (writableCallback != null)
-                    writableCallback.onWriteable();
-            }
-        });
-    }
-
     @Override
     public void setContentType(String contentType) {
-        assert !mHeadWritten;
         mRawHeaders.set("Content-Type", contentType);
     }
 
@@ -302,14 +305,20 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         return mSocket.isOpen();
     }
 
+    CompletedCallback closedCallback;
     @Override
     public void setClosedCallback(CompletedCallback handler) {
-        mSink.setClosedCallback(handler);
+        if (mSink != null)
+            mSink.setClosedCallback(handler);
+        else
+            closedCallback = handler;
     }
 
     @Override
     public CompletedCallback getClosedCallback() {
-        return mSink.getClosedCallback();
+        if (mSink != null)
+            return mSink.getClosedCallback();
+        return closedCallback;
     }
 
     @Override
