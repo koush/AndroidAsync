@@ -14,6 +14,7 @@ import com.koushikdutta.async.util.UntypedHashtable;
  */
 public interface AsyncHttpClientMiddleware {
     public interface ResponseHead  {
+        public AsyncSocket socket();
         public String protocol();
         public String message();
         public int code();
@@ -24,6 +25,8 @@ public interface AsyncHttpClientMiddleware {
         public ResponseHead headers(Headers headers);
         public DataSink sink();
         public ResponseHead sink(DataSink sink);
+        public DataEmitter emitter();
+        public ResponseHead emitter(DataEmitter emitter);
     }
 
     public static class OnRequestData {
@@ -37,14 +40,14 @@ public interface AsyncHttpClientMiddleware {
         public String protocol;
     }
 
-    public static class SendHeaderData extends GetSocketData {
+    public static class ExchangeHeaderData extends GetSocketData {
         public AsyncSocket socket;
         public ResponseHead response;
         public CompletedCallback sendHeadersCallback;
+        public CompletedCallback receiveHeadersCallback;
     }
 
-    public static class OnHeadersReceivedData extends SendHeaderData {
-//        public Headers headers;
+    public static class OnHeadersReceivedData extends ExchangeHeaderData {
     }
 
     public static class OnBodyData extends OnHeadersReceivedData {
@@ -69,11 +72,12 @@ public interface AsyncHttpClientMiddleware {
     public Cancellable getSocket(GetSocketData data);
 
     /**
-     * Called before the headers are sent via the socket
+     * Called before when the headers are sent and received via the socket.
+     * Implementers return true to denote they will manage header exchange.
      * @param data
      * @return
      */
-    public boolean sendHeaders(SendHeaderData data);
+    public boolean exchangeHeaders(ExchangeHeaderData data);
 
     /**
      * Called once the headers have been received via the socket

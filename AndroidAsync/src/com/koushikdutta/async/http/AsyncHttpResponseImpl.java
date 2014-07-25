@@ -19,9 +19,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 
 abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncSocket, AsyncHttpResponse, AsyncHttpClientMiddleware.ResponseHead {
-    private AsyncHttpRequestBody mWriter;
-    
-    public AsyncSocket getSocket() {
+    public AsyncSocket socket() {
         return mSocket;
     }
 
@@ -36,17 +34,12 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
             return;
 
         mSocket.setEndCallback(mReporter);
-
-        mWriter = mRequest.getBody();
-
-        LineEmitter liner = new LineEmitter();
-        exchange.setDataCallback(liner);
-        liner.setLineCallback(mHeaderCallback);
     }
 
     protected void onHeadersSent() {
-        if (mWriter != null) {
-            mWriter.write(mRequest, AsyncHttpResponseImpl.this, new CompletedCallback() {
+        AsyncHttpRequestBody requestBody = mRequest.getBody();
+        if (requestBody != null) {
+            requestBody.write(mRequest, AsyncHttpResponseImpl.this, new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
                     onRequestCompleted(ex);
@@ -75,48 +68,17 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     protected void onHeadersReceived() {
     }
 
-    StringCallback mHeaderCallback = new StringCallback() {
-        private Headers mRawHeaders = new Headers();
-        private String statusLine;
-        @Override
-        public void onStringAvailable(String s) {
-            try {
-                if (statusLine == null) {
-                    statusLine = s;
-                }
-                else if (!"\r".equals(s)) {
-                    mRawHeaders.addLine(s);
-                }
-                else {
-                    String[] parts = statusLine.split(" ", 3);
-                    if (parts.length != 3)
-                        throw new Exception(new IOException("Not HTTP"));
 
-                    protocol = parts[0];
-                    code = Integer.parseInt(parts[1]);
-                    message = parts[2];
-                    mHeaders = mRawHeaders;
-                    onHeadersReceived();
-                    // socket may get detached after headers (websocket)
-                    if (mSocket == null)
-                        return;
-                    DataEmitter emitter;
-                    // HEAD requests must not return any data. They still may
-                    // return content length, etc, which will confuse the body decoder
-                    if (AsyncHttpHead.METHOD.equalsIgnoreCase(mRequest.getMethod())) {
-                        emitter = HttpUtil.EndEmitter.create(getServer(), null);
-                    }
-                    else {
-                        emitter = HttpUtil.getBodyDecoder(mSocket, Protocol.get(protocol), mHeaders, false);
-                    }
-                    setDataEmitter(emitter);
-                }
-            }
-            catch (Exception ex) {
-                report(ex);
-            }
-        }
-    };
+    @Override
+    public DataEmitter emitter() {
+        return getDataEmitter();
+    }
+
+    @Override
+    public AsyncHttpClientMiddleware.ResponseHead emitter(DataEmitter emitter) {
+        setDataEmitter(emitter);
+        return this;
+    }
 
     @Override
     protected void report(Exception e) {

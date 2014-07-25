@@ -25,7 +25,7 @@ public class SimpleMiddleware implements AsyncHttpClientMiddleware {
     }
 
     @Override
-    public boolean sendHeaders(SendHeaderData data) {
+    public boolean exchangeHeaders(ExchangeHeaderData data) {
         return false;
     }
 }
