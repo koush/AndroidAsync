@@ -216,25 +216,25 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     public void onBodyDecoder(OnBodyData data) {
         CachedSocket cached = com.koushikdutta.async.Util.getWrappedSocket(data.socket, CachedSocket.class);
         if (cached != null) {
-            data.headers.set(SERVED_FROM, CACHE);
+            data.response.headers().set(SERVED_FROM, CACHE);
             return;
         }
 
         CacheData cacheData = data.state.get("cache-data");
-        RawHeaders rh = RawHeaders.fromMultimap(data.headers.getMultiMap());
+        RawHeaders rh = RawHeaders.fromMultimap(data.response.headers().getMultiMap());
+        rh.removeAll("Content-Length");
         rh.setStatusLine(String.format("%s %s %s", data.response.protocol(), data.response.code(), data.response.message()));
         ResponseHeaders networkResponse = new ResponseHeaders(data.request.getUri(), rh);
         data.state.put("response-headers", networkResponse);
         if (cacheData != null) {
             if (cacheData.cachedResponseHeaders.validate(networkResponse)) {
                 data.request.logi("Serving response from conditional cache");
-                data.headers.removeAll("Content-Length");
                 ResponseHeaders combined = cacheData.cachedResponseHeaders.combine(networkResponse);
-                data.headers = new Headers(combined.getHeaders().toMultimap());
+                data.response.headers(new Headers(combined.getHeaders().toMultimap()));
                 data.response.code(combined.getHeaders().getResponseCode());
                 data.response.message(combined.getHeaders().getResponseMessage());
 
-                data.headers.set(SERVED_FROM, CONDITIONAL_CACHE);
+                data.response.headers().set(SERVED_FROM, CONDITIONAL_CACHE);
                 conditionalCacheHitCount++;
 
                 CachedBodyEmitter bodySpewer = new CachedBodyEmitter(cacheData.candidate, cacheData.contentLength);

@@ -75,6 +75,8 @@ public enum Protocol {
      * Returns the protocol identified by {@code protocol}.
      */
     public static Protocol get(String protocol) {
+        if (protocol == null)
+            return null;
         return protocols.get(protocol.toLowerCase());
     }
 

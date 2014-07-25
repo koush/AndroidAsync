@@ -18,7 +18,7 @@ import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
-abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncSocket, AsyncHttpResponse {
+abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncSocket, AsyncHttpResponse, AsyncHttpClientMiddleware.ResponseHead {
     private AsyncHttpRequestBody mWriter;
     
     public AsyncSocket getSocket() {
@@ -32,57 +32,29 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
     void setSocket(AsyncSocket exchange) {
         mSocket = exchange;
-        
         if (mSocket == null)
             return;
 
-        mWriter = mRequest.getBody();
-        if (mWriter != null) {
-            if (mRequest.getHeaders().get("Content-Type") == null)
-                mRequest.getHeaders().set("Content-Type", mWriter.getContentType());
-            if (mWriter.length() >= 0) {
-                mRequest.getHeaders().set("Content-Length", String.valueOf(mWriter.length()));
-                mSink = mSocket;
-            }
-            else {
-                mRequest.getHeaders().set("Transfer-Encoding", "Chunked");
-                mSink = new ChunkedOutputFilter(mSocket);
-            }
-        }
-        else {
-            mSink = mSocket;
-        }
-
         mSocket.setEndCallback(mReporter);
-        mSocket.setClosedCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                // TODO: do we care? throw if socket is still writing or something?
-            }
-        });
 
-        String rl = mRequest.getRequestLine().toString();
-        String rs = mRequest.getHeaders().toPrefixString(rl);
-        mRequest.logv("\n" + rs);
-        Util.writeAll(exchange, rs.getBytes(), new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                if (mWriter != null) {
-                    mWriter.write(mRequest, AsyncHttpResponseImpl.this, new CompletedCallback() {
-                        @Override
-                        public void onCompleted(Exception ex) {
-                            onRequestCompleted(ex);
-                        }
-                    });
-                } else {
-                    onRequestCompleted(null);
-                }
-            }
-        });
+        mWriter = mRequest.getBody();
 
         LineEmitter liner = new LineEmitter();
         exchange.setDataCallback(liner);
         liner.setLineCallback(mHeaderCallback);
+    }
+
+    protected void onHeadersSent() {
+        if (mWriter != null) {
+            mWriter.write(mRequest, AsyncHttpResponseImpl.this, new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception ex) {
+                    onRequestCompleted(ex);
+                }
+            });
+        } else {
+            onRequestCompleted(null);
+        }
     }
 
     protected void onRequestCompleted(Exception ex) {
@@ -100,7 +72,8 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         }
     };
 
-    protected abstract void onHeadersReceived();
+    protected void onHeadersReceived() {
+    }
 
     StringCallback mHeaderCallback = new StringCallback() {
         private Headers mRawHeaders = new Headers();
@@ -179,6 +152,12 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         return mHeaders;
     }
 
+    @Override
+    public AsyncHttpClientMiddleware.ResponseHead headers(Headers headers) {
+        mHeaders = headers;
+        return this;
+    }
+
     int code;
     @Override
     public int code() {
@@ -186,19 +165,19 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     }
 
     @Override
-    public AsyncHttpResponse code(int code) {
+    public AsyncHttpClientMiddleware.ResponseHead code(int code) {
         this.code = code;
         return this;
     }
 
     @Override
-    public AsyncHttpResponse protocol(String protocol) {
+    public AsyncHttpClientMiddleware.ResponseHead protocol(String protocol) {
         this.protocol = protocol;
         return this;
     }
 
     @Override
-    public AsyncHttpResponse message(String message) {
+    public AsyncHttpClientMiddleware.ResponseHead message(String message) {
         this.message = message;
         return this;
     }
@@ -232,6 +211,18 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     }
 
     DataSink mSink;
+
+    @Override
+    public DataSink sink() {
+        return mSink;
+    }
+
+    @Override
+    public AsyncHttpClientMiddleware.ResponseHead sink(DataSink sink) {
+        mSink = sink;
+        return this;
+    }
+
     @Override
     public void write(ByteBufferList bb) {
         assertContent();

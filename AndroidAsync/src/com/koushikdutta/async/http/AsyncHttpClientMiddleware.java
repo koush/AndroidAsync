@@ -2,6 +2,7 @@ package com.koushikdutta.async.http;
 
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
@@ -12,6 +13,19 @@ import com.koushikdutta.async.util.UntypedHashtable;
  * inspect, manipulate, and handle http requests.
  */
 public interface AsyncHttpClientMiddleware {
+    public interface ResponseHead  {
+        public String protocol();
+        public String message();
+        public int code();
+        public ResponseHead protocol(String protocol);
+        public ResponseHead message(String message);
+        public ResponseHead code(int code);
+        public Headers headers();
+        public ResponseHead headers(Headers headers);
+        public DataSink sink();
+        public ResponseHead sink(DataSink sink);
+    }
+
     public static class OnRequestData {
         public UntypedHashtable state = new UntypedHashtable();
         public AsyncHttpRequest request;
@@ -25,15 +39,15 @@ public interface AsyncHttpClientMiddleware {
 
     public static class SendHeaderData extends GetSocketData {
         public AsyncSocket socket;
+        public ResponseHead response;
         public CompletedCallback sendHeadersCallback;
     }
 
     public static class OnHeadersReceivedData extends SendHeaderData {
-        public Headers headers;
+//        public Headers headers;
     }
 
     public static class OnBodyData extends OnHeadersReceivedData {
-        public AsyncHttpResponse response;
         public DataEmitter bodyEmitter;
     }
 

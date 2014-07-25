@@ -66,11 +66,13 @@ public class AsyncHttpClient {
 
     AsyncSSLSocketMiddleware sslSocketMiddleware;
     AsyncSocketMiddleware socketMiddleware;
+    HttpTransportMiddleware httpTransportMiddleware;
     AsyncServer mServer;
     public AsyncHttpClient(AsyncServer server) {
         mServer = server;
         insertMiddleware(socketMiddleware = new AsyncSocketMiddleware(this));
         insertMiddleware(sslSocketMiddleware = new AsyncSSLSocketMiddleware(this));
+        insertMiddleware(httpTransportMiddleware = new HttpTransportMiddleware());
     }
 
 
@@ -274,7 +276,7 @@ public class AsyncHttpClient {
                         if (cancel.isCancelled())
                             return;
                         // 5) after request is sent, set a header timeout
-                        if (cancel.timeoutRunnable != null && data.headers == null) {
+                        if (cancel.timeoutRunnable != null && mHeaders == null) {
                             mServer.removeAllCallbacks(cancel.scheduled);
                             cancel.scheduled = mServer.postDelayed(cancel.timeoutRunnable, getTimeoutRemaining(request));
                         }
@@ -282,14 +284,12 @@ public class AsyncHttpClient {
 
                     @Override
                     public void setDataEmitter(DataEmitter emitter) {
-                        data.response = this;
                         data.bodyEmitter = emitter;
                         synchronized (mMiddleware) {
                             for (AsyncHttpClientMiddleware middleware: mMiddleware) {
                                 middleware.onBodyDecoder(data);
                             }
                         }
-                        mHeaders = data.headers;
 
                         super.setDataEmitter(data.bodyEmitter);
 
@@ -333,31 +333,25 @@ public class AsyncHttpClient {
                     }
 
                     protected void onHeadersReceived() {
-                        try {
-                            if (cancel.isCancelled())
-                                return;
+                        super.onHeadersReceived();
+                        if (cancel.isCancelled())
+                            return;
 
-                            // 7) on headers, cancel timeout
-                            if (cancel.timeoutRunnable != null)
-                                mServer.removeAllCallbacks(cancel.scheduled);
+                        // 7) on headers, cancel timeout
+                        if (cancel.timeoutRunnable != null)
+                            mServer.removeAllCallbacks(cancel.scheduled);
 
-                            // allow the middleware to massage the headers before the body is decoded
-                            request.logv("Received headers:\n" + toString());
+                        // allow the middleware to massage the headers before the body is decoded
+                        request.logv("Received headers:\n" + toString());
 
-                            data.headers = mHeaders;
-                            synchronized (mMiddleware) {
-                                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                                    middleware.onHeadersReceived(data);
-                                }
+                        synchronized (mMiddleware) {
+                            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                                middleware.onHeadersReceived(data);
                             }
-                            mHeaders = data.headers;
+                        }
 
-                            // drop through, and setDataEmitter will be called for the body decoder.
-                            // headers will be further massaged in there.
-                        }
-                        catch (Exception ex) {
-                            reportConnectedCompleted(cancel, ex, null, request, callback);
-                        }
+                        // drop through, and setDataEmitter will be called for the body decoder.
+                        // headers will be further massaged in there.
                     }
 
                     @Override
@@ -390,7 +384,6 @@ public class AsyncHttpClient {
                         }
                     }
 
-
                     @Override
                     public AsyncSocket detachSocket() {
                         request.logd("Detaching socket");
@@ -406,7 +399,24 @@ public class AsyncHttpClient {
                     }
                 };
 
+                data.sendHeadersCallback = new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        if (ex != null)
+                            ret.report(ex);
+                        else
+                            ret.onHeadersSent();
+                    }
+                };
+                data.response = ret;
                 ret.setSocket(socket);
+
+                synchronized (mMiddleware) {
+                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                        if (middleware.sendHeaders(data))
+                            break;
+                    }
+                }
             }
         };
 

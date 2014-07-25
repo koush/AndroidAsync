@@ -358,7 +358,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 data.socket.close();
                 return;
             }
-            if (!HttpUtil.isKeepAlive(data.response.protocol(), data.headers)
+            if (!HttpUtil.isKeepAlive(data.response.protocol(), data.response.headers())
                 || !HttpUtil.isKeepAlive(Protocol.HTTP_1_1, data.request.getHeaders())) {
                 data.request.logv("closing out socket (not keep alive)");
                 data.socket.close();
