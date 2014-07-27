@@ -100,6 +100,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     }
 
     private void newSocket(GetSocketData data, final AsyncSpdyConnection connection, final ConnectCallback callback) {
+        data.request.logv("using spdy connection");
         final ArrayList<Header> headers = new ArrayList<Header>();
         headers.add(new Header(Header.TARGET_METHOD, data.request.getMethod()));
         headers.add(new Header(Header.TARGET_PATH, requestPath(data.request.getUri())));
@@ -123,19 +124,9 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             }
         }
 
-        connection.socket.getServer().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, false, true);
-                    connection.flush();
-                    callback.onConnectCompleted(null, spdy);
-                }
-                catch (Exception e) {
-                    throw new AssertionError(e);
-                }
-            }
-        }, 1000);
+        AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, false, true);
+        connection.flush();
+        callback.onConnectCompleted(null, spdy);
     }
 
     @Override

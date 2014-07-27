@@ -74,19 +74,19 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
      * @param in true to create an input stream that the remote peer can use to send data to us.
      *     Corresponds to {@code FLAG_UNIDIRECTIONAL}.
      */
-    public SpdySocket newStream(List<Header> requestHeaders, boolean out, boolean in) throws IOException {
+    public SpdySocket newStream(List<Header> requestHeaders, boolean out, boolean in) {
         return newStream(0, requestHeaders, out, in);
     }
 
     private SpdySocket newStream(int associatedStreamId, List<Header> requestHeaders, boolean out,
-                                 boolean in) throws IOException {
+                                 boolean in) {
         boolean outFinished = !out;
         boolean inFinished = !in;
         SpdySocket socket;
         int streamId;
 
         if (shutdown) {
-            throw new IOException("shutdown");
+            return null;
         }
 
         streamId = nextStreamId;
@@ -96,20 +96,25 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             sockets.put(streamId, socket);
 //            setIdle(false);
         }
-        if (associatedStreamId == 0) {
-            writer.synStream(outFinished, inFinished, streamId, associatedStreamId,
-            requestHeaders);
-        } else if (client) {
-            throw new IllegalArgumentException("client streams shouldn't have associated stream IDs");
-        } else { // HTTP/2 has a PUSH_PROMISE frame.
-            writer.pushPromise(associatedStreamId, streamId, requestHeaders);
-        }
+        try {
+            if (associatedStreamId == 0) {
+                writer.synStream(outFinished, inFinished, streamId, associatedStreamId,
+                requestHeaders);
+            } else if (client) {
+                throw new IllegalArgumentException("client streams shouldn't have associated stream IDs");
+            } else { // HTTP/2 has a PUSH_PROMISE frame.
+                writer.pushPromise(associatedStreamId, streamId, requestHeaders);
+            }
 
-        if (!out) {
-            writer.flush();
-        }
+            if (!out) {
+                writer.flush();
+            }
 
-        return socket;
+            return socket;
+        }
+        catch (IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     int totalWindowRead;
