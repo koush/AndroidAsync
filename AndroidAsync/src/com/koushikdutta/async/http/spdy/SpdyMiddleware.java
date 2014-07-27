@@ -11,14 +11,12 @@ import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.AsyncHttpClientMiddleware;
 import com.koushikdutta.async.http.AsyncSSLEngineConfigurator;
 import com.koushikdutta.async.http.AsyncSSLSocketMiddleware;
 import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Header;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.SpdyConnection;
 import com.koushikdutta.async.util.Charsets;
 
 import java.lang.reflect.Field;

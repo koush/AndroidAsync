@@ -24,6 +24,7 @@ import com.koushikdutta.async.http.spdy.okio.BufferedSource;
 import com.koushikdutta.async.http.spdy.okio.ByteString;
 import com.koushikdutta.async.http.spdy.okio.DeflaterSink;
 import com.koushikdutta.async.http.spdy.okio.Okio;
+import com.koushikdutta.async.util.Charsets;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -94,7 +95,7 @@ public final class Spdy3 implements Variant {
           + "availableJan Feb Mar Apr May Jun Jul Aug Sept Oct Nov Dec 00:00:00 Mon, Tue, Wed, Th"
           + "u, Fri, Sat, Sun, GMTchunked,text/html,image/png,image/jpg,image/gif,application/xml"
           + ",application/xhtml+xml,text/plain,text/javascript,publicprivatemax-age=gzip,deflate,"
-          + "sdchcharset=utf-8charset=iso-8859-1,utf-,*,enq=0.").getBytes(Util.UTF_8.name());
+          + "sdchcharset=utf-8charset=iso-8859-1,utf-,*,enq=0.").getBytes(Charsets.UTF_8.name());
     } catch (UnsupportedEncodingException e) {
       throw new AssertionError();
     }
