@@ -31,13 +31,13 @@ public final class Segment {
   // TODO: Is 2 KiB a good default segment size?
   static final int SIZE = 2048;
 
-  final byte[] data = new byte[SIZE];
+  public final byte[] data = new byte[SIZE];
 
   /** The next byte of application data byte to read in this segment. */
-  int pos;
+  public int pos;
 
   /** The first byte of available data ready to be written to. */
-  int limit;
+  public int limit;
 
   /** Next segment in a linked or circularly-linked list. */
   Segment next;

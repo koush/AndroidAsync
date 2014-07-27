@@ -53,7 +53,7 @@ public final class Settings {
   /** spdy/3: Retransmission rate. Percentage */
   static final int DOWNLOAD_RETRANS_RATE = 6;
   /** Window size in bytes. */
-  static final int INITIAL_WINDOW_SIZE = 7;
+  public static final int INITIAL_WINDOW_SIZE = 7;
   /** spdy/3: Window size in bytes. */
   static final int CLIENT_CERTIFICATE_VECTOR_SIZE = 8;
   /** Flow control options. */
@@ -82,7 +82,7 @@ public final class Settings {
     Arrays.fill(values, 0);
   }
 
-  Settings set(int id, int idFlags, int value) {
+  public Settings set(int id, int idFlags, int value) {
     if (id >= values.length) {
       return this; // Discard unknown settings.
     }

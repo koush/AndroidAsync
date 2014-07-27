@@ -68,7 +68,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         return sslEngine;
     }
 
-    protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(final ConnectCallback callback) {
+    protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(GetSocketData data, final ConnectCallback callback) {
         return new AsyncSSLSocketWrapper.HandshakeCallback() {
             @Override
             public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
@@ -77,15 +77,15 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         };
     }
 
-    protected void tryHandshake(final ConnectCallback callback, AsyncSocket socket, final Uri uri, final int port) {
+    protected void tryHandshake(AsyncSocket socket, GetSocketData data, final Uri uri, final int port, final ConnectCallback callback) {
         AsyncSSLSocketWrapper.handshake(socket, uri.getHost(), port,
         createConfiguredSSLEngine(uri.getHost(), port),
         trustManagers, hostnameVerifier, true,
-        createHandshakeCallback(callback));
+        createHandshakeCallback(data, callback));
     }
 
     @Override
-    protected ConnectCallback wrapCallback(GetSocketData data, final Uri uri, final int port, final boolean proxied, final ConnectCallback callback) {
+    protected ConnectCallback wrapCallback(final GetSocketData data, final Uri uri, final int port, final boolean proxied, final ConnectCallback callback) {
         return new ConnectCallback() {
             @Override
             public void onConnectCompleted(Exception ex, final AsyncSocket socket) {
@@ -95,7 +95,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                 }
 
                 if (!proxied) {
-                    tryHandshake(callback, socket, uri, port);
+                    tryHandshake(socket, data, uri, port, callback);
                     return;
                 }
 
@@ -127,7 +127,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                                     socket.setDataCallback(null);
                                     socket.setEndCallback(null);
                                     if (TextUtils.isEmpty(s.trim())) {
-                                        tryHandshake(callback, socket, uri, port);
+                                        tryHandshake(socket, data, uri, port, callback);
                                     }
                                     else {
                                         callback.onConnectCompleted(new IOException("unknown second status line"), socket);

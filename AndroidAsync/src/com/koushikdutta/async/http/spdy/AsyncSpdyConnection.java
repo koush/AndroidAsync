@@ -3,12 +3,15 @@ package com.koushikdutta.async.http.spdy;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataEmitter;
+import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.ErrorCode;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameReader;
@@ -20,8 +23,12 @@ import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Ping;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Spdy3;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Variant;
+import com.koushikdutta.async.http.spdy.okio.BufferedSink;
 import com.koushikdutta.async.http.spdy.okio.BufferedSource;
 import com.koushikdutta.async.http.spdy.okio.ByteString;
+import com.koushikdutta.async.http.spdy.okio.Okio;
+
+import junit.framework.Assert;
 
 import java.io.IOException;
 import java.util.Hashtable;
@@ -37,31 +44,126 @@ import static com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings.DEF
 public class AsyncSpdyConnection implements FrameReader.Handler {
     BufferedDataEmitter emitter;
     AsyncSocket socket;
+    BufferedDataSink bufferedSocket;
     FrameReader reader;
     FrameWriter writer;
     Variant variant;
-    SpdySocket zero = new SpdySocket(0, false, false, null);
+//    SpdySocket zero = new SpdySocket(0, false, false, null);
     ByteBufferListSource source = new ByteBufferListSource();
+    ByteBufferListSink sink = new ByteBufferListSink() {
+        @Override
+        public void flush() throws IOException {
+            AsyncSpdyConnection.this.flush();
+        }
+    };
+    BufferedSource bufferedSource;
+    BufferedSink bufferedSink;
     Hashtable<Integer, SpdySocket> sockets = new Hashtable<Integer, SpdySocket>();
     Protocol protocol;
     boolean client = true;
 
-    private class SpdySocket implements AsyncSocket {
+    public void flush() {
+        bufferedSocket.write(sink);
+    }
+
+    /**
+     * Returns a new locally-initiated stream.
+     *
+     * @param out true to create an output stream that we can use to send data to the remote peer.
+     *     Corresponds to {@code FLAG_FIN}.
+     * @param in true to create an input stream that the remote peer can use to send data to us.
+     *     Corresponds to {@code FLAG_UNIDIRECTIONAL}.
+     */
+    public SpdySocket newStream(List<Header> requestHeaders, boolean out, boolean in) throws IOException {
+        return newStream(0, requestHeaders, out, in);
+    }
+
+    private SpdySocket newStream(int associatedStreamId, List<Header> requestHeaders, boolean out,
+                                 boolean in) throws IOException {
+        boolean outFinished = !out;
+        boolean inFinished = !in;
+        SpdySocket socket;
+        int streamId;
+
+        if (shutdown) {
+            throw new IOException("shutdown");
+        }
+
+        streamId = nextStreamId;
+        nextStreamId += 2;
+        socket = new SpdySocket(streamId, outFinished, inFinished, requestHeaders);
+        if (socket.isOpen()) {
+            sockets.put(streamId, socket);
+//            setIdle(false);
+        }
+        if (associatedStreamId == 0) {
+            writer.synStream(outFinished, inFinished, streamId, associatedStreamId,
+            requestHeaders);
+        } else if (client) {
+            throw new IllegalArgumentException("client streams shouldn't have associated stream IDs");
+        } else { // HTTP/2 has a PUSH_PROMISE frame.
+            writer.pushPromise(associatedStreamId, streamId, requestHeaders);
+        }
+
+        if (!out) {
+            writer.flush();
+        }
+
+        return socket;
+    }
+
+    int totalWindowRead;
+    void updateWindowRead(int length) {
+        totalWindowRead += length;
+        if (totalWindowRead >= okHttpSettings.getInitialWindowSize(DEFAULT_INITIAL_WINDOW_SIZE) / 2) {
+            try {
+                writer.windowUpdate(0, totalWindowRead);
+            }
+            catch (IOException e) {
+                throw new AssertionError(e);
+            }
+            totalWindowRead = 0;
+        }
+    }
+
+    public class SpdySocket implements AsyncSocket {
         long bytesLeftInWriteWindow;
         WritableCallback writable;
         final int id;
         CompletedCallback closedCallback;
         CompletedCallback endCallback;
         DataCallback dataCallback;
-        ByteBufferList pending = new ByteBufferList();
+        ByteBufferListSink pending = new ByteBufferListSink();
+        SimpleFuture<List<Header>> headers = new SimpleFuture<List<Header>>();
+        boolean isOpen = true;
+        int totalWindowRead;
+
+        public SimpleFuture<List<Header>> headers() {
+            return headers;
+        }
+
+        void updateWindowRead(int length) {
+            totalWindowRead += length;
+            if (totalWindowRead >= okHttpSettings.getInitialWindowSize(DEFAULT_INITIAL_WINDOW_SIZE) / 2) {
+                try {
+                    writer.windowUpdate(id, totalWindowRead);
+                }
+                catch (IOException e) {
+                    throw new AssertionError(e);
+                }
+                totalWindowRead = 0;
+            }
+            AsyncSpdyConnection.this.updateWindowRead(length);
+        }
 
         public SpdySocket(int id, boolean outFinished, boolean inFinished, List<Header> headerBlock) {
             this.id = id;
-        }
-
-        private void report(Exception e) {
-            if (endCallback != null)
-                endCallback.onCompleted(e);
+            try {
+                writer.windowUpdate(id, DEFAULT_INITIAL_WINDOW_SIZE);
+            }
+            catch (IOException e) {
+                throw new AssertionError(e);
+            }
         }
 
         public boolean isLocallyInitiated() {
@@ -72,8 +174,8 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         public void addBytesToWriteWindow(long delta) {
             long prev = bytesLeftInWriteWindow;
             bytesLeftInWriteWindow += delta;
-            if (writable != null && bytesLeftInWriteWindow > 0 && prev <= 0)
-                writable.onWriteable();
+            if (bytesLeftInWriteWindow > 0 && prev <= 0)
+                Util.writable(writable);
         }
 
         @Override
@@ -109,7 +211,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
 
         @Override
         public void close() {
-
+            isOpen = false;
         }
 
         @Override
@@ -134,7 +236,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
 
         @Override
         public void write(ByteBufferList bb) {
-
+            System.out.println("writing!");
         }
 
         @Override
@@ -149,7 +251,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
 
         @Override
         public boolean isOpen() {
-            return true;
+            return isOpen;
         }
 
         @Override
@@ -165,11 +267,20 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         public CompletedCallback getClosedCallback() {
             return closedCallback;
         }
+
+        public void receiveHeaders(List<Header> headers, HeadersMode headerMode) {
+            this.headers.setComplete(headers);
+        }
     }
+
+    final Settings okHttpSettings = new Settings();
+    private int nextPingId;
+    private static final int OKHTTP_CLIENT_WINDOW_SIZE = 16 * 1024 * 1024;
 
     public AsyncSpdyConnection(AsyncSocket socket, Protocol protocol) {
         this.protocol = protocol;
         this.socket = socket;
+        this.bufferedSocket = new BufferedDataSink(socket);
         emitter = new BufferedDataEmitter(socket);
         emitter.setDataCallback(callback);
 
@@ -179,23 +290,52 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         else if (protocol == Protocol.HTTP_2) {
             variant = new Http20Draft13();
         }
-        reader = variant.newReader(source, true);
+        reader = variant.newReader(bufferedSource = Okio.buffer(source), true);
+        writer = variant.newWriter(bufferedSink = Okio.buffer(sink), true);
+
+        boolean client = true;
+        nextStreamId = client ? 1 : 2;
+        if (client && protocol == Protocol.HTTP_2) {
+            nextStreamId += 2; // In HTTP/2, 1 on client is reserved for Upgrade.
+        }
+        nextPingId = client ? 1 : 2;
+        // Flow control was designed more for servers, or proxies than edge clients.
+        // If we are a client, set the flow control window to 16MiB.  This avoids
+        // thrashing window updates every 64KiB, yet small enough to avoid blowing
+        // up the heap.
+        if (client) {
+            okHttpSettings.set(Settings.INITIAL_WINDOW_SIZE, 0, OKHTTP_CLIENT_WINDOW_SIZE);
+        }
     }
 
     DataCallback callback = new DataCallback() {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-            bb.get(source);
-            if (!reader.canProcessFrame(source))
-                return;
-            try {
-                reader.nextFrame(AsyncSpdyConnection.this);
-            }
-            catch (IOException e) {
-                throw new AssertionError(e);
+            int needed;
+            while ((needed = reader.canProcessFrame(bb)) > 0) {
+                bb.get(source, needed);
+                try {
+                    reader.nextFrame(AsyncSpdyConnection.this);
+                }
+                catch (IOException e) {
+                    throw new AssertionError(e);
+                }
             }
         }
     };
+
+    /**
+     * Sends a connection header if the current variant requires it. This should
+     * be called after {@link Builder#build} for all new connections.
+     */
+    public void sendConnectionPreface() throws IOException {
+        writer.connectionPreface();
+        writer.settings(okHttpSettings);
+        int windowSize = okHttpSettings.getInitialWindowSize(Settings.DEFAULT_INITIAL_WINDOW_SIZE);
+        if (windowSize != Settings.DEFAULT_INITIAL_WINDOW_SIZE) {
+            writer.windowUpdate(0, windowSize - Settings.DEFAULT_INITIAL_WINDOW_SIZE);
+        }
+    }
 
     /** Even, positive numbered streams are pushed streams in HTTP/2. */
     private boolean pushedStream(int streamId) {
@@ -215,12 +355,16 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             source.skip(length);
             return;
         }
-        if (source != this.source)
+        if (source != this.bufferedSource || this.source.remaining() + source.buffer().size() != length)
             throw new AssertionError();
-        this.source.get(socket.pending, length);
+        source.buffer().readAll(socket.pending);
+        this.source.get(socket.pending);
+        socket.updateWindowRead(length);
         Util.emitAllData(socket, socket.pending);
         if (inFinished) {
-            socket.report(null);
+            sockets.remove(streamId);
+            socket.close();
+            Util.end(socket, null);
         }
     }
 
@@ -228,7 +372,6 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
     private int nextStreamId;
     @Override
     public void headers(boolean outFinished, boolean inFinished, int streamId, int associatedStreamId, List<Header> headerBlock, HeadersMode headersMode) {
-        /*
         if (pushedStream(streamId)) {
             throw new AssertionError("push");
 //            pushHeadersLater(streamId, headerBlock, inFinished);
@@ -258,25 +401,34 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             // If the stream ID is in the client's namespace, assume it's already closed.
             if (streamId % 2 == nextStreamId % 2) return;
 
+            throw new AssertionError("unexpected receive stream");
+
             // Create a stream.
-            socket = new SpdySocket(streamId, outFinished, inFinished, headerBlock);
-            lastGoodStreamId = streamId;
-            sockets.put(streamId, socket);
-            handler.receive(newStream);
-            return;
+//            socket = new SpdySocket(streamId, outFinished, inFinished, headerBlock);
+//            lastGoodStreamId = streamId;
+//            sockets.put(streamId, socket);
+//            handler.receive(newStream);
+//            return;
         }
 
         // The headers claim to be for a new stream, but we already have one.
         if (headersMode.failIfStreamPresent()) {
-            stream.closeLater(ErrorCode.PROTOCOL_ERROR);
-            removeStream(streamId);
+            try {
+                writer.rstStream(streamId, ErrorCode.INVALID_STREAM);
+            }
+            catch (IOException e) {
+                throw new AssertionError(e);
+            }
+            sockets.remove(streamId);
             return;
         }
 
         // Update an existing stream.
-        stream.receiveHeaders(headerBlock, headersMode);
-        if (inFinished) stream.receiveFin();
-        */
+        socket.receiveHeaders(headerBlock, headersMode);
+        if (inFinished) {
+            sockets.remove(streamId);
+            Util.end(socket, null);
+        }
     }
 
     @Override
@@ -288,10 +440,11 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         }
         SpdySocket rstStream = sockets.remove(streamId);
         if (rstStream != null) {
-            rstStream.report(new IOException(errorCode.toString()));
+            Util.end(rstStream, new IOException(errorCode.toString()));
         }
     }
 
+    long bytesLeftInWriteWindow;
     Settings peerSettings = new Settings();
     private boolean receivedInitialPeerSettings = false;
     @Override
@@ -310,7 +463,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         if (peerInitialWindowSize != -1 && peerInitialWindowSize != priorWriteWindowSize) {
             delta = peerInitialWindowSize - priorWriteWindowSize;
             if (!receivedInitialPeerSettings) {
-                zero.addBytesToWriteWindow(delta);
+                addBytesToWriteWindow(delta);
                 receivedInitialPeerSettings = true;
             }
         }
@@ -319,8 +472,21 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         }
     }
 
+    void addBytesToWriteWindow(long delta) {
+        bytesLeftInWriteWindow += delta;
+        for (SpdySocket socket: sockets.values()) {
+            Util.writable(socket);
+        }
+    }
+
     @Override
     public void ackSettings() {
+        try {
+            writer.ackSettings();
+        }
+        catch (IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     private Map<Integer, Ping> pings;
@@ -362,7 +528,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             Map.Entry<Integer, SpdySocket> entry = i.next();
             int streamId = entry.getKey();
             if (streamId > lastGoodStreamId && entry.getValue().isLocallyInitiated()) {
-                entry.getValue().report(new IOException(ErrorCode.REFUSED_STREAM.toString()));
+                Util.end(entry.getValue(), new IOException(ErrorCode.REFUSED_STREAM.toString()));
                 i.remove();
             }
         }
@@ -370,25 +536,25 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
 
     @Override
     public void windowUpdate(int streamId, long windowSizeIncrement) {
-        System.out.println("fff");
-
+        if (streamId == 0) {
+            addBytesToWriteWindow(windowSizeIncrement);
+            return;
+        }
+        SpdySocket socket = sockets.get(streamId);
+        if (socket != null)
+            socket.addBytesToWriteWindow(windowSizeIncrement);
     }
 
     @Override
     public void priority(int streamId, int streamDependency, int weight, boolean exclusive) {
-        System.out.println("fff");
-
     }
 
     @Override
     public void pushPromise(int streamId, int promisedStreamId, List<Header> requestHeaders) throws IOException {
-        System.out.println("fff");
-
+        throw new AssertionError("pushPromise");
     }
 
     @Override
     public void alternateService(int streamId, String origin, ByteString protocol, String host, int port, long maxAge) {
-        System.out.println("fff");
-
     }
 }

@@ -1,19 +1,32 @@
 package com.koushikdutta.async.http.spdy;
 
+import android.net.Uri;
+
 import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.future.SimpleCancellable;
+import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpClientMiddleware;
 import com.koushikdutta.async.http.AsyncSSLEngineConfigurator;
 import com.koushikdutta.async.http.AsyncSSLSocketMiddleware;
+import com.koushikdutta.async.http.Headers;
+import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.Protocol;
+import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Header;
+import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.SpdyConnection;
 import com.koushikdutta.async.util.Charsets;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.List;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -41,8 +54,15 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         return ret;
     }
 
+    private static String requestPath(Uri uri) {
+        String pathAndQuery = uri.getPath();
+        if (pathAndQuery == null) return "/";
+        if (!pathAndQuery.startsWith("/")) return "/" + pathAndQuery;
+        return pathAndQuery;
+    }
+
     @Override
-    protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(final ConnectCallback callback) {
+    protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(final GetSocketData data, final ConnectCallback callback) {
         return new AsyncSSLSocketWrapper.HandshakeCallback() {
             @Override
             public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
@@ -53,8 +73,23 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                 try {
                     long ptr = (Long)sslNativePointer.get(socket.getSSLEngine());
                     byte[] proto = (byte[])nativeGetAlpnNegotiatedProtocol.invoke(null, ptr);
+                    if (proto == null) {
+                        callback.onConnectCompleted(null, socket);
+                        return;
+                    }
                     String protoString = new String(proto);
-                    AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString));
+                    Protocol p = Protocol.get(protoString);
+                    if (p == null) {
+                        callback.onConnectCompleted(null, socket);
+                        return;
+                    }
+                    final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString));
+                    connection.sendConnectionPreface();
+                    connection.flush();
+
+                    connections.put(data.request.getUri().getHost(), connection);
+
+                    newSocket(data, connection, callback);
                 }
                 catch (Exception ex) {
                     socket.close();
@@ -62,6 +97,83 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                 }
             }
         };
+    }
+
+    private void newSocket(GetSocketData data, final AsyncSpdyConnection connection, final ConnectCallback callback) {
+        final ArrayList<Header> headers = new ArrayList<Header>();
+        headers.add(new Header(Header.TARGET_METHOD, data.request.getMethod()));
+        headers.add(new Header(Header.TARGET_PATH, requestPath(data.request.getUri())));
+        String host = data.request.getHeaders().get("Host");
+        if (Protocol.SPDY_3 == connection.protocol) {
+            headers.add(new Header(Header.VERSION, "HTTP/1.1"));
+            headers.add(new Header(Header.TARGET_HOST, host));
+        } else if (Protocol.HTTP_2 == connection.protocol) {
+            headers.add(new Header(Header.TARGET_AUTHORITY, host)); // Optional in HTTP/2
+        } else {
+            throw new AssertionError();
+        }
+        headers.add(new Header(Header.TARGET_SCHEME, data.request.getUri().getScheme()));
+
+        Multimap mm = data.request.getHeaders().getMultiMap();
+        for (String key: mm.keySet()) {
+            if (SpdyTransport.isProhibitedHeader(connection.protocol, key))
+                continue;
+            for (String value: mm.get(key)) {
+                headers.add(new Header(key.toLowerCase(), value));
+            }
+        }
+
+        connection.socket.getServer().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, false, true);
+                    connection.flush();
+                    callback.onConnectCompleted(null, spdy);
+                }
+                catch (Exception e) {
+                    throw new AssertionError(e);
+                }
+            }
+        }, 1000);
+    }
+
+    @Override
+    public boolean exchangeHeaders(final ExchangeHeaderData data) {
+        if (!(data.socket instanceof AsyncSpdyConnection.SpdySocket))
+            return false;
+
+        // headers were already sent as part of the socket being opened.
+        data.sendHeadersCallback.onCompleted(null);
+
+        final AsyncSpdyConnection.SpdySocket spdySocket = (AsyncSpdyConnection.SpdySocket)data.socket;
+        spdySocket.headers()
+        .then(new TransformFuture<Headers, List<Header>>() {
+            @Override
+            protected void transform(List<Header> result) throws Exception {
+                Headers headers = new Headers();
+                for (Header header: result) {
+                    String key = header.name.utf8();
+                    String value = header.value.utf8();
+                    headers.add(key, value);
+                }
+                String status = headers.remove(Header.RESPONSE_STATUS.utf8());
+                String[] statusParts = status.split(" ", 2);
+                data.response.code(Integer.parseInt(statusParts[0]));
+                data.response.message(statusParts[1]);
+                data.response.protocol(headers.remove(Header.VERSION.utf8()));
+                data.response.headers(headers);
+                setComplete(headers);
+            }
+        })
+        .setCallback(new FutureCallback<Headers>() {
+            @Override
+            public void onCompleted(Exception e, Headers result) {
+                data.receiveHeadersCallback.onCompleted(e);
+                data.response.emitter(spdySocket);
+            }
+        });
+        return true;
     }
 
     private void configure(SSLEngine engine, String host, int port) {
@@ -144,6 +256,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     Field useSni;
     Method nativeGetNpnNegotiatedProtocol;
     Method nativeGetAlpnNegotiatedProtocol;
+    Hashtable<String, AsyncSpdyConnection> connections = new Hashtable<String, AsyncSpdyConnection>();
 
     @Override
     public void setSSLContext(SSLContext sslContext) {
@@ -153,6 +266,24 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
 
     @Override
     public Cancellable getSocket(GetSocketData data) {
-        return super.getSocket(data);
+        final Uri uri = data.request.getUri();
+        final int port = getSchemePort(data.request.getUri());
+        if (port == -1) {
+            return null;
+        }
+
+        // can we use an existing connection to satisfy this, or do we need a new one?
+        String host = uri.getHost();
+        AsyncSpdyConnection conn = connections.get(host);
+        if (conn == null || !conn.socket.isOpen()) {
+            connections.remove(host);
+            return super.getSocket(data);
+        }
+
+        newSocket(data, conn, data.connectCallback);
+
+        SimpleCancellable ret = new SimpleCancellable();
+        ret.setComplete();
+        return ret;
     }
 }

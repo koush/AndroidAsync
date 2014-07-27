@@ -128,15 +128,17 @@ public final class Spdy3 implements Variant {
     }
 
       @Override
-      public boolean canProcessFrame(ByteBufferList bb) {
-          if (bb.remaining() < 8)
-              return false;
+      public int canProcessFrame(ByteBufferList bb) {
+          if (source.buffer().size() + bb.remaining() < 8)
+              return 0;
           ByteBuffer peek = ByteBuffer.wrap(bb.peekBytes(8)).order(ByteOrder.BIG_ENDIAN);
-          peek.getInt();
+          int w1 = peek.getInt();
           int w2 = peek.getInt();
 
           int length = (w2 & 0xffffff);
-          return bb.remaining() >= 8 + length;
+          if (bb.remaining() < 8 + length)
+              return 0;
+          return 8 + length;
       }
 
       /**

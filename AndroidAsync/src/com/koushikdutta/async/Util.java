@@ -222,4 +222,26 @@ public class Util {
         }
         return null;
     }
+
+    public static void end(DataEmitter emitter, Exception e) {
+        if (emitter == null)
+            return;
+        end(emitter.getEndCallback(), e);
+    }
+
+    public static void end(CompletedCallback end, Exception e) {
+        if (end != null)
+            end.onCompleted(e);
+    }
+
+    public static void writable(DataSink emitter) {
+        if (emitter == null)
+            return;
+        writable(emitter.getWriteableCallback());
+    }
+
+    public static void writable(WritableCallback writable) {
+        if (writable != null)
+            writable.onWriteable();
+    }
 }

@@ -51,7 +51,7 @@ public final class SegmentPool {
     return new Segment(); // Pool is empty. Don't zero-fill while holding a lock.
   }
 
-  void recycle(Segment segment) {
+  public void recycle(Segment segment) {
     if (segment.next != null || segment.prev != null) throw new IllegalArgumentException();
     synchronized (this) {
       if (byteCount + Segment.SIZE > MAX_SIZE) return; // Pool is full.

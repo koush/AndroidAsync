@@ -96,14 +96,16 @@ public final class Http20Draft13 implements Variant {
     final HpackDraft08.Reader hpackReader;
 
       @Override
-      public boolean canProcessFrame(ByteBufferList bb) {
+      public int canProcessFrame(ByteBufferList bb) {
           if (bb.remaining() < 4)
-              return false;
+              return 0;
           bb.order(ByteOrder.BIG_ENDIAN);
           int w1 = bb.peekInt();
 
           short length = (short) ((w1 & 0x3fff0000) >> 16); // 14-bit unsigned == MAX_FRAME_SIZE
-          return bb.remaining() >= 8 + length;
+          if  (bb.remaining() < 8 + length)
+              return 0;
+          return 8 + length;
       }
 
     Reader(BufferedSource source, int headerTableSize, boolean client) {

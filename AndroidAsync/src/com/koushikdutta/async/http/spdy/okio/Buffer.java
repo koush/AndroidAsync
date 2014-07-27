@@ -45,8 +45,8 @@ import static com.koushikdutta.async.http.spdy.okio.Util.reverseBytesLong;
  * This class avoids zero-fill and GC churn by pooling byte arrays.
  */
 public final class Buffer implements BufferedSource, BufferedSink, Cloneable {
-  Segment head;
-  long size;
+  public Segment head;
+  public long size;
 
   public Buffer() {
   }
