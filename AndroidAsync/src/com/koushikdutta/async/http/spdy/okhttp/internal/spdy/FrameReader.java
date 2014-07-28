@@ -117,8 +117,7 @@ public interface FrameReader {
          * @param requestHeaders   minimally includes {@code :method}, {@code :scheme},
          *                         {@code :authority}, and (@code :path}.
          */
-        void pushPromise(int streamId, int promisedStreamId, List<Header> requestHeaders)
-        throws IOException;
+        void pushPromise(int streamId, int promisedStreamId, List<Header> requestHeaders);
 
         /**
          * HTTP/2 only. Expresses that resources for the connection or a client-

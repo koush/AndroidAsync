@@ -531,7 +531,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
     }
 
     @Override
-    public void pushPromise(int streamId, int promisedStreamId, List<Header> requestHeaders) throws IOException {
+    public void pushPromise(int streamId, int promisedStreamId, List<Header> requestHeaders) {
         throw new AssertionError("pushPromise");
     }
 
