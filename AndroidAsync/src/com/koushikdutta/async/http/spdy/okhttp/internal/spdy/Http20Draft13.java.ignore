@@ -38,6 +38,7 @@ import static java.util.logging.Level.FINE;
  * Read and write HTTP/2 v13 frames.
  * <p>http://tools.ietf.org/html/draft-ietf-httpbis-http2-13
  */
+
 public final class Http20Draft13 implements Variant {
   private static final Logger logger = Logger.getLogger(Http20Draft13.class.getName());
 

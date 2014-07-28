@@ -5,30 +5,24 @@ import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.BufferedDataEmitter;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.SimpleFuture;
-import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.ErrorCode;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameReader;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameWriter;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Header;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.HeadersMode;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Http20Draft13;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Ping;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Spdy3;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Variant;
 import com.koushikdutta.async.http.spdy.okio.BufferedSink;
-import com.koushikdutta.async.http.spdy.okio.BufferedSource;
 import com.koushikdutta.async.http.spdy.okio.ByteString;
 import com.koushikdutta.async.http.spdy.okio.Okio;
-
-import junit.framework.Assert;
 
 import java.io.IOException;
 import java.util.Hashtable;
@@ -42,21 +36,17 @@ import static com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings.DEF
  * Created by koush on 7/16/14.
  */
 public class AsyncSpdyConnection implements FrameReader.Handler {
-    BufferedDataEmitter emitter;
     AsyncSocket socket;
     BufferedDataSink bufferedSocket;
     FrameReader reader;
     FrameWriter writer;
     Variant variant;
-//    SpdySocket zero = new SpdySocket(0, false, false, null);
-    ByteBufferListSource source = new ByteBufferListSource();
     ByteBufferListSink sink = new ByteBufferListSink() {
         @Override
         public void flush() throws IOException {
             AsyncSpdyConnection.this.flush();
         }
     };
-    BufferedSource bufferedSource;
     BufferedSink bufferedSink;
     Hashtable<Integer, SpdySocket> sockets = new Hashtable<Integer, SpdySocket>();
     Protocol protocol;
@@ -286,16 +276,15 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         this.protocol = protocol;
         this.socket = socket;
         this.bufferedSocket = new BufferedDataSink(socket);
-        emitter = new BufferedDataEmitter(socket);
-        emitter.setDataCallback(callback);
 
         if (protocol == Protocol.SPDY_3) {
             variant = new Spdy3();
         }
         else if (protocol == Protocol.HTTP_2) {
-            variant = new Http20Draft13();
+            throw new AssertionError("http20draft13");
+//            variant = new Http20Draft13();
         }
-        reader = variant.newReader(bufferedSource = Okio.buffer(source), true);
+        reader = variant.newReader(socket, this, true);
         writer = variant.newWriter(bufferedSink = Okio.buffer(sink), true);
 
         boolean client = true;
@@ -312,22 +301,6 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             okHttpSettings.set(Settings.INITIAL_WINDOW_SIZE, 0, OKHTTP_CLIENT_WINDOW_SIZE);
         }
     }
-
-    DataCallback callback = new DataCallback() {
-        @Override
-        public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-            int needed;
-            while ((needed = reader.canProcessFrame(bb)) > 0) {
-                bb.get(source, needed);
-                try {
-                    reader.nextFrame(AsyncSpdyConnection.this);
-                }
-                catch (IOException e) {
-                    throw new AssertionError(e);
-                }
-            }
-        }
-    };
 
     /**
      * Sends a connection header if the current variant requires it. This should
@@ -348,7 +321,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
     }
 
     @Override
-    public void data(boolean inFinished, int streamId, BufferedSource source, int length) throws IOException {
+    public void data(boolean inFinished, int streamId, ByteBufferList source) {
         if (pushedStream(streamId)) {
             throw new AssertionError("push");
 //            pushDataLater(streamId, source, length, inFinished);
@@ -356,14 +329,17 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         }
         SpdySocket socket = sockets.get(streamId);
         if (socket == null) {
-            writer.rstStream(streamId, ErrorCode.INVALID_STREAM);
-            source.skip(length);
+            try {
+                writer.rstStream(streamId, ErrorCode.INVALID_STREAM);
+            }
+            catch (IOException e) {
+                throw new AssertionError(e);
+            }
+            source.recycle();
             return;
         }
-        if (source != this.bufferedSource || this.source.remaining() + source.buffer().size() != length)
-            throw new AssertionError();
-        source.buffer().readAll(socket.pending);
-        this.source.get(socket.pending);
+        int length = source.remaining();
+        source.get(socket.pending);
         socket.updateWindowRead(length);
         Util.emitAllData(socket, socket.pending);
         if (inFinished) {
@@ -561,5 +537,15 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
 
     @Override
     public void alternateService(int streamId, String origin, ByteString protocol, String host, int port, long maxAge) {
+    }
+
+    @Override
+    public void error(Exception e) {
+        socket.close();
+        for (Iterator<Map.Entry<Integer, SpdySocket>> i = sockets.entrySet().iterator(); i.hasNext();) {
+            Map.Entry<Integer, SpdySocket> entry = i.next();
+            Util.end(entry.getValue(), e);
+            i.remove();
+        }
     }
 }

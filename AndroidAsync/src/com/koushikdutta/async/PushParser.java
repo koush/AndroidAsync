@@ -237,8 +237,9 @@ public class PushParser implements DataCallback {
     private ArrayList<Object> args = new ArrayList<Object>();
     ByteOrder order = ByteOrder.BIG_ENDIAN;
 
-    public void setOrder(ByteOrder order) {
+    public PushParser setOrder(ByteOrder order) {
         this.order = order;
+        return this;
     }
 
     public PushParser(DataEmitter s) {

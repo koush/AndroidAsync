@@ -16,9 +16,9 @@
 package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
 
 
+import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.spdy.okio.BufferedSink;
-import com.koushikdutta.async.http.spdy.okio.BufferedSource;
 
 /** A version and dialect of the framed socket protocol. */
 public interface Variant {
@@ -29,7 +29,7 @@ public interface Variant {
   /**
    * @param client true if this is the HTTP client's reader, reading frames from a server.
    */
-  FrameReader newReader(BufferedSource source, boolean client);
+  FrameReader newReader(DataEmitter source, FrameReader.Handler handler, boolean client);
 
   /**
    * @param client true if this is the HTTP client's writer, writing frames to a server.
