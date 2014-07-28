@@ -16,8 +16,6 @@
 
 package com.koushikdutta.async.http.spdy.okhttp.internal;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,29 +27,6 @@ public final class Util {
     if ((offset | count) < 0 || offset > arrayLength || arrayLength - offset < count) {
       throw new ArrayIndexOutOfBoundsException();
     }
-  }
-
-  /**
-   * Closes {@code a} and {@code b}. If either close fails, this completes
-   * the other close and rethrows the first encountered exception.
-   */
-  public static void closeAll(Closeable a, Closeable b) throws IOException {
-    Throwable thrown = null;
-    try {
-      a.close();
-    } catch (Throwable e) {
-      thrown = e;
-    }
-    try {
-      b.close();
-    } catch (Throwable e) {
-      if (thrown == null) thrown = e;
-    }
-    if (thrown == null) return;
-    if (thrown instanceof IOException) throw (IOException) thrown;
-    if (thrown instanceof RuntimeException) throw (RuntimeException) thrown;
-    if (thrown instanceof Error) throw (Error) thrown;
-    throw new AssertionError(thrown);
   }
 
   /** Returns an immutable copy of {@code list}. */

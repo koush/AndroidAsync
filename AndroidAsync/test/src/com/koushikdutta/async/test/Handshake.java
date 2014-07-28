@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http.spdy.okhttp;
+package com.koushikdutta.async.test;
 
 import com.koushikdutta.async.http.spdy.okhttp.internal.Util;
 
