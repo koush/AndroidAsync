@@ -83,7 +83,6 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                     }
                     final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString));
                     connection.sendConnectionPreface();
-                    connection.flush();
 
                     connections.put(data.request.getUri().getHost(), connection);
 
@@ -123,7 +122,6 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         }
 
         AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, false, true);
-        connection.flush();
         callback.onConnectCompleted(null, spdy);
     }
 

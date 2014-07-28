@@ -40,20 +40,9 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
     FrameReader reader;
     FrameWriter writer;
     Variant variant;
-    ByteBufferListSink sink = new ByteBufferListSink() {
-        @Override
-        public void flush() throws IOException {
-            AsyncSpdyConnection.this.flush();
-        }
-    };
-    BufferedSink bufferedSink;
     Hashtable<Integer, SpdySocket> sockets = new Hashtable<Integer, SpdySocket>();
     Protocol protocol;
     boolean client = true;
-
-    public void flush() {
-        bufferedSocket.write(sink);
-    }
 
     /**
      * Returns a new locally-initiated stream.
@@ -123,7 +112,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         CompletedCallback closedCallback;
         CompletedCallback endCallback;
         DataCallback dataCallback;
-        ByteBufferListSink pending = new ByteBufferListSink();
+        ByteBufferList pending = new ByteBufferList();
         SimpleFuture<List<Header>> headers = new SimpleFuture<List<Header>>();
         boolean isOpen = true;
         int totalWindowRead;
