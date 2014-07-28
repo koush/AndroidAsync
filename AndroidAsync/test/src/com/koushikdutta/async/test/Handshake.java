@@ -1,6 +1,6 @@
 package com.koushikdutta.async.test;
 
-import com.koushikdutta.async.http.spdy.okhttp.internal.Util;
+import com.koushikdutta.async.http.spdy.Util;
 
 import java.security.Principal;
 import java.security.cert.Certificate;

@@ -18,12 +18,12 @@ package com.koushikdutta.async.test;
 
 
 import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.ErrorCode;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameReader;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Header;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.HeadersMode;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Spdy3;
+import com.koushikdutta.async.http.spdy.ErrorCode;
+import com.koushikdutta.async.http.spdy.FrameReader;
+import com.koushikdutta.async.http.spdy.Header;
+import com.koushikdutta.async.http.spdy.HeadersMode;
+import com.koushikdutta.async.http.spdy.Settings;
+import com.koushikdutta.async.http.spdy.Spdy3;
 import com.koushikdutta.async.http.spdy.okio.BufferedSource;
 import com.koushikdutta.async.http.spdy.okio.ByteString;
 import com.koushikdutta.async.http.spdy.okio.Okio;

@@ -1,10 +1,8 @@
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
-
-import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 
 /** HTTP header: the name is an ASCII string, but the value can be UTF-8. */
-public final class Header {
+final class Header {
   // Special header names defined in the SPDY and HTTP/2 specs.
   public static final ByteString RESPONSE_STATUS = ByteString.encodeUtf8(":status");
   public static final ByteString TARGET_METHOD = ByteString.encodeUtf8(":method");

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * A locally-originated ping.
  */
-public final class Ping {
+final class Ping {
   private final CountDownLatch latch = new CountDownLatch(1);
   private long sent = -1;
   private long received = -1;

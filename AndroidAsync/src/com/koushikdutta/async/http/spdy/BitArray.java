@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.koushikdutta.async.http.spdy.okhttp.internal;
+package com.koushikdutta.async.http.spdy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,7 +22,7 @@ import java.util.List;
 import static java.lang.String.format;
 
 /** A simple bitset which supports left shifting. */
-public interface BitArray {
+interface BitArray {
 
   void clear();
 

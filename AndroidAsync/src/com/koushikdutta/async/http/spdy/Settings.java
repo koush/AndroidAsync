@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
 import java.util.Arrays;
 
@@ -21,7 +21,7 @@ import java.util.Arrays;
  * Settings describe characteristics of the sending peer, which are used by the receiving peer.
  * Settings are {@link com.koushikdutta.async.http.spdy.okhttp.internal.spdy.SpdyConnection connection} scoped.
  */
-public final class Settings {
+final class Settings {
   /**
    * From the SPDY/3 and HTTP/2 specs, the default initial window size for all
    * streams is 64 KiB. (Chrome 25 uses 10 MiB).

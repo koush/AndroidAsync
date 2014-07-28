@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.koushikdutta.async.http.spdy.okhttp.internal;
+package com.koushikdutta.async.http.spdy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 /** Junk drawer of utility methods. */
-public final class Util {
+final class Util {
   public static void checkOffsetAndCount(long arrayLength, long offset, long count) {
     if ((offset | count) < 0 || offset > arrayLength || arrayLength - offset < count) {
       throw new ArrayIndexOutOfBoundsException();

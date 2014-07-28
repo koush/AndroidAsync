@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
 
 import com.koushikdutta.async.BufferedDataSink;
@@ -21,7 +21,7 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.http.Protocol;
 
 /** A version and dialect of the framed socket protocol. */
-public interface Variant {
+interface Variant {
 
   /** The protocol as selected using NPN or ALPN. */
   Protocol getProtocol();

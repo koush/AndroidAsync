@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
 // http://tools.ietf.org/html/draft-ietf-httpbis-http2-13#section-7
-public enum ErrorCode {
+enum ErrorCode {
   /** Not an error! For SPDY stream resets, prefer null over NO_ERROR. */
   NO_ERROR(0, -1, 0),
 

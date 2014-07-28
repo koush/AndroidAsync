@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
 import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.http.spdy.okhttp.internal.BitArray;
-import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

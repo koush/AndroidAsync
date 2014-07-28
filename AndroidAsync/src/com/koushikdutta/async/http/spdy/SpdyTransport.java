@@ -18,7 +18,6 @@ package com.koushikdutta.async.http.spdy;
 
 
 import com.koushikdutta.async.http.Protocol;
-import com.koushikdutta.async.http.spdy.okhttp.internal.Util;
 
 import java.util.List;
 

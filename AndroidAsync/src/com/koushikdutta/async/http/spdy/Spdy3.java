@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
@@ -21,7 +21,6 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.Protocol;
-import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 import com.koushikdutta.async.util.Charsets;
 
 import java.io.IOException;
@@ -37,7 +36,7 @@ import java.util.zip.Deflater;
  * Read and write spdy/3.1 frames.
  * http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1
  */
-public final class Spdy3 implements Variant {
+final class Spdy3 implements Variant {
 
     @Override
     public Protocol getProtocol() {

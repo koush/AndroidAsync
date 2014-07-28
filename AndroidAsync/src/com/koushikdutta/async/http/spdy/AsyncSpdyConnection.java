@@ -10,17 +10,6 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.Protocol;
-import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.ErrorCode;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameReader;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameWriter;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Header;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.HeadersMode;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Http20Draft13;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Ping;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Spdy3;
-import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Variant;
 
 import java.io.IOException;
 import java.util.Hashtable;
@@ -28,7 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings.DEFAULT_INITIAL_WINDOW_SIZE;
+import static com.koushikdutta.async.http.spdy.Settings.DEFAULT_INITIAL_WINDOW_SIZE;
 
 /**
  * Created by koush on 7/16/14.

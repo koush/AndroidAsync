@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
 import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 
 import java.util.List;
 
 /**
  * Reads transport frames for SPDY/3 or HTTP/2.
  */
-public interface FrameReader {
+interface FrameReader {
 //    void readConnectionPreface() throws IOException;
 //  boolean nextFrame(Handler handler) throws IOException;
 

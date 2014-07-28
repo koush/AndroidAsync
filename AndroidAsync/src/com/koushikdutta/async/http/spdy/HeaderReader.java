@@ -1,7 +1,6 @@
-package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
+package com.koushikdutta.async.http.spdy;
 
 import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -14,7 +13,7 @@ import java.util.zip.Inflater;
 /**
  * Created by koush on 7/27/14.
  */
-public class HeaderReader {
+class HeaderReader {
     Inflater inflater;
     public HeaderReader() {
         inflater = new Inflater() {
