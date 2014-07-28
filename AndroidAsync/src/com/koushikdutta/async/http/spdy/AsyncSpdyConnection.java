@@ -10,6 +10,7 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.Protocol;
+import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.ErrorCode;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameReader;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameWriter;
@@ -20,8 +21,6 @@ import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Ping;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Spdy3;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Variant;
-import com.koushikdutta.async.http.spdy.okio.BufferedSink;
-import com.koushikdutta.async.http.spdy.okio.ByteString;
 
 import java.io.IOException;
 import java.util.Hashtable;

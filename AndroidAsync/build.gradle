@@ -25,8 +25,13 @@ android {
         androidTest.assets.srcDirs=['test/assets/']
     }
 
-    lintOptions {
-        abortOnError false
+//    lintOptions {
+//        abortOnError false
+//    }
+
+    defaultConfig {
+        targetSdkVersion 21
+        minSdkVersion 9
     }
 
     compileSdkVersion 19

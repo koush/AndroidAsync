@@ -19,7 +19,6 @@ package com.koushikdutta.async.http.spdy;
 
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.spdy.okhttp.internal.Util;
-import com.koushikdutta.async.http.spdy.okio.ByteString;
 
 import java.util.List;
 

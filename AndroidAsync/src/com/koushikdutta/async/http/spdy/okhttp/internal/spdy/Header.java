@@ -1,7 +1,7 @@
 package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
 
 
-import com.koushikdutta.async.http.spdy.okio.ByteString;
+import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 
 /** HTTP header: the name is an ASCII string, but the value can be UTF-8. */
 public final class Header {

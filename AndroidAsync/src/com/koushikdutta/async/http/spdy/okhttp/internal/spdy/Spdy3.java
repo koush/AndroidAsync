@@ -21,7 +21,7 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.Protocol;
-import com.koushikdutta.async.http.spdy.okio.ByteString;
+import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 import com.koushikdutta.async.util.Charsets;
 
 import java.io.IOException;

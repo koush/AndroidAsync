@@ -1,7 +1,7 @@
 package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
 
 import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.http.spdy.okio.ByteString;
+import com.koushikdutta.async.http.spdy.okhttp.internal.ByteString;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
