@@ -17,13 +17,10 @@ package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.http.spdy.okhttp.internal.BitArray;
-import com.koushikdutta.async.http.spdy.okio.Buffer;
-import com.koushikdutta.async.http.spdy.okio.BufferedSource;
 import com.koushikdutta.async.http.spdy.okio.ByteString;
-import com.koushikdutta.async.http.spdy.okio.Okio;
-import com.koushikdutta.async.http.spdy.okio.Source;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -434,57 +431,64 @@ final class HpackDraft08 {
     }
 
     static final class Writer {
-        private final Buffer out;
-
-        Writer(Buffer out) {
-            this.out = out;
+        Writer() {
         }
 
         /**
          * This does not use "never indexed" semantics for sensitive headers.
          */
         // https://tools.ietf.org/html/draft-ietf-httpbis-header-compression-08#section-4.3.3
-        void writeHeaders(List<Header> headerBlock) throws IOException {
+        ByteBufferList writeHeaders(List<Header> headerBlock) throws IOException {
+            ByteBufferList out = new ByteBufferList();
             // TODO: implement index tracking
+            ByteBuffer current = ByteBufferList.obtain(8192);
             for (int i = 0, size = headerBlock.size(); i < size; i++) {
+                if (current.remaining() < current.capacity() / 2) {
+                    current.flip();
+                    out.add(current);
+                    current = ByteBufferList.obtain(current.capacity() * 2);
+                }
                 ByteString name = headerBlock.get(i).name.toAsciiLowercase();
                 Integer staticIndex = NAME_TO_FIRST_INDEX.get(name);
                 if (staticIndex != null) {
                     // Literal Header Field without Indexing - Indexed Name.
-                    writeInt(staticIndex + 1, PREFIX_4_BITS, 0);
-                    writeByteString(headerBlock.get(i).value);
+                    writeInt(current, staticIndex + 1, PREFIX_4_BITS, 0);
+                    writeByteString(current, headerBlock.get(i).value);
                 } else {
-                    out.writeByte(0x00); // Literal Header without Indexing - New Name.
-                    writeByteString(name);
-                    writeByteString(headerBlock.get(i).value);
+                    current.put((byte) 0x00); // Literal Header without Indexing - New Name.
+                    writeByteString(current, name);
+                    writeByteString(current, headerBlock.get(i).value);
                 }
             }
+
+            out.add(current);
+            return out;
         }
 
         // http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-08#section-4.1.1
-        void writeInt(int value, int prefixMask, int bits) throws IOException {
+        void writeInt(ByteBuffer out, int value, int prefixMask, int bits) throws IOException {
             // Write the raw value for a single byte value.
             if (value < prefixMask) {
-                out.writeByte(bits | value);
+                out.put((byte) (bits | value));
                 return;
             }
 
             // Write the mask to start a multibyte value.
-            out.writeByte(bits | prefixMask);
+            out.put((byte)(bits | prefixMask));
             value -= prefixMask;
 
             // Write 7 bits at a time 'til we're done.
             while (value >= 0x80) {
                 int b = value & 0x7f;
-                out.writeByte(b | 0x80);
+                out.put((byte) (b | 0x80));
                 value >>>= 7;
             }
-            out.writeByte(value);
+            out.put((byte) value);
         }
 
-        void writeByteString(ByteString data) throws IOException {
-            writeInt(data.size(), PREFIX_7_BITS, 0);
-            out.write(data);
+        void writeByteString(ByteBuffer out, ByteString data) throws IOException {
+            writeInt(out, data.size(), PREFIX_7_BITS, 0);
+            out.put(data.toByteArray());
         }
     }
 

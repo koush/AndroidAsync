@@ -16,9 +16,9 @@
 package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
 
 
+import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.http.Protocol;
-import com.koushikdutta.async.http.spdy.okio.BufferedSink;
 
 /** A version and dialect of the framed socket protocol. */
 public interface Variant {
@@ -34,7 +34,7 @@ public interface Variant {
   /**
    * @param client true if this is the HTTP client's writer, writing frames to a server.
    */
-  FrameWriter newWriter(BufferedSink sink, boolean client);
+  FrameWriter newWriter(BufferedDataSink sink, boolean client);
 
   int maxFrameSize();
 }

@@ -16,7 +16,7 @@
 
 package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
 
-import com.koushikdutta.async.http.spdy.okio.Buffer;
+import com.koushikdutta.async.ByteBufferList;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -47,7 +47,6 @@ public interface FrameWriter extends Closeable {
       throws IOException;
 
   /** SPDY/3 only. */
-  void flush() throws IOException;
   void synStream(boolean outFinished, boolean inFinished, int streamId, int associatedStreamId,
                  List<Header> headerBlock) throws IOException;
   void synReply(boolean outFinished, int streamId, List<Header> headerBlock)
@@ -61,9 +60,7 @@ public interface FrameWriter extends Closeable {
    *
    * @param source the buffer to draw bytes from. May be null if byteCount is 0.
    */
-  void data(boolean outFinished, int streamId, Buffer source, int byteCount) throws IOException;
-
-  void data(boolean outFinished, int streamId, Buffer source) throws IOException;
+  void data(boolean outFinished, int streamId, ByteBufferList source) throws IOException;
 
   /** Write okhttp's settings to the peer. */
   void settings(Settings okHttpSettings) throws IOException;

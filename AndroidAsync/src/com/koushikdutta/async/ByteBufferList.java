@@ -41,9 +41,16 @@ public class ByteBufferList {
         add(b);
     }
 
-    public void addAll(ByteBuffer... bb) {
+    public ByteBufferList addAll(ByteBuffer... bb) {
         for (ByteBuffer b: bb)
             add(b);
+        return this;
+    }
+
+    public ByteBufferList addAll(ByteBufferList... bb) {
+        for (ByteBufferList b: bb)
+            b.get(this);
+        return this;
     }
 
     public byte[] getBytes(int length) {
@@ -268,12 +275,17 @@ public class ByteBufferList {
         // this clears out buffers that are empty in the beginning of the list
         read(0);
     }
-    
-    public void add(ByteBuffer b) {
+
+    public ByteBufferList add(ByteBufferList b) {
+        b.get(this);
+        return this;
+    }
+
+    public ByteBufferList add(ByteBuffer b) {
         if (b.remaining() <= 0) {
 //            System.out.println("reclaiming remaining: " + b.remaining());
             reclaim(b);
-            return;
+            return this;
         }
         addRemaining(b.remaining());
         // see if we can fit the entirety of the buffer into the end
@@ -289,11 +301,12 @@ public class ByteBufferList {
                 last.reset();
                 reclaim(b);
                 trim();
-                return;
+                return this;
             }
         }
         mBuffers.add(b);
         trim();
+        return this;
     }
 
     public void addFirst(ByteBuffer b) {

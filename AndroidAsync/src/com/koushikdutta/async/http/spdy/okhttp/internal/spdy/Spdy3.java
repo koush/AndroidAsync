@@ -15,23 +15,19 @@
  */
 package com.koushikdutta.async.http.spdy.okhttp.internal.spdy;
 
+import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.Protocol;
-import com.koushikdutta.async.http.spdy.okhttp.internal.Util;
-import com.koushikdutta.async.http.spdy.okio.Buffer;
-import com.koushikdutta.async.http.spdy.okio.BufferedSink;
 import com.koushikdutta.async.http.spdy.okio.ByteString;
-import com.koushikdutta.async.http.spdy.okio.DeflaterSink;
-import com.koushikdutta.async.http.spdy.okio.Okio;
 import com.koushikdutta.async.util.Charsets;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.net.ProtocolException;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
 import java.util.zip.Deflater;
@@ -111,7 +107,7 @@ public final class Spdy3 implements Variant {
     }
 
     @Override
-    public FrameWriter newWriter(BufferedSink sink, boolean client) {
+    public FrameWriter newWriter(BufferedDataSink sink, boolean client) {
         return new Writer(sink, client);
     }
 
@@ -349,20 +345,17 @@ public final class Spdy3 implements Variant {
      * Write spdy/3 frames.
      */
     static final class Writer implements FrameWriter {
-        private final BufferedSink sink;
-        private final Buffer headerBlockBuffer;
-        private final BufferedSink headerBlockOut;
+        private final BufferedDataSink sink;
         private final boolean client;
         private boolean closed;
+        private ByteBufferList frameHeader = new ByteBufferList();
+        private final Deflater deflater = new Deflater();
 
-        Writer(BufferedSink sink, boolean client) {
+        Writer(BufferedDataSink sink, boolean client) {
             this.sink = sink;
             this.client = client;
 
-            Deflater deflater = new Deflater();
             deflater.setDictionary(DICTIONARY);
-            headerBlockBuffer = new Buffer();
-            headerBlockOut = Okio.buffer(new DeflaterSink(headerBlockBuffer, deflater));
         }
 
         @Override
@@ -382,60 +375,58 @@ public final class Spdy3 implements Variant {
         }
 
         @Override
-        public synchronized void flush() throws IOException {
-            if (closed) throw new IOException("closed");
-            sink.flush();
-        }
-
-        @Override
         public synchronized void synStream(boolean outFinished, boolean inFinished,
                                            int streamId, int associatedStreamId, List<Header> headerBlock)
         throws IOException {
             if (closed) throw new IOException("closed");
-            writeNameValueBlockToBuffer(headerBlock);
-            int length = (int) (10 + headerBlockBuffer.size());
+            ByteBufferList headerBlockBuffer = writeNameValueBlockToBuffer(headerBlock);
+            int length = (int) (10 + headerBlockBuffer.remaining());
             int type = TYPE_SYN_STREAM;
             int flags = (outFinished ? FLAG_FIN : 0) | (inFinished ? FLAG_UNIDIRECTIONAL : 0);
 
             int unused = 0;
-            sink.writeInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
-            sink.writeInt((flags & 0xff) << 24 | length & 0xffffff);
-            sink.writeInt(streamId & 0x7fffffff);
-            sink.writeInt(associatedStreamId & 0x7fffffff);
-            sink.writeShort((unused & 0x7) << 13 | (unused & 0x1f) << 8 | (unused & 0xff));
-            sink.writeAll(headerBlockBuffer);
-            sink.flush();
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
+            sink.putInt((flags & 0xff) << 24 | length & 0xffffff);
+            sink.putInt(streamId & 0x7fffffff);
+            sink.putInt(associatedStreamId & 0x7fffffff);
+            sink.putShort((short) ((unused & 0x7) << 13 | (unused & 0x1f) << 8 | (unused & 0xff)));
+            sink.flip();
+            this.sink.write(frameHeader.add(sink).add(headerBlockBuffer));
         }
 
         @Override
         public synchronized void synReply(boolean outFinished, int streamId,
                                           List<Header> headerBlock) throws IOException {
             if (closed) throw new IOException("closed");
-            writeNameValueBlockToBuffer(headerBlock);
+            ByteBufferList headerBlockBuffer = writeNameValueBlockToBuffer(headerBlock);
             int type = TYPE_SYN_REPLY;
             int flags = (outFinished ? FLAG_FIN : 0);
-            int length = (int) (headerBlockBuffer.size() + 4);
+            int length = (int) (headerBlockBuffer.remaining() + 4);
 
-            sink.writeInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
-            sink.writeInt((flags & 0xff) << 24 | length & 0xffffff);
-            sink.writeInt(streamId & 0x7fffffff);
-            sink.writeAll(headerBlockBuffer);
-            sink.flush();
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
+            sink.putInt((flags & 0xff) << 24 | length & 0xffffff);
+            sink.putInt(streamId & 0x7fffffff);
+            sink.flip();
+            this.sink.write(frameHeader.add(sink).add(headerBlockBuffer));
         }
 
         @Override
         public synchronized void headers(int streamId, List<Header> headerBlock)
         throws IOException {
             if (closed) throw new IOException("closed");
-            writeNameValueBlockToBuffer(headerBlock);
+            ByteBufferList headerBlockBuffer = writeNameValueBlockToBuffer(headerBlock);
             int flags = 0;
             int type = TYPE_HEADERS;
-            int length = (int) (headerBlockBuffer.size() + 4);
+            int length = (int) (headerBlockBuffer.remaining() + 4);
 
-            sink.writeInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
-            sink.writeInt((flags & 0xff) << 24 | length & 0xffffff);
-            sink.writeInt(streamId & 0x7fffffff);
-            sink.writeAll(headerBlockBuffer);
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
+            sink.putInt((flags & 0xff) << 24 | length & 0xffffff);
+            sink.putInt(streamId & 0x7fffffff);
+            sink.flip();
+            this.sink.write(frameHeader.add(sink).add(headerBlockBuffer));
         }
 
         @Override
@@ -446,51 +437,69 @@ public final class Spdy3 implements Variant {
             int flags = 0;
             int type = TYPE_RST_STREAM;
             int length = 8;
-            sink.writeInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
-            sink.writeInt((flags & 0xff) << 24 | length & 0xffffff);
-            sink.writeInt(streamId & 0x7fffffff);
-            sink.writeInt(errorCode.spdyRstCode);
-            sink.flush();
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
+            sink.putInt((flags & 0xff) << 24 | length & 0xffffff);
+            sink.putInt(streamId & 0x7fffffff);
+            sink.putInt(errorCode.spdyRstCode);
+            sink.flip();
+            this.sink.write(frameHeader.addAll(sink));
         }
 
         @Override
-        public synchronized void data(boolean outFinished, int streamId, Buffer source)
-        throws IOException {
-            data(outFinished, streamId, source, (int) source.size());
-        }
-
-        @Override
-        public synchronized void data(boolean outFinished, int streamId, Buffer source,
-                                      int byteCount) throws IOException {
+        public synchronized void data(boolean outFinished, int streamId, ByteBufferList source) throws IOException {
             int flags = (outFinished ? FLAG_FIN : 0);
-            sendDataFrame(streamId, flags, source, byteCount);
+            sendDataFrame(streamId, flags, source);
         }
 
-        void sendDataFrame(int streamId, int flags, Buffer buffer, int byteCount)
+        ByteBufferList dataList = new ByteBufferList();
+        void sendDataFrame(int streamId, int flags, ByteBufferList buffer)
         throws IOException {
             if (closed) throw new IOException("closed");
+            int byteCount = buffer.remaining();
             if (byteCount > 0xffffffL) {
                 throw new IllegalArgumentException("FRAME_TOO_LARGE max size is 16Mib: " + byteCount);
             }
-            sink.writeInt(streamId & 0x7fffffff);
-            sink.writeInt((flags & 0xff) << 24 | byteCount & 0xffffff);
-            if (byteCount > 0) {
-                sink.write(buffer, byteCount);
-            }
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(streamId & 0x7fffffff);
+            sink.putInt((flags & 0xff) << 24 | byteCount & 0xffffff);
+            sink.flip();
+            dataList.add(sink).add(buffer);
+            this.sink.write(dataList);
         }
 
-        private void writeNameValueBlockToBuffer(List<Header> headerBlock) throws IOException {
-            if (headerBlockBuffer.size() != 0) throw new IllegalStateException();
-            headerBlockOut.writeInt(headerBlock.size());
+        ByteBufferList headerBlockList = new ByteBufferList();
+        private ByteBufferList writeNameValueBlockToBuffer(List<Header> headerBlock) throws IOException {
+            if (headerBlockList.hasRemaining()) throw new IllegalStateException();
+            ByteBuffer headerBlockOut = ByteBufferList.obtain(8192).order(ByteOrder.BIG_ENDIAN);
+            headerBlockOut.putInt(headerBlock.size());
             for (int i = 0, size = headerBlock.size(); i < size; i++) {
                 ByteString name = headerBlock.get(i).name;
-                headerBlockOut.writeInt(name.size());
-                headerBlockOut.write(name);
+                headerBlockOut.putInt(name.size());
+                headerBlockOut.put(name.toByteArray());
                 ByteString value = headerBlock.get(i).value;
-                headerBlockOut.writeInt(value.size());
-                headerBlockOut.write(value);
+                headerBlockOut.putInt(value.size());
+                headerBlockOut.put(value.toByteArray());
+                if (headerBlockOut.remaining() < headerBlockOut.capacity() / 2) {
+                    ByteBuffer newOut = ByteBufferList.obtain(headerBlockOut.capacity() * 2).order(ByteOrder.BIG_ENDIAN);
+                    headerBlockOut.flip();
+                    newOut.put(headerBlockOut);
+                    ByteBufferList.reclaim(headerBlockOut);
+                    headerBlockOut = newOut;
+                }
             }
-            headerBlockOut.flush();
+
+            headerBlockOut.flip();
+            deflater.setInput(headerBlockOut.array(), 0, headerBlockOut.remaining());
+            while (!deflater.needsInput()) {
+                ByteBuffer deflated = ByteBufferList.obtain(headerBlockOut.capacity()).order(ByteOrder.BIG_ENDIAN);
+                int read = deflater.deflate(deflated.array(), 0, deflated.capacity(), Deflater.SYNC_FLUSH);
+                deflated.limit(read);
+                headerBlockList.add(deflated);
+            }
+            ByteBufferList.reclaim(headerBlockOut);
+
+            return headerBlockList;
         }
 
         @Override
@@ -500,16 +509,18 @@ public final class Spdy3 implements Variant {
             int flags = 0;
             int size = settings.size();
             int length = 4 + size * 8;
-            sink.writeInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
-            sink.writeInt((flags & 0xff) << 24 | length & 0xffffff);
-            sink.writeInt(size);
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
+            sink.putInt((flags & 0xff) << 24 | length & 0xffffff);
+            sink.putInt(size);
             for (int i = 0; i <= Settings.COUNT; i++) {
                 if (!settings.isSet(i)) continue;
                 int settingsFlags = settings.flags(i);
-                sink.writeInt((settingsFlags & 0xff) << 24 | (i & 0xffffff));
-                sink.writeInt(settings.get(i));
+                sink.putInt((settingsFlags & 0xff) << 24 | (i & 0xffffff));
+                sink.putInt(settings.get(i));
             }
-            sink.flush();
+            sink.flip();
+            this.sink.write(frameHeader.addAll(sink));
         }
 
         @Override
@@ -521,10 +532,12 @@ public final class Spdy3 implements Variant {
             int type = TYPE_PING;
             int flags = 0;
             int length = 4;
-            sink.writeInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
-            sink.writeInt((flags & 0xff) << 24 | length & 0xffffff);
-            sink.writeInt(payload1);
-            sink.flush();
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
+            sink.putInt((flags & 0xff) << 24 | length & 0xffffff);
+            sink.putInt(payload1);
+            sink.flip();
+            this.sink.write(frameHeader.addAll(sink));
         }
 
         @Override
@@ -537,11 +550,13 @@ public final class Spdy3 implements Variant {
             int type = TYPE_GOAWAY;
             int flags = 0;
             int length = 8;
-            sink.writeInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
-            sink.writeInt((flags & 0xff) << 24 | length & 0xffffff);
-            sink.writeInt(lastGoodStreamId);
-            sink.writeInt(errorCode.spdyGoAwayCode);
-            sink.flush();
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
+            sink.putInt((flags & 0xff) << 24 | length & 0xffffff);
+            sink.putInt(lastGoodStreamId);
+            sink.putInt(errorCode.spdyGoAwayCode);
+            sink.flip();
+            this.sink.write(frameHeader.addAll(sink));
         }
 
         @Override
@@ -555,17 +570,18 @@ public final class Spdy3 implements Variant {
             int type = TYPE_WINDOW_UPDATE;
             int flags = 0;
             int length = 8;
-            sink.writeInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
-            sink.writeInt((flags & 0xff) << 24 | length & 0xffffff);
-            sink.writeInt(streamId);
-            sink.writeInt((int) increment);
-            sink.flush();
+            ByteBuffer sink = ByteBufferList.obtain(256).order(ByteOrder.BIG_ENDIAN);
+            sink.putInt(0x80000000 | (VERSION & 0x7fff) << 16 | type & 0xffff);
+            sink.putInt((flags & 0xff) << 24 | length & 0xffffff);
+            sink.putInt(streamId);
+            sink.putInt((int) increment);
+            sink.flip();
+            this.sink.write(frameHeader.addAll(sink));
         }
 
         @Override
         public synchronized void close() throws IOException {
             closed = true;
-            Util.closeAll(sink, headerBlockOut);
         }
     }
 }

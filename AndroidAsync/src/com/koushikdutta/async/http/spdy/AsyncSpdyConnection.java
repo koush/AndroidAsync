@@ -2,7 +2,6 @@ package com.koushikdutta.async.http.spdy;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.BufferedDataEmitter;
 import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.Util;
@@ -23,7 +22,6 @@ import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Spdy3;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Variant;
 import com.koushikdutta.async.http.spdy.okio.BufferedSink;
 import com.koushikdutta.async.http.spdy.okio.ByteString;
-import com.koushikdutta.async.http.spdy.okio.Okio;
 
 import java.io.IOException;
 import java.util.Hashtable;
@@ -97,10 +95,6 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
                 writer.pushPromise(associatedStreamId, streamId, requestHeaders);
             }
 
-            if (!out) {
-                writer.flush();
-            }
-
             return socket;
         }
         catch (IOException e) {
@@ -154,12 +148,6 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
 
         public SpdySocket(int id, boolean outFinished, boolean inFinished, List<Header> headerBlock) {
             this.id = id;
-            try {
-                writer.windowUpdate(id, DEFAULT_INITIAL_WINDOW_SIZE);
-            }
-            catch (IOException e) {
-                throw new AssertionError(e);
-            }
         }
 
         public boolean isLocallyInitiated() {
@@ -285,7 +273,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             variant = new Http20Draft13();
         }
         reader = variant.newReader(socket, this, true);
-        writer = variant.newWriter(bufferedSink = Okio.buffer(sink), true);
+        writer = variant.newWriter(bufferedSocket, true);
 
         boolean client = true;
         nextStreamId = client ? 1 : 2;
