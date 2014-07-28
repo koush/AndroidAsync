@@ -46,6 +46,12 @@ public class ByteBufferList {
             add(b);
     }
 
+    public byte[] getBytes(int length) {
+        byte[] ret = new byte[length];
+        get(ret);
+        return ret;
+    }
+
     public byte[] getAllByteArray() {
         // fast path to return the contents of the first and only byte buffer,
         // if that's what we're looking for. avoids allocation.
@@ -102,6 +108,11 @@ public class ByteBufferList {
         return ret;
     }
 
+    public ByteBufferList skip(int length) {
+        get(null, 0, length);
+        return this;
+    }
+
     public int getInt() {
         int ret = read(4).getInt();
         remaining -= 4;
@@ -144,7 +155,8 @@ public class ByteBufferList {
         while (need > 0) {
             ByteBuffer b = mBuffers.peek();
             int read = Math.min(b.remaining(), need);
-            b.get(bytes, offset, read);
+            if (bytes != null)
+                b.get(bytes, offset, read);
             need -= read;
             offset += read;
             if (b.remaining() == 0) {

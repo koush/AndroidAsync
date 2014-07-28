@@ -16,6 +16,7 @@ import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameReader;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.FrameWriter;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Header;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.HeadersMode;
+import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Http20Draft13;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Ping;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Settings;
 import com.koushikdutta.async.http.spdy.okhttp.internal.spdy.Spdy3;
@@ -281,8 +282,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             variant = new Spdy3();
         }
         else if (protocol == Protocol.HTTP_2) {
-            throw new AssertionError("http20draft13");
-//            variant = new Http20Draft13();
+            variant = new Http20Draft13();
         }
         reader = variant.newReader(socket, this, true);
         writer = variant.newWriter(bufferedSink = Okio.buffer(sink), true);

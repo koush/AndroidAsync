@@ -30,6 +30,7 @@ import com.koushikdutta.async.util.Charsets;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.net.ProtocolException;
 import java.nio.ByteOrder;
 import java.util.List;
@@ -248,9 +249,12 @@ public final class Spdy3 implements Variant {
             }
         };
 
+        /*
         @Override
         public void readConnectionPreface() {
         }
+        */
+
         private void readSynStream(ByteBufferList source, int flags, int length) throws IOException {
             int w1 = source.getInt();
             int w2 = source.getInt();
@@ -338,10 +342,6 @@ public final class Spdy3 implements Variant {
 
         private static IOException ioException(String message, Object... args) throws IOException {
             throw new IOException(String.format(message, args));
-        }
-
-        @Override
-        public void close() throws IOException {
         }
     }
 

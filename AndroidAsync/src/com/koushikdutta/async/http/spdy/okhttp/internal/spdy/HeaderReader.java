@@ -62,8 +62,6 @@ public class HeaderReader {
 
     private static ByteString readByteString(ByteBufferList source) {
         int length = source.getInt();
-        byte[] bytes = new byte[length];
-        source.get(bytes);
-        return ByteString.of(bytes);
+        return ByteString.of(source.getBytes(length));
     }
 }

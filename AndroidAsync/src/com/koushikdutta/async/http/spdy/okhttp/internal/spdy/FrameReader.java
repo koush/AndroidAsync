@@ -26,8 +26,8 @@ import java.util.List;
 /**
  * Reads transport frames for SPDY/3 or HTTP/2.
  */
-public interface FrameReader extends Closeable {
-    void readConnectionPreface() throws IOException;
+public interface FrameReader {
+//    void readConnectionPreface() throws IOException;
 //  boolean nextFrame(Handler handler) throws IOException;
 
     public interface Handler {
