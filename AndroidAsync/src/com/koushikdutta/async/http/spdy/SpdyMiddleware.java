@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http.spdy;
 
 import android.net.Uri;
+import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
@@ -141,9 +142,13 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     }
 
     private static String requestPath(Uri uri) {
-        String pathAndQuery = uri.getPath();
-        if (pathAndQuery == null) return "/";
-        if (!pathAndQuery.startsWith("/")) return "/" + pathAndQuery;
+        String pathAndQuery = uri.getEncodedPath();
+        if (pathAndQuery == null)
+            pathAndQuery = "/";
+        else if (!pathAndQuery.startsWith("/"))
+            pathAndQuery = "/" + pathAndQuery;
+        if (!TextUtils.isEmpty(uri.getEncodedQuery()))
+            pathAndQuery += "?" + uri.getEncodedQuery();
         return pathAndQuery;
     }
 

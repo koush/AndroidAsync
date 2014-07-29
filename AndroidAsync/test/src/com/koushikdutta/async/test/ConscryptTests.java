@@ -17,10 +17,8 @@
 package com.koushikdutta.async.test;
 
 
-import junit.framework.TestCase;
-
-import org.conscrypt.OpenSSLEngineImpl;
-import org.conscrypt.OpenSSLProvider;
+import android.content.Context;
+import android.test.AndroidTestCase;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,7 +28,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.security.Security;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -39,7 +36,7 @@ import javax.net.ssl.SSLEngineResult;
 /**
  * Created by koush on 7/15/14.
  */
-public class ConscryptTests extends TestCase {
+public class ConscryptTests extends AndroidTestCase {
     boolean initialized;
     Field peerHost;
     Field peerPort;
@@ -104,11 +101,19 @@ public class ConscryptTests extends TestCase {
     }
 
     public void testConscryptSSLEngineNPNHandshakeBug() throws Exception {
-        Security.insertProviderAt(new OpenSSLProvider("MyNameBlah"), 1);
+//        Security.insertProviderAt(new OpenSSLProvider("MyNameBlah"), 1);
+
+        Context gms = getContext().createPackageContext("com.google.android.gms", Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
+        gms
+        .getClassLoader()
+        .loadClass("com.google.android.gms.common.security.ProviderInstallerImpl")
+        .getMethod("insertProvider", Context.class)
+        .invoke(null, getContext());
+
         SSLContext ctx = SSLContext.getInstance("TLS");
         ctx.init(null, null, null);
 
-        OpenSSLEngineImpl engine = (OpenSSLEngineImpl)ctx.createSSLEngine();
+        SSLEngine engine = ctx.createSSLEngine();
         configure(engine, "www.google.com", 443);
         engine.setUseClientMode(true);
         engine.beginHandshake();
