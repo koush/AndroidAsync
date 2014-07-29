@@ -160,7 +160,7 @@ final class ResponseHeaders {
                     varyFields = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
                 }
                 for (String varyField : value.split(",")) {
-                    varyFields.add(varyField.trim());
+                    varyFields.add(varyField.trim().toLowerCase());
                 }
             } else if ("Content-Encoding".equalsIgnoreCase(fieldName)) {
                 contentEncoding = value;

@@ -17,24 +17,11 @@
 package com.koushikdutta.async.test;
 
 
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.http.spdy.ErrorCode;
-import com.koushikdutta.async.http.spdy.FrameReader;
-import com.koushikdutta.async.http.spdy.Header;
-import com.koushikdutta.async.http.spdy.HeadersMode;
-import com.koushikdutta.async.http.spdy.Settings;
-import com.koushikdutta.async.http.spdy.Spdy3;
-import com.koushikdutta.async.http.spdy.okio.BufferedSource;
-import com.koushikdutta.async.http.spdy.okio.ByteString;
-import com.koushikdutta.async.http.spdy.okio.Okio;
-
 import junit.framework.TestCase;
 
 import org.conscrypt.OpenSSLEngineImpl;
 import org.conscrypt.OpenSSLProvider;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -44,7 +31,6 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.Security;
-import java.util.List;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -193,74 +179,6 @@ public class ConscryptTests extends TestCase {
         System.out.println("negotiated protocol was: " + protoString);
         assertEquals(protoString, "spdy/3.1");
 
-        dummy.clear();
-        SSLEngineResult res = engine.unwrap(unwrap, dummy);
-        dummy.flip();
-        byte[] frame = new byte[dummy.remaining()];
-        dummy.get(frame );
-        Spdy3 spdy3 = new Spdy3();
-        BufferedSource source = Okio.buffer(Okio.source(new ByteArrayInputStream(frame)));
-        FrameReader frameReader = spdy3.newReader(source, true);
-        ByteBufferList bb = new ByteBufferList(ByteBuffer.wrap(frame));
-        assertTrue(frameReader.canProcessFrame(bb));
-
-        frameReader.nextFrame(new FrameReader.Handler() {
-            @Override
-            public void data(boolean inFinished, int streamId, BufferedSource source, int length) throws IOException {
-
-            }
-
-            @Override
-            public void headers(boolean outFinished, boolean inFinished, int streamId, int associatedStreamId, List<Header> headerBlock, HeadersMode headersMode) {
-
-            }
-
-            @Override
-            public void rstStream(int streamId, ErrorCode errorCode) {
-
-            }
-
-            @Override
-            public void settings(boolean clearPrevious, Settings settings) {
-
-            }
-
-            @Override
-            public void ackSettings() {
-
-            }
-
-            @Override
-            public void ping(boolean ack, int payload1, int payload2) {
-
-            }
-
-            @Override
-            public void goAway(int lastGoodStreamId, ErrorCode errorCode, ByteString debugData) {
-
-            }
-
-            @Override
-            public void windowUpdate(int streamId, long windowSizeIncrement) {
-
-            }
-
-            @Override
-            public void priority(int streamId, int streamDependency, int weight, boolean exclusive) {
-
-            }
-
-            @Override
-            public void pushPromise(int streamId, int promisedStreamId, List<Header> requestHeaders) throws IOException {
-
-            }
-
-            @Override
-            public void alternateService(int streamId, String origin, ByteString protocol, String host, int port, long maxAge) {
-
-            }
-        });
-
-
+        socket.close();
     }
 }

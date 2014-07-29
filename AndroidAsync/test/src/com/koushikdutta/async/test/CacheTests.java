@@ -1,6 +1,6 @@
 package com.koushikdutta.async.test;
 
-import android.os.Environment;
+import android.test.AndroidTestCase;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
@@ -13,18 +13,16 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
-import junit.framework.TestCase;
-
 import java.io.File;
 import java.util.Date;
 
 /**
  * Created by koush on 6/13/13.
  */
-public class CacheTests extends TestCase {
+public class CacheTests extends AndroidTestCase {
     public void testMaxAgePrivate() throws Exception {
         AsyncHttpClient client = new AsyncHttpClient(AsyncServer.getDefault());
-        ResponseCacheMiddleware cache = ResponseCacheMiddleware.addCache(client, new File(Environment.getExternalStorageDirectory(), "AndroidAsyncTest"), 1024 * 1024 * 10);
+        ResponseCacheMiddleware cache = ResponseCacheMiddleware.addCache(client, new File(getContext().getFilesDir(), "AndroidAsyncTest"), 1024 * 1024 * 10);
         AsyncHttpServer httpServer = new AsyncHttpServer();
         try {
             httpServer.get("/uname/(.*)", new HttpServerRequestCallback() {
