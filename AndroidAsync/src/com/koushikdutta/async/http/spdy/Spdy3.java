@@ -167,12 +167,12 @@ final class Spdy3 implements Variant {
             }
         };
 
+        ByteBufferList partial = new ByteBufferList();
         private final DataCallback onDataFrame = new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                 int toRead = Math.min(bb.remaining(), length);
                 if (toRead < bb.remaining()) {
-                    ByteBufferList partial = new ByteBufferList();
                     bb.get(partial, toRead);
                     bb = partial;
                 }

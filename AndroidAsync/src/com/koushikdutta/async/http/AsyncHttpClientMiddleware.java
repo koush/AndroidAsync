@@ -40,21 +40,24 @@ public interface AsyncHttpClientMiddleware {
         public String protocol;
     }
 
-    public static class ExchangeHeaderData extends GetSocketData {
+    public static class OnExchangeHeaderData extends GetSocketData {
         public AsyncSocket socket;
         public ResponseHead response;
         public CompletedCallback sendHeadersCallback;
         public CompletedCallback receiveHeadersCallback;
     }
 
-    public static class OnHeadersReceivedData extends ExchangeHeaderData {
+    public static class OnRequestSentData extends OnExchangeHeaderData {
     }
 
-    public static class OnBodyData extends OnHeadersReceivedData {
+    public static class OnHeadersReceivedDataOnRequestSentData extends OnRequestSentData {
+    }
+
+    public static class OnBodyDataOnRequestSentData extends OnHeadersReceivedDataOnRequestSentData {
         public DataEmitter bodyEmitter;
     }
 
-    public static class OnRequestCompleteData extends OnBodyData {
+    public static class OnResponseCompleteDataOnRequestSentData extends OnBodyDataOnRequestSentData {
         public Exception exception;
     }
 
@@ -77,23 +80,31 @@ public interface AsyncHttpClientMiddleware {
      * @param data
      * @return
      */
-    public boolean exchangeHeaders(ExchangeHeaderData data);
+    public boolean exchangeHeaders(OnExchangeHeaderData data);
+
+    /**
+     * Called once the headers and any optional request body has
+     * been sent
+     * @param data
+     */
+    public void onRequestSent(OnRequestSentData data);
 
     /**
      * Called once the headers have been received via the socket
      * @param data
      */
-    public void onHeadersReceived(OnHeadersReceivedData data);
+    public void onHeadersReceived(OnHeadersReceivedDataOnRequestSentData data);
 
     /**
      * Called before the body is decoded
      * @param data
      */
-    public void onBodyDecoder(OnBodyData data);
+    public void onBodyDecoder(OnBodyDataOnRequestSentData data);
 
     /**
-     * Called once the request is complete
+     * Called once the request is complete and response has been received,
+     * or if an error occurred
      * @param data
      */
-    public void onRequestComplete(OnRequestCompleteData data);
+    public void onResponseComplete(OnResponseCompleteDataOnRequestSentData data);
 }

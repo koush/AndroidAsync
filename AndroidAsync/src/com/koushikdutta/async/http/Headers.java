@@ -29,20 +29,20 @@ public class Headers {
     }
 
     public List<String> getAll(String header) {
-        return map.get(header);
+        return map.get(header.toLowerCase());
     }
 
     public String get(String header) {
-        return map.getString(header);
+        return map.getString(header.toLowerCase());
     }
 
     public Headers set(String header, String value) {
-        map.put(header, value);
+        map.put(header.toLowerCase(), value);
         return this;
     }
 
     public Headers add(String header, String value) {
-        map.add(header, value);
+        map.add(header.toLowerCase(), value);
         return this;
     }
 
@@ -66,21 +66,26 @@ public class Headers {
     }
 
     public Headers addAll(Map<String, List<String>> m) {
-        map.putAll(m);
+        for (String key: m.keySet()) {
+            for (String value: m.get(key)) {
+                add(key, value);
+            }
+        }
         return this;
     }
 
     public Headers addAll(Headers headers) {
+        // safe to addall since this is another Headers object
         map.putAll(headers.map);
         return this;
     }
 
     public List<String> removeAll(String header) {
-        return map.remove(header);
+        return map.remove(header.toLowerCase());
     }
 
     public String remove(String header) {
-        List<String> r = removeAll(header);
+        List<String> r = removeAll(header.toLowerCase());
         if (r == null || r.size() == 0)
             return null;
         return r.get(0);

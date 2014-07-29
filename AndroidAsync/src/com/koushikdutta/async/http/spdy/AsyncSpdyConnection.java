@@ -94,7 +94,7 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
     }
 
     public class SpdySocket implements AsyncSocket {
-        long bytesLeftInWriteWindow;
+        long bytesLeftInWriteWindow = AsyncSpdyConnection.this.peerSettings.getInitialWindowSize(Settings.DEFAULT_INITIAL_WINDOW_SIZE);
         WritableCallback writable;
         final int id;
         CompletedCallback closedCallback;
@@ -195,9 +195,29 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             return null;
         }
 
+        ByteBufferList writing = new ByteBufferList();
         @Override
         public void write(ByteBufferList bb) {
-            System.out.println("writing!");
+            int canWrite = (int)Math.min(bytesLeftInWriteWindow, AsyncSpdyConnection.this.bytesLeftInWriteWindow);
+            canWrite = Math.min(bb.remaining(), canWrite);
+            if (canWrite == 0) {
+                System.out.println("derp");
+                return;
+            }
+            if (canWrite < bb.remaining()) {
+                if (writing.hasRemaining())
+                    throw new AssertionError("wtf");
+                bb.get(writing, canWrite);
+                bb = writing;
+            }
+
+            try {
+                writer.data(false, id, bb);
+                bytesLeftInWriteWindow -= canWrite;
+            }
+            catch (IOException e) {
+                throw new AssertionError(e);
+            }
         }
 
         @Override
@@ -217,6 +237,12 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
 
         @Override
         public void end() {
+            try {
+                writer.data(true, id, writing);
+            }
+            catch (IOException e) {
+                throw new AssertionError(e);
+            }
         }
 
         @Override

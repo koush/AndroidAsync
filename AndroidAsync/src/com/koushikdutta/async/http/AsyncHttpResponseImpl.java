@@ -193,8 +193,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
 
     @Override
     public void end() {
-        if (mSink instanceof ChunkedOutputFilter)
-            mSink.end();
+        throw new AssertionError("end called?");
     }
 
     @Override

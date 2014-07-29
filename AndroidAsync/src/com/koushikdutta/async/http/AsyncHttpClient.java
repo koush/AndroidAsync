@@ -17,7 +17,6 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
-import com.koushikdutta.async.http.AsyncHttpClientMiddleware.OnRequestCompleteData;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.callback.RequestCallback;
 import com.koushikdutta.async.parser.AsyncParser;
@@ -204,7 +203,7 @@ public class AsyncHttpClient {
             return;
         }
         final Uri uri = request.getUri();
-        final OnRequestCompleteData data = new OnRequestCompleteData();
+        final AsyncHttpClientMiddleware.OnResponseCompleteDataOnRequestSentData data = new AsyncHttpClientMiddleware.OnResponseCompleteDataOnRequestSentData();
         request.executionTime = System.currentTimeMillis();
         data.request = request;
 
@@ -273,6 +272,12 @@ public class AsyncHttpClient {
         // set up the system default proxy and connect
         setupAndroidProxy(request);
 
+        // set the implicit content type
+        if (request.getBody() != null) {
+            if (request.getHeaders().get("Content-Type") == null)
+                request.getHeaders().set("Content-Type", request.getBody().getContentType());
+        }
+
         synchronized (mMiddleware) {
             for (AsyncHttpClientMiddleware middleware: mMiddleware) {
                 Cancellable socketCancellable = middleware.getSocket(data);
@@ -288,13 +293,18 @@ public class AsyncHttpClient {
 
     private void executeSocket(final AsyncHttpRequest request, final int redirectCount,
                                final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback,
-                               final OnRequestCompleteData data) {
+                               final AsyncHttpClientMiddleware.OnResponseCompleteDataOnRequestSentData data) {
         // 4) wait for request to be sent fully
         // and
         // 6) wait for headers
         final AsyncHttpResponseImpl ret = new AsyncHttpResponseImpl(request) {
             @Override
             protected void onRequestCompleted(Exception ex) {
+                if (ex != null) {
+                    reportConnectedCompleted(cancel, ex, null, request, callback);
+                    return;
+                }
+
                 request.logv("request completed");
                 if (cancel.isCancelled())
                     return;
@@ -302,6 +312,12 @@ public class AsyncHttpClient {
                 if (cancel.timeoutRunnable != null && mHeaders == null) {
                     mServer.removeAllCallbacks(cancel.scheduled);
                     cancel.scheduled = mServer.postDelayed(cancel.timeoutRunnable, getTimeoutRemaining(request));
+                }
+
+                synchronized (mMiddleware) {
+                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                        middleware.onRequestSent(data);
+                    }
                 }
             }
 
@@ -402,7 +418,7 @@ public class AsyncHttpClient {
                 data.exception = ex;
                 synchronized (mMiddleware) {
                     for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                        middleware.onRequestComplete(data);
+                        middleware.onResponseComplete(data);
                     }
                 }
             }

@@ -16,6 +16,7 @@ import com.koushikdutta.async.http.AsyncSSLSocketMiddleware;
 import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.Protocol;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.util.Charsets;
 
 import java.lang.reflect.Field;
@@ -37,129 +38,6 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                 configure(engine, host, port);
             }
         });
-    }
-
-    static byte[] concatLengthPrefixed(Protocol... protocols) {
-        ByteBuffer result = ByteBuffer.allocate(8192);
-        for (Protocol protocol: protocols) {
-            if (protocol == Protocol.HTTP_1_0) continue; // No HTTP/1.0 for NPN.
-            result.put((byte) protocol.toString().length());
-            result.put(protocol.toString().getBytes(Charsets.UTF_8));
-        }
-        result.flip();
-        byte[] ret = new ByteBufferList(result).getAllByteArray();
-        return ret;
-    }
-
-    private static String requestPath(Uri uri) {
-        String pathAndQuery = uri.getPath();
-        if (pathAndQuery == null) return "/";
-        if (!pathAndQuery.startsWith("/")) return "/" + pathAndQuery;
-        return pathAndQuery;
-    }
-
-    @Override
-    protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(final GetSocketData data, final ConnectCallback callback) {
-        return new AsyncSSLSocketWrapper.HandshakeCallback() {
-            @Override
-            public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
-                if (e != null || nativeGetAlpnNegotiatedProtocol == null) {
-                    callback.onConnectCompleted(e, socket);
-                    return;
-                }
-                try {
-                    long ptr = (Long)sslNativePointer.get(socket.getSSLEngine());
-                    byte[] proto = (byte[])nativeGetAlpnNegotiatedProtocol.invoke(null, ptr);
-                    if (proto == null) {
-                        callback.onConnectCompleted(null, socket);
-                        return;
-                    }
-                    String protoString = new String(proto);
-                    Protocol p = Protocol.get(protoString);
-                    if (p == null) {
-                        callback.onConnectCompleted(null, socket);
-                        return;
-                    }
-                    final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString));
-                    connection.sendConnectionPreface();
-
-                    connections.put(data.request.getUri().getHost(), connection);
-
-                    newSocket(data, connection, callback);
-                }
-                catch (Exception ex) {
-                    socket.close();
-                    callback.onConnectCompleted(ex, null);
-                }
-            }
-        };
-    }
-
-    private void newSocket(GetSocketData data, final AsyncSpdyConnection connection, final ConnectCallback callback) {
-        data.request.logv("using spdy connection");
-        final ArrayList<Header> headers = new ArrayList<Header>();
-        headers.add(new Header(Header.TARGET_METHOD, data.request.getMethod()));
-        headers.add(new Header(Header.TARGET_PATH, requestPath(data.request.getUri())));
-        String host = data.request.getHeaders().get("Host");
-        if (Protocol.SPDY_3 == connection.protocol) {
-            headers.add(new Header(Header.VERSION, "HTTP/1.1"));
-            headers.add(new Header(Header.TARGET_HOST, host));
-        } else if (Protocol.HTTP_2 == connection.protocol) {
-            headers.add(new Header(Header.TARGET_AUTHORITY, host)); // Optional in HTTP/2
-        } else {
-            throw new AssertionError();
-        }
-        headers.add(new Header(Header.TARGET_SCHEME, data.request.getUri().getScheme()));
-
-        Multimap mm = data.request.getHeaders().getMultiMap();
-        for (String key: mm.keySet()) {
-            if (SpdyTransport.isProhibitedHeader(connection.protocol, key))
-                continue;
-            for (String value: mm.get(key)) {
-                headers.add(new Header(key.toLowerCase(), value));
-            }
-        }
-
-        AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, false, true);
-        callback.onConnectCompleted(null, spdy);
-    }
-
-    @Override
-    public boolean exchangeHeaders(final ExchangeHeaderData data) {
-        if (!(data.socket instanceof AsyncSpdyConnection.SpdySocket))
-            return false;
-
-        // headers were already sent as part of the socket being opened.
-        data.sendHeadersCallback.onCompleted(null);
-
-        final AsyncSpdyConnection.SpdySocket spdySocket = (AsyncSpdyConnection.SpdySocket)data.socket;
-        spdySocket.headers()
-        .then(new TransformFuture<Headers, List<Header>>() {
-            @Override
-            protected void transform(List<Header> result) throws Exception {
-                Headers headers = new Headers();
-                for (Header header: result) {
-                    String key = header.name.utf8();
-                    String value = header.value.utf8();
-                    headers.add(key, value);
-                }
-                String status = headers.remove(Header.RESPONSE_STATUS.utf8());
-                String[] statusParts = status.split(" ", 2);
-                data.response.code(Integer.parseInt(statusParts[0]));
-                data.response.message(statusParts[1]);
-                data.response.protocol(headers.remove(Header.VERSION.utf8()));
-                data.response.headers(headers);
-                setComplete(headers);
-            }
-        })
-        .setCallback(new FutureCallback<Headers>() {
-            @Override
-            public void onCompleted(Exception e, Headers result) {
-                data.receiveHeadersCallback.onCompleted(e);
-                data.response.emitter(spdySocket);
-            }
-        });
-        return true;
     }
 
     private void configure(SSLEngine engine, String host, int port) {
@@ -250,6 +128,93 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         initialized = false;
     }
 
+    static byte[] concatLengthPrefixed(Protocol... protocols) {
+        ByteBuffer result = ByteBuffer.allocate(8192);
+        for (Protocol protocol: protocols) {
+            if (protocol == Protocol.HTTP_1_0) continue; // No HTTP/1.0 for NPN.
+            result.put((byte) protocol.toString().length());
+            result.put(protocol.toString().getBytes(Charsets.UTF_8));
+        }
+        result.flip();
+        byte[] ret = new ByteBufferList(result).getAllByteArray();
+        return ret;
+    }
+
+    private static String requestPath(Uri uri) {
+        String pathAndQuery = uri.getPath();
+        if (pathAndQuery == null) return "/";
+        if (!pathAndQuery.startsWith("/")) return "/" + pathAndQuery;
+        return pathAndQuery;
+    }
+
+    @Override
+    protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(final GetSocketData data, final ConnectCallback callback) {
+        return new AsyncSSLSocketWrapper.HandshakeCallback() {
+            @Override
+            public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
+                if (e != null || nativeGetAlpnNegotiatedProtocol == null) {
+                    callback.onConnectCompleted(e, socket);
+                    return;
+                }
+                try {
+                    long ptr = (Long)sslNativePointer.get(socket.getSSLEngine());
+                    byte[] proto = (byte[])nativeGetAlpnNegotiatedProtocol.invoke(null, ptr);
+                    if (proto == null) {
+                        callback.onConnectCompleted(null, socket);
+                        return;
+                    }
+                    String protoString = new String(proto);
+                    Protocol p = Protocol.get(protoString);
+                    if (p == null) {
+                        callback.onConnectCompleted(null, socket);
+                        return;
+                    }
+                    data.protocol = protoString;
+                    final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString));
+                    connection.sendConnectionPreface();
+
+                    connections.put(data.request.getUri().getHost(), connection);
+
+                    newSocket(data, connection, callback);
+                }
+                catch (Exception ex) {
+                    socket.close();
+                    callback.onConnectCompleted(ex, null);
+                }
+            }
+        };
+    }
+
+    private void newSocket(GetSocketData data, final AsyncSpdyConnection connection, final ConnectCallback callback) {
+        data.request.logv("using spdy connection");
+        final ArrayList<Header> headers = new ArrayList<Header>();
+        headers.add(new Header(Header.TARGET_METHOD, data.request.getMethod()));
+        headers.add(new Header(Header.TARGET_PATH, requestPath(data.request.getUri())));
+        String host = data.request.getHeaders().get("Host");
+        if (Protocol.SPDY_3 == connection.protocol) {
+            headers.add(new Header(Header.VERSION, "HTTP/1.1"));
+            headers.add(new Header(Header.TARGET_HOST, host));
+        } else if (Protocol.HTTP_2 == connection.protocol) {
+            headers.add(new Header(Header.TARGET_AUTHORITY, host)); // Optional in HTTP/2
+        } else {
+            throw new AssertionError();
+        }
+        headers.add(new Header(Header.TARGET_SCHEME, data.request.getUri().getScheme()));
+
+        Multimap mm = data.request.getHeaders().getMultiMap();
+        for (String key: mm.keySet()) {
+            if (SpdyTransport.isProhibitedHeader(connection.protocol, key))
+                continue;
+            for (String value: mm.get(key)) {
+                headers.add(new Header(key.toLowerCase(), value));
+            }
+        }
+
+        data.request.logv("\n" + data.request);
+        AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, data.request.getBody() != null, true);
+        callback.onConnectCompleted(null, spdy);
+    }
+
     @Override
     public Cancellable getSocket(GetSocketData data) {
         final Uri uri = data.request.getUri();
@@ -271,5 +236,57 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         SimpleCancellable ret = new SimpleCancellable();
         ret.setComplete();
         return ret;
+    }
+
+    @Override
+    public boolean exchangeHeaders(final OnExchangeHeaderData data) {
+        if (!(data.socket instanceof AsyncSpdyConnection.SpdySocket))
+            return false;
+
+        AsyncHttpRequestBody requestBody = data.request.getBody();
+        if (requestBody != null) {
+            data.response.sink(data.socket);
+        }
+
+        // headers were already sent as part of the socket being opened.
+        data.sendHeadersCallback.onCompleted(null);
+
+        final AsyncSpdyConnection.SpdySocket spdySocket = (AsyncSpdyConnection.SpdySocket)data.socket;
+        spdySocket.headers()
+        .then(new TransformFuture<Headers, List<Header>>() {
+            @Override
+            protected void transform(List<Header> result) throws Exception {
+                Headers headers = new Headers();
+                for (Header header: result) {
+                    String key = header.name.utf8();
+                    String value = header.value.utf8();
+                    headers.add(key, value);
+                }
+                String status = headers.remove(Header.RESPONSE_STATUS.utf8());
+                String[] statusParts = status.split(" ", 2);
+                data.response.code(Integer.parseInt(statusParts[0]));
+                data.response.message(statusParts[1]);
+                data.response.protocol(headers.remove(Header.VERSION.utf8()));
+                data.response.headers(headers);
+                setComplete(headers);
+            }
+        })
+        .setCallback(new FutureCallback<Headers>() {
+            @Override
+            public void onCompleted(Exception e, Headers result) {
+                data.receiveHeadersCallback.onCompleted(e);
+                data.response.emitter(spdySocket);
+            }
+        });
+        return true;
+    }
+
+    @Override
+    public void onRequestSent(OnRequestSentData data) {
+        if (!(data.socket instanceof AsyncSpdyConnection.SpdySocket))
+            return;
+
+        if (data.request.getBody() != null)
+            data.response.sink().end();
     }
 }

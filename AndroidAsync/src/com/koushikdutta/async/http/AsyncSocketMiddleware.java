@@ -345,7 +345,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
     }
 
     @Override
-    public void onRequestComplete(final OnRequestCompleteData data) {
+    public void onResponseComplete(final OnResponseCompleteDataOnRequestSentData data) {
         if (!data.state.get(getClass().getCanonicalName() + ".owned", false)) {
             return;
         }

@@ -14,7 +14,7 @@ import java.io.IOException;
  */
 public class HttpTransportMiddleware extends SimpleMiddleware {
     @Override
-    public boolean exchangeHeaders(final ExchangeHeaderData data) {
+    public boolean exchangeHeaders(final OnExchangeHeaderData data) {
         Protocol p = Protocol.get(data.protocol);
         if (p != null && p != Protocol.HTTP_1_0 && p != Protocol.HTTP_1_1)
             return super.exchangeHeaders(data);
@@ -23,8 +23,6 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
         AsyncHttpRequestBody requestBody = data.request.getBody();
 
         if (requestBody != null) {
-            if (request.getHeaders().get("Content-Type") == null)
-                request.getHeaders().set("Content-Type", requestBody.getContentType());
             if (requestBody.length() >= 0) {
                 request.getHeaders().set("Content-Length", String.valueOf(requestBody.length()));
                 data.response.sink(data.socket);
@@ -91,5 +89,15 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
         data.socket.setDataCallback(liner);
         liner.setLineCallback(headerCallback);
         return true;
+    }
+
+    @Override
+    public void onRequestSent(OnRequestSentData data) {
+        Protocol p = Protocol.get(data.protocol);
+        if (p != null && p != Protocol.HTTP_1_0 && p != Protocol.HTTP_1_1)
+            return;
+
+        if (data.response.sink() instanceof ChunkedOutputFilter)
+            data.response.sink().end();
     }
 }

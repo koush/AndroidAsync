@@ -25,6 +25,7 @@ public class ChunkedOutputFilter extends FilteredDataSink {
         ByteBufferList fin = new ByteBufferList();
         write(fin);
         setMaxBuffer(0);
-        super.end();
+        // do NOT call through to super.end, as chunking is a framing protocol.
+        // we don't want to close the underlying transport.
     }
 }
