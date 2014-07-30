@@ -81,7 +81,14 @@ public class AsyncHttpClient {
         if (request.proxyHost != null)
             return;
 
-        List<Proxy> proxies = ProxySelector.getDefault().select(URI.create(request.getUri().toString()));
+        List<Proxy> proxies;
+        try {
+            proxies = ProxySelector.getDefault().select(URI.create(request.getUri().toString()));
+        }
+        catch (Exception e) {
+            // uri parsing craps itself sometimes.
+            return;
+        }
         if (proxies.isEmpty())
             return;
         Proxy proxy = proxies.get(0);
