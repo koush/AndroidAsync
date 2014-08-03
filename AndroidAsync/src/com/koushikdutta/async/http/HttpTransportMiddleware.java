@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http;
 
+import android.text.TextUtils;
+
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.LineEmitter;
@@ -45,10 +47,11 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
             @Override
             public void onStringAvailable(String s) {
                 try {
+                    s = s.trim();
                     if (statusLine == null) {
                         statusLine = s;
                     }
-                    else if (!"\r".equals(s)) {
+                    else if (!TextUtils.isEmpty(s)) {
                         mRawHeaders.addLine(s);
                     }
                     else {
