@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -41,17 +43,42 @@ public class FileCache {
         }
     }
 
-    public static String toKeyString(Object... parts) {
-        try {
-            MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-            for (Object part: parts) {
-                messageDigest.update(part.toString().getBytes());
+    private static String hashAlgorithm = "MD5";
+
+    private static MessageDigest findAlternativeMessageDigest() {
+        if ("MD5".equals(hashAlgorithm)) {
+            for (Provider provider : Security.getProviders()) {
+                for (Provider.Service service : provider.getServices()) {
+                    hashAlgorithm = service.getAlgorithm();
+                    try {
+                        MessageDigest messageDigest = MessageDigest.getInstance(hashAlgorithm);
+                        if (messageDigest != null)
+                            return messageDigest;
+                    } catch (NoSuchAlgorithmException ignored) {
+                    }
+                }
             }
-            byte[] md5bytes = messageDigest.digest();
-            return new BigInteger(1, md5bytes).toString(16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
         }
+        return null;
+    }
+
+    public static String toKeyString(Object... parts) {
+        MessageDigest messageDigest;
+        synchronized (FileCache.class) {
+            try {
+                messageDigest = MessageDigest.getInstance(hashAlgorithm);
+            } catch (NoSuchAlgorithmException e) {
+                messageDigest = findAlternativeMessageDigest();
+                if (null == messageDigest)
+                    throw new RuntimeException(e);
+            }
+        }
+
+        for (Object part : parts) {
+            messageDigest.update(part.toString().getBytes());
+        }
+        byte[] md5bytes = messageDigest.digest();
+        return new BigInteger(1, md5bytes).toString(16);
     }
 
     boolean loadAsync;

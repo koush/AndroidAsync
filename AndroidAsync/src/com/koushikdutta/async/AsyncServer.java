@@ -727,6 +727,9 @@ public class AsyncServer {
                 }
             }
         }
+        catch (NullPointerException e) {
+            throw new AsyncSelectorException(e);
+        }
         catch (IOException e) {
             throw new AsyncSelectorException(e);
         }
