@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http;
 
+import android.text.TextUtils;
+
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
@@ -109,10 +111,11 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         @Override
         public void onStringAvailable(String s) {
             try {
+                s = s.trim();
                 if (mRawHeaders.getStatusLine() == null) {
                     mRawHeaders.setStatusLine(s);
                 }
-                else if (!"\r".equals(s)) {
+                else if (!TextUtils.isEmpty(s)) {
                     mRawHeaders.addLine(s);
                 }
                 else {
