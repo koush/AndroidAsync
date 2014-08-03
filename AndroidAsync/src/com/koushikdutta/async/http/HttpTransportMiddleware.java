@@ -53,14 +53,14 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
                     }
                     else {
                         String[] parts = statusLine.split(" ", 3);
-                        if (parts.length != 3)
+                        if (parts.length < 2)
                             throw new Exception(new IOException("Not HTTP"));
 
                         data.response.headers(mRawHeaders);
                         String protocol = parts[0];
                         data.response.protocol(protocol);
                         data.response.code(Integer.parseInt(parts[1]));
-                        data.response.message(parts[2]);
+                        data.response.message(parts.length == 3 ? parts[2] : "");
                         data.receiveHeadersCallback.onCompleted(null);
 
                         // socket may get detached after headers (websocket)
