@@ -6,15 +6,19 @@ import android.text.TextUtils;
 import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
 import com.koushikdutta.async.ByteBufferList;
+import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpClientMiddleware;
+import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncSSLEngineConfigurator;
 import com.koushikdutta.async.http.AsyncSSLSocketMiddleware;
 import com.koushikdutta.async.http.Headers;
+import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
@@ -174,7 +178,6 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                         callback.onConnectCompleted(null, socket);
                         return;
                     }
-                    data.protocol = protoString;
                     final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString));
                     connection.sendConnectionPreface();
 
@@ -191,11 +194,25 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     }
 
     private void newSocket(GetSocketData data, final AsyncSpdyConnection connection, final ConnectCallback callback) {
-        data.request.logv("using spdy connection");
+        final AsyncHttpRequest request = data.request;
+        request.logv("using spdy connection");
+
+        data.protocol = connection.protocol.toString();
+
+        final AsyncHttpRequestBody requestBody = data.request.getBody();
+
+        // this causes app engine to shit a brick, but if it is missing,
+        // drive shits the bed
+//        if (requestBody != null) {
+//            if (requestBody.length() >= 0) {
+//                request.getHeaders().set("Content-Length", String.valueOf(requestBody.length()));
+//            }
+//        }
+
         final ArrayList<Header> headers = new ArrayList<Header>();
-        headers.add(new Header(Header.TARGET_METHOD, data.request.getMethod()));
-        headers.add(new Header(Header.TARGET_PATH, requestPath(data.request.getUri())));
-        String host = data.request.getHeaders().get("Host");
+        headers.add(new Header(Header.TARGET_METHOD, request.getMethod()));
+        headers.add(new Header(Header.TARGET_PATH, requestPath(request.getUri())));
+        String host = request.getHeaders().get("Host");
         if (Protocol.SPDY_3 == connection.protocol) {
             headers.add(new Header(Header.VERSION, "HTTP/1.1"));
             headers.add(new Header(Header.TARGET_HOST, host));
@@ -204,9 +221,9 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         } else {
             throw new AssertionError();
         }
-        headers.add(new Header(Header.TARGET_SCHEME, data.request.getUri().getScheme()));
+        headers.add(new Header(Header.TARGET_SCHEME, request.getUri().getScheme()));
 
-        Multimap mm = data.request.getHeaders().getMultiMap();
+        final Multimap mm = request.getHeaders().getMultiMap();
         for (String key: mm.keySet()) {
             if (SpdyTransport.isProhibitedHeader(connection.protocol, key))
                 continue;
@@ -215,8 +232,9 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             }
         }
 
-        data.request.logv("\n" + data.request);
-        AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, data.request.getBody() != null, true);
+
+        request.logv("\n" + request);
+        final AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, requestBody != null, true);
         callback.onConnectCompleted(null, spdy);
     }
 
@@ -227,6 +245,12 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         if (port == -1) {
             return null;
         }
+
+        // TODO: figure out why POST does not work if sending content-length header
+        // see above regarding app engine comment as to why: drive requires content-length
+        // but app engine sends a GO_AWAY if it sees a content-length...
+        if (data.request.getBody() != null)
+            return null;
 
         // can we use an existing connection to satisfy this, or do we need a new one?
         String host = uri.getHost();
@@ -246,7 +270,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     @Override
     public boolean exchangeHeaders(final OnExchangeHeaderData data) {
         if (!(data.socket instanceof AsyncSpdyConnection.SpdySocket))
-            return false;
+            return super.exchangeHeaders(data);
 
         AsyncHttpRequestBody requestBody = data.request.getBody();
         if (requestBody != null) {
@@ -280,7 +304,8 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             @Override
             public void onCompleted(Exception e, Headers result) {
                 data.receiveHeadersCallback.onCompleted(e);
-                data.response.emitter(spdySocket);
+                DataEmitter emitter = HttpUtil.getBodyDecoder(spdySocket, spdySocket.getConnection().protocol, result, false);
+                data.response.emitter(emitter);
             }
         });
         return true;

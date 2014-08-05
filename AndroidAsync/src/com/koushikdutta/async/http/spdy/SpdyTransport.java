@@ -25,10 +25,6 @@ import java.util.List;
 final class SpdyTransport {
   /** See http://www.chromium.org/spdy/spdy-protocol/spdy-protocol-draft3-1#TOC-3.2.1-Request. */
   private static final List<String> SPDY_3_PROHIBITED_HEADERS = Util.immutableList(
-  "accept-encoding",
-  "user-agent",
-  "accept",
-
   "connection",
   "host",
   "keep-alive",

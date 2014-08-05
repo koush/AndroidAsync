@@ -105,6 +105,10 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
         boolean isOpen = true;
         int totalWindowRead;
 
+        public AsyncSpdyConnection getConnection() {
+            return AsyncSpdyConnection.this;
+        }
+
         public SimpleFuture<List<Header>> headers() {
             return headers;
         }
