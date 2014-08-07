@@ -89,14 +89,23 @@ public class GZIPInputFilter extends InflaterInputFilter {
                                     ByteBufferList.reclaim(b);
                                 }
                             }
+                            bb.recycle();
+                            done();
                         }
                     };
                     if ((flags & FNAME) != 0) {
                         parser.until((byte) 0, summer);
+                        return;
                     }
                     if ((flags & FCOMMENT) != 0) {
                         parser.until((byte) 0, summer);
+                        return;
                     }
+
+                    done();
+                }
+
+                private void done() {
                     if (hcrc) {
                         parser.readByteArray(2, new ParseCallback<byte[]>() {
                             public void parsed(byte[] header) {
