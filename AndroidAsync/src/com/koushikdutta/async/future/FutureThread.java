@@ -5,6 +5,10 @@ package com.koushikdutta.async.future;
  */
 public class FutureThread<T> extends SimpleFuture<T> {
     public FutureThread(final FutureRunnable<T> runnable) {
+        this(runnable, "FutureThread");
+    }
+
+    public FutureThread(final FutureRunnable<T> runnable, String name) {
         new Thread(new Runnable() {
             @Override
             public void run() {
