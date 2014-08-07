@@ -2,7 +2,6 @@ package com.koushikdutta.async.http.filter;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.PushParser;
 import com.koushikdutta.async.PushParser.ParseCallback;
 import com.koushikdutta.async.callback.DataCallback;

@@ -6,10 +6,10 @@ import com.koushikdutta.async.ArrayDeque;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ContinuationCallback;
+import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.future.SimpleCancellable;
@@ -127,6 +127,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             return null;
         }
 
+        data.state.put("socket-owner", this);
+
         final String lookup = computeLookup(uri, port, data.request.getProxyHost(), data.request.getProxyPort());
         ConnectionInfo info = getOrCreateConnectionInfo(lookup);
         synchronized (AsyncSocketMiddleware.this) {
@@ -139,7 +141,6 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
             info.openCount++;
 
-            data.state.put(getClass().getCanonicalName() + ".owned", true);
 
             while (!info.sockets.isEmpty()) {
                 IdleSocketHolder idleSocketHolder = info.sockets.pop();
@@ -239,7 +240,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                                     }
 
                                     if (setComplete(null, socket)) {
-                                        data.connectCallback.onConnectCompleted(ex, socket);
+                                        data.connectCallback.onConnectCompleted(null, socket);
                                     }
                                 }
                             }));
@@ -313,7 +314,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         socket.setWriteableCallback(null);
         // should not get any data after this point...
         // if so, eat it and disconnect.
-        socket.setDataCallback(new NullDataCallback() {
+        socket.setDataCallback(new DataCallback.NullDataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                 super.onDataAvailable(emitter, bb);
@@ -346,9 +347,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
     @Override
     public void onResponseComplete(final OnResponseCompleteDataOnRequestSentData data) {
-        if (!data.state.get(getClass().getCanonicalName() + ".owned", false)) {
+        if (data.state.get("socket-owner") != this)
             return;
-        }
 
         try {
             idleSocket(data.socket);

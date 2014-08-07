@@ -173,7 +173,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 }
             });
             cacheHitCount++;
-            return new SimpleCancellable();
+            data.state.put("socket-owner", this);
+            SimpleCancellable ret = new SimpleCancellable();
+            ret.setComplete();
+            return ret;
         }
         else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
             data.request.logi("Response may be served from conditional cache");

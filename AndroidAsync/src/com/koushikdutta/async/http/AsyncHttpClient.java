@@ -10,9 +10,9 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
@@ -141,7 +141,7 @@ public class AsyncHttpClient {
                 return false;
 
             if (socket != null) {
-                socket.setDataCallback(new NullDataCallback());
+                socket.setDataCallback(new DataCallback.NullDataCallback());
                 socket.close();
             }
 
@@ -172,7 +172,7 @@ public class AsyncHttpClient {
 
         if (response != null) {
             // the request was cancelled, so close up shop, and eat any pending data
-            response.setDataCallback(new NullDataCallback());
+            response.setDataCallback(new DataCallback.NullDataCallback());
             response.close();
         }
     }
@@ -251,8 +251,19 @@ public class AsyncHttpClient {
 
         // 2) wait for a connect
         data.connectCallback = new ConnectCallback() {
+            boolean reported;
             @Override
             public void onConnectCompleted(Exception ex, AsyncSocket socket) {
+                if (reported) {
+                    if (socket != null) {
+                        socket.setDataCallback(new DataCallback.NullDataCallback());
+                        socket.setEndCallback(new CompletedCallback.NullCompletedCallback());
+                        socket.close();
+                        throw new AssertionError("double connect callback");
+                    }
+                }
+                reported = true;
+
                 request.logv("socket connected");
                 if (cancel.isCancelled()) {
                     if (socket != null)
@@ -264,13 +275,13 @@ public class AsyncHttpClient {
                 if (cancel.timeoutRunnable != null)
                     mServer.removeAllCallbacks(cancel.scheduled);
 
-                data.socket = socket;
-                cancel.socket = socket;
-
                 if (ex != null) {
                     reportConnectedCompleted(cancel, ex, null, request, callback);
                     return;
                 }
+
+                data.socket = socket;
+                cancel.socket = socket;
 
                 executeSocket(request, redirectCount, cancel, callback, data);
             }
@@ -563,7 +574,7 @@ public class AsyncHttpClient {
             @Override
             public void cancelCleanup() {
                 try {
-                    cancel.get().setDataCallback(new NullDataCallback());
+                    cancel.get().setDataCallback(new DataCallback.NullDataCallback());
                     cancel.get().close();
                 }
                 catch (Exception e) {

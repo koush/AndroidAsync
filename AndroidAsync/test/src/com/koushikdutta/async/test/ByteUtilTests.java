@@ -2,10 +2,10 @@ package com.koushikdutta.async.test;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.FilteredDataEmitter;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.PushParser;
 import com.koushikdutta.async.TapCallback;
 import com.koushikdutta.async.Util;
+import com.koushikdutta.async.callback.DataCallback;
 
 import junit.framework.TestCase;
 
@@ -23,7 +23,7 @@ public class ByteUtilTests extends TestCase {
             }
         };
         new PushParser(mock)
-            .until((byte)0, new NullDataCallback())
+            .until((byte)0, new DataCallback.NullDataCallback())
             .readInt(new PushParser.ParseCallback<Integer>() {
                 public void parsed(Integer arg) {
                     valRead = arg;
@@ -43,7 +43,7 @@ public class ByteUtilTests extends TestCase {
             }
         };
         new PushParser(mock)
-                .until((byte)0, new NullDataCallback())
+                .until((byte)0, new DataCallback.NullDataCallback())
                 .readInt()
                 .tap(new TapCallback() {
                     public void parsed(int arg) {

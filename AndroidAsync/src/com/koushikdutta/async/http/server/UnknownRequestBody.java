@@ -2,7 +2,6 @@ package com.koushikdutta.async.http.server;
 
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
@@ -64,6 +63,6 @@ public class UnknownRequestBody implements AsyncHttpRequestBody<Void> {
     public void parse(DataEmitter emitter, CompletedCallback completed) {
         this.emitter = emitter;
         emitter.setEndCallback(completed);
-        emitter.setDataCallback(new NullDataCallback());
+        emitter.setDataCallback(new DataCallback.NullDataCallback());
     }
 }

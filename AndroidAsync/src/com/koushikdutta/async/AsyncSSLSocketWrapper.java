@@ -411,7 +411,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         final HandshakeCallback hs = handshakeCallback;
         if (hs != null) {
             handshakeCallback = null;
-            mSocket.setDataCallback(new NullDataCallback());
+            mSocket.setDataCallback(new DataCallback.NullDataCallback());
             mSocket.end();
             mSocket.close();
             hs.onHandshakeCompleted(e, null);

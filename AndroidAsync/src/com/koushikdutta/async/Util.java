@@ -130,22 +130,30 @@ public class Util {
             }
         });
 
-        CompletedCallback wrapper = new CompletedCallback() {
+        final CompletedCallback wrapper = new CompletedCallback() {
             boolean reported;
             @Override
             public void onCompleted(Exception ex) {
                 if (reported)
                     return;
+                reported = true;
+                emitter.setDataCallback(null);
                 emitter.setEndCallback(null);
                 sink.setClosedCallback(null);
                 sink.setWriteableCallback(null);
-                reported = true;
                 callback.onCompleted(ex);
             }
         };
 
         emitter.setEndCallback(wrapper);
-        sink.setClosedCallback(wrapper);
+        sink.setClosedCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                if (ex == null)
+                    ex = new IOException("sink was closed before emitter ended");
+                wrapper.onCompleted(ex);
+            }
+        });
     }
     
     public static void stream(AsyncSocket s1, AsyncSocket s2, CompletedCallback callback) {
