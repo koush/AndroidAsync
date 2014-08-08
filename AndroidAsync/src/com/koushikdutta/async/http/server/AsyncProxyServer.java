@@ -55,16 +55,7 @@ public class AsyncProxyServer extends AsyncHttpServer {
                         response.send(ex.getMessage());
                         return;
                     }
-                    response.code(remoteResponse.code());
-                    response.getHeaders().addAll(remoteResponse.headers());
-                    response.getHeaders().removeAll("Transfer-Encoding");
-                    response.getHeaders().removeAll("Content-Encoding");
-                    Util.pump(remoteResponse, response, new CompletedCallback() {
-                        @Override
-                        public void onCompleted(Exception ex) {
-                            response.end();
-                        }
-                    });
+                    response.proxy(remoteResponse);
                 }
             });
         }

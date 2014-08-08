@@ -3,6 +3,7 @@ package com.koushikdutta.async.http.server;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.Headers;
 
 import org.json.JSONObject;
@@ -23,6 +24,10 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void writeHead();
     public void setContentType(String contentType);
     public void redirect(String location);
+
+    // NOT FINAL
+    public void proxy(AsyncHttpResponse response);
+
     /**
      * Alias for end. Used with CompletedEmitters
      */

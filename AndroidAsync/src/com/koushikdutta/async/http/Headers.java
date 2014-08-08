@@ -9,6 +9,7 @@ import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -89,6 +90,13 @@ public class Headers {
         if (r == null || r.size() == 0)
             return null;
         return r.get(0);
+    }
+
+    public Headers removeAll(Collection<String> headers) {
+        for (String header: headers) {
+            remove(header);
+        }
+        return this;
     }
 
     public Header[] toHeaderArray() {

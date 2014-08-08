@@ -9,6 +9,7 @@ import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpResponse;
@@ -145,7 +146,8 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void end() {
-        if ("Chunked".equalsIgnoreCase(mRawHeaders.get("Transfer-Encoding"))) {
+        if ("Chunked".equalsIgnoreCase(mRawHeaders.get("Transfer-Encoding")) && mSink == null
+        || mSink instanceof ChunkedOutputFilter) {
             initFirstWrite();
             ((ChunkedOutputFilter)mSink).setMaxBuffer(Integer.MAX_VALUE);
             mSink.write(new ByteBufferList());
@@ -289,6 +291,25 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             code(404);
             end();
         }
+    }
+
+    @Override
+    public void proxy(final AsyncHttpResponse remoteResponse) {
+        code(remoteResponse.code());
+        remoteResponse.headers().removeAll("Transfer-Encoding");
+        remoteResponse.headers().removeAll("Content-Encoding");
+        remoteResponse.headers().removeAll("Connection");
+        getHeaders().addAll(remoteResponse.headers());
+        // TODO: remove?
+        remoteResponse.headers().set("Connection", "close");
+        Util.pump(remoteResponse, this, new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                remoteResponse.setEndCallback(new NullCompletedCallback());
+                remoteResponse.setDataCallback(new DataCallback.NullDataCallback());
+                end();
+            }
+        });
     }
 
     int code = 200;
