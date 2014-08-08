@@ -19,6 +19,6 @@ public class FutureThread<T> extends SimpleFuture<T> {
                     setComplete(e);
                 }
             }
-        }).start();
+        }, name).start();
     }
 }
