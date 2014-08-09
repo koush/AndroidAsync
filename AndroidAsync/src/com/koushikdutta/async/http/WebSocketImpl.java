@@ -98,6 +98,12 @@ public class WebSocketImpl implements WebSocket {
             protected void sendFrame(byte[] frame) {
                 mSink.write(ByteBuffer.wrap(frame));
             }
+
+            @Override
+            protected void onPong(String payload) {
+                if (WebSocketImpl.this.mPongCallback != null)
+                    WebSocketImpl.this.mPongCallback.onPongReceived(payload);
+            }
         };
         mParser.setMasking(masking);
         mParser.setDeflate(deflate);
@@ -228,6 +234,11 @@ public class WebSocketImpl implements WebSocket {
         mSink.write(ByteBuffer.wrap(mParser.frame(string)));
     }
 
+    @Override
+    public void ping(String string) {
+        mSink.write(ByteBuffer.wrap(mParser.pingFrame(string)));
+    }
+
     private StringCallback mStringCallback;
     @Override
     public void setStringCallback(StringCallback callback) {
@@ -243,6 +254,17 @@ public class WebSocketImpl implements WebSocket {
     @Override
     public StringCallback getStringCallback() {
         return mStringCallback;
+    }
+
+    private PongCallback mPongCallback;
+    @Override
+    public void setPongCallback(PongCallback callback) {
+        mPongCallback = callback;
+    }
+
+    @Override
+    public PongCallback getPongCallback() {
+        return mPongCallback;
     }
 
     @Override
