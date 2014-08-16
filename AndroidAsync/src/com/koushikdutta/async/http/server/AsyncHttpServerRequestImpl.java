@@ -93,6 +93,7 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         LineEmitter liner = new LineEmitter();
         mSocket.setDataCallback(liner);
         liner.setLineCallback(mHeaderCallback);
+        mSocket.setEndCallback(new NullCompletedCallback());
     }
     
     @Override
