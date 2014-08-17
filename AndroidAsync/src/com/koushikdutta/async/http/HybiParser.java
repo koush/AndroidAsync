@@ -302,6 +302,10 @@ abstract class HybiParser {
     	return frame(OP_BINARY, data, -1, offset, length);
     }
 
+    public byte[] pingFrame(String data) {
+        return frame(OP_PING, data, -1);
+    }
+
     /**
      * Flip the opcode so to avoid the name collision with the public method
      * 
@@ -378,10 +382,6 @@ abstract class HybiParser {
         return frame;
     }
 
-    public void ping(String message) {
-//        send(frame(message, OP_PING, -1));
-    }
-
     public void close(int code, String reason) {
         if (mClosed) return;
         sendFrame(frame(OP_CLOSE, reason, code));
@@ -444,13 +444,14 @@ abstract class HybiParser {
 
         } else if (opcode == OP_PONG) {
             String message = encode(payload);
-            // FIXME: Fire callback...
+            onPong(message);
 //            Log.d(TAG, "Got pong! " + message);
         }
     }
     
     protected abstract void onMessage(byte[] payload);
     protected abstract void onMessage(String payload);
+    protected abstract void onPong(String payload);
     protected abstract void onDisconnect(int code, String reason);
     protected abstract void report(Exception ex);
 
