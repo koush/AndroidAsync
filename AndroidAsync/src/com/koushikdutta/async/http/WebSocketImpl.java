@@ -235,7 +235,7 @@ public class WebSocketImpl implements WebSocket {
 
     @Override
     public void ping(String string) {
-        mSink.write(ByteBuffer.wrap(mParser.pingFrame(string)));
+        mSink.write(new ByteBufferList(ByteBuffer.wrap(mParser.pingFrame(string))));
     }
 
     private StringCallback mStringCallback;
