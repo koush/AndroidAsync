@@ -85,4 +85,11 @@ public class FilteredDataEmitter extends DataEmitterBase implements DataEmitter,
     public void close() {
         mEmitter.close();
     }
+
+    @Override
+    public String charset() {
+        if (mEmitter == null)
+            return null;
+        return mEmitter.charset();
+    }
 }

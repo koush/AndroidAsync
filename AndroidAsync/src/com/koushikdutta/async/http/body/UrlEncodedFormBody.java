@@ -8,6 +8,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.Multimap;
+import com.koushikdutta.async.util.Charsets;
 
 import org.apache.http.NameValuePair;
 
@@ -42,7 +43,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
                 b.append('=');
                 b.append(URLEncoder.encode(pair.getValue(), "UTF-8"));
             }
-            mBodyBytes = b.toString().getBytes("ISO-8859-1");
+            mBodyBytes = b.toString().getBytes("UTF-8");
         }
         catch (UnsupportedEncodingException e) {
         }
@@ -58,7 +59,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
     public static final String CONTENT_TYPE = "application/x-www-form-urlencoded";
     @Override
     public String getContentType() {
-        return CONTENT_TYPE;
+        return CONTENT_TYPE + "; charset=utf8";
     }
 
     @Override
