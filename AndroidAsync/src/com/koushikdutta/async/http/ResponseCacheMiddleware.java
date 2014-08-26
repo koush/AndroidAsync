@@ -416,10 +416,12 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 FileInputStream din = cacheResponse.getBody();
                 int read = din.read(buffer.array(), buffer.arrayOffset(), buffer.capacity());
                 if (read == -1) {
+                    ByteBufferList.reclaim(buffer);
                     allowEnd = true;
                     report(null);
                     return;
                 }
+                allocator.track(read);
                 buffer.limit(read);
                 pending.add(buffer);
             }

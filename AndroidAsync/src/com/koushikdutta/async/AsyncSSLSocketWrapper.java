@@ -388,10 +388,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             // if the handshake is finished, don't send
             // 0 bytes of data, since that makes the ssl connection die.
             // it wraps a 0 byte package, and craps out.
-            if (finishedHandshake && bb.remaining() == 0) {
-                mWrapping = false;
-                return;
-            }
+            if (finishedHandshake && bb.remaining() == 0)
+                break;
             remaining = bb.remaining();
             try {
                 ByteBuffer[] arr = bb.getAllArray();
@@ -417,6 +415,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         while ((remaining != bb.remaining() || (res != null && res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP)) && mSink.remaining() == 0);
         ByteBufferList.reclaim(mWriteTmp);
         mWrapping = false;
+        ByteBufferList.reclaim(writeBuf);
     }
 
     @Override
