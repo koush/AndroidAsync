@@ -415,7 +415,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         while ((remaining != bb.remaining() || (res != null && res.getHandshakeStatus() == HandshakeStatus.NEED_WRAP)) && mSink.remaining() == 0);
         ByteBufferList.reclaim(mWriteTmp);
         mWrapping = false;
-        ByteBufferList.reclaim(writeBuf);
     }
 
     @Override
