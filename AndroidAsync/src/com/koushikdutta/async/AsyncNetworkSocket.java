@@ -142,6 +142,9 @@ public class AsyncNetworkSocket implements AsyncSocket {
                 pending.add(b);
                 Util.emitAllData(this, pending);
             }
+            else {
+                ByteBufferList.reclaim(b);
+            }
 
             if (closed) {
                 reportEndPending(null);

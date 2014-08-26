@@ -36,8 +36,7 @@ public class InflaterInputFilter extends FilteredDataEmitter {
                         int inflated = mInflater.inflate(output.array(), output.arrayOffset() + output.position(), output.remaining());
                         output.position(output.position() + inflated);
                         if (!output.hasRemaining()) {
-                            output.limit(output.position());
-                            output.position(0);
+                            output.flip();
                             transformed.add(output);
                             assert totalRead != 0;
                             int newSize = output.capacity() * 2;
@@ -48,8 +47,7 @@ public class InflaterInputFilter extends FilteredDataEmitter {
                 }
                 ByteBufferList.reclaim(b);
             }
-            output.limit(output.position());
-            output.position(0);
+            output.flip();
             transformed.add(output);
 
             Util.emitAllData(this, transformed);
