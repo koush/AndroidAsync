@@ -4,7 +4,6 @@ import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.Util;
@@ -55,7 +54,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         // order is important here...
         assert !mEnded;
         // do the header write... this will call onWritable, which may be reentrant
-        if (!mHasWritten)
+        if (!headWritten)
             initFirstWrite();
 
         // now check to see if the list is empty. reentrancy may cause it to empty itself.
@@ -70,13 +69,13 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         mSink.write(bb);
     }
 
-    boolean mHasWritten = false;
+    boolean headWritten = false;
     DataSink mSink;
     void initFirstWrite() {
-        if (mHasWritten)
+        if (headWritten)
             return;
 
-        mHasWritten = true;
+        headWritten = true;
 
         final boolean isChunked;
         String currentEncoding = mRawHeaders.get("Transfer-Encoding");
@@ -103,6 +102,10 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         Util.writeAll(mSocket, rh.getBytes(), new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
+                if (ex != null) {
+                    report(ex);
+                    return;
+                }
                 if (isChunked) {
                     ChunkedOutputFilter chunked = new ChunkedOutputFilter(mSocket);
                     chunked.setMaxBuffer(0);
@@ -116,6 +119,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 closedCallback = null;
                 mSink.setWriteableCallback(writable);
                 writable = null;
+                if (ended) {
+                    // the response ended while headers were written
+                    end();
+                    return;
+                }
                 getServer().post(new Runnable() {
                     @Override
                     public void run() {
@@ -144,16 +152,28 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         return writable;
     }
 
+    boolean ended;
     @Override
     public void end() {
-        if ("Chunked".equalsIgnoreCase(mRawHeaders.get("Transfer-Encoding")) && mSink == null
-        || mSink instanceof ChunkedOutputFilter) {
-            initFirstWrite();
+        if (ended)
+            return;
+        ended = true;
+        if (headWritten && mSink == null) {
+            // header is in the process of being written... bail out.
+            // end will be called again after finished.
+            return;
+        }
+        if (!headWritten) {
+            // end was called, and no head or body was yet written,
+            // so strip the transfer encoding as that is superfluous.
+            mRawHeaders.remove("Transfer-Encoding");
+        }
+        if (mSink instanceof ChunkedOutputFilter) {
             ((ChunkedOutputFilter)mSink).setMaxBuffer(Integer.MAX_VALUE);
             mSink.write(new ByteBufferList());
             onEnd();
         }
-        else if (!mHasWritten) {
+        else if (!headWritten) {
             if (!mRequest.getMethod().equalsIgnoreCase(AsyncHttpHead.METHOD))
                 send("text/html", "");
             else {

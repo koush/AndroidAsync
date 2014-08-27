@@ -128,6 +128,16 @@ public class AsyncHttpServer {
                     }
                     res = new AsyncHttpServerResponseImpl(socket, this) {
                         @Override
+                        protected void report(Exception e) {
+                            super.report(e);
+                            if (e != null) {
+                                socket.setDataCallback(new NullDataCallback());
+                                socket.setEndCallback(new NullCompletedCallback());
+                                socket.close();
+                            }
+                        }
+
+                        @Override
                         protected void onEnd() {
                             super.onEnd();
                             mSocket.setEndCallback(null);

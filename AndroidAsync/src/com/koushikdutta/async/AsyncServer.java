@@ -727,6 +727,10 @@ public class AsyncServer {
                 }
             }
         }
+        catch (CancelledKeyException e) {
+            // not supposed to be thrown, but apparently is...
+            throw new AsyncSelectorException(e);
+        }
         catch (NullPointerException e) {
             throw new AsyncSelectorException(e);
         }
