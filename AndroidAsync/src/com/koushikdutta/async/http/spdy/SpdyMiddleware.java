@@ -46,7 +46,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     }
 
     private void configure(SSLEngine engine, String host, int port) {
-        if (!initialized) {
+        if (!initialized && spdyEnabled) {
             initialized = true;
             try {
                 peerHost = engine.getClass().getSuperclass().getDeclaredField("peerHost");
@@ -103,18 +103,6 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         }
     }
 
-    @Override
-    protected SSLEngine createConfiguredSSLEngine(String host, int port) {
-        SSLContext sslContext = getSSLContext();
-        SSLEngine sslEngine = sslContext.createSSLEngine();
-
-        for (AsyncSSLEngineConfigurator configurator : engineConfigurators) {
-            configurator.configureEngine(sslEngine, host, port);
-        }
-
-        return sslEngine;
-    }
-
     boolean initialized;
     Field peerHost;
     Field peerPort;
@@ -126,6 +114,15 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     Method nativeGetNpnNegotiatedProtocol;
     Method nativeGetAlpnNegotiatedProtocol;
     Hashtable<String, AsyncSpdyConnection> connections = new Hashtable<String, AsyncSpdyConnection>();
+    boolean spdyEnabled;
+
+    public boolean getSpdyEnabled() {
+        return spdyEnabled;
+    }
+
+    public void setSpdyEnabled(boolean enabled) {
+        spdyEnabled = enabled;
+    }
 
     @Override
     public void setSSLContext(SSLContext sslContext) {
@@ -240,6 +237,9 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
 
     @Override
     public Cancellable getSocket(GetSocketData data) {
+        if (!spdyEnabled)
+            return super.getSocket(data);
+
         final Uri uri = data.request.getUri();
         final int port = getSchemePort(data.request.getUri());
         if (port == -1) {
@@ -250,7 +250,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         // see above regarding app engine comment as to why: drive requires content-length
         // but app engine sends a GO_AWAY if it sees a content-length...
         if (data.request.getBody() != null)
-            return null;
+            return super.getSocket(data);
 
         // can we use an existing connection to satisfy this, or do we need a new one?
         String host = uri.getHost();
