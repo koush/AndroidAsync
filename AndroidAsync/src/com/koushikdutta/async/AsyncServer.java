@@ -608,6 +608,10 @@ public class AsyncServer {
                 runLoop(server, selector, queue);
             }
             catch (ClosedSelectorException e) {
+                StreamUtility.closeQuietly(selector.getSelector());
+            }
+            catch (AsyncSelectorException e) {
+                StreamUtility.closeQuietly(selector.getSelector());
             }
             // see if we keep looping, this must be in a synchronized block since the queue is accessed.
             synchronized (server) {
