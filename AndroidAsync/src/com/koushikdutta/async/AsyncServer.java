@@ -386,7 +386,7 @@ public class AsyncServer {
                     return;
                 }
 
-                ret.setComplete(connectResolvedInetSocketAddress(new InetSocketAddress(remote.getHostName(), remote.getPort()), callback));
+                ret.setComplete(connectResolvedInetSocketAddress(new InetSocketAddress(result, remote.getPort()), callback));
             }
         });
         return ret;
