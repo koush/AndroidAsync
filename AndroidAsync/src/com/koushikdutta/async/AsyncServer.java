@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -586,7 +585,9 @@ public class AsyncServer {
             try {
                 runLoop(this, selector, queue);
             }
-            catch (ClosedSelectorException e) {
+            catch (AsyncSelectorException e) {
+                Log.e(LOGTAG, "Selector exception", e);
+                StreamUtility.closeQuietly(selector.getSelector());
             }
             return;
         }
@@ -607,10 +608,8 @@ public class AsyncServer {
             try {
                 runLoop(server, selector, queue);
             }
-            catch (ClosedSelectorException e) {
-                StreamUtility.closeQuietly(selector.getSelector());
-            }
             catch (AsyncSelectorException e) {
+                Log.e(LOGTAG, "Selector exception", e);
                 StreamUtility.closeQuietly(selector.getSelector());
             }
             // see if we keep looping, this must be in a synchronized block since the queue is accessed.
@@ -690,7 +689,7 @@ public class AsyncServer {
         return wait;
     }
 
-    private static class AsyncSelectorException extends RuntimeException {
+    private static class AsyncSelectorException extends IOException {
         public AsyncSelectorException(Exception e) {
             super(e);
         }
@@ -731,10 +730,7 @@ public class AsyncServer {
                 }
             }
         }
-        catch (NullPointerException e) {
-            throw new AsyncSelectorException(e);
-        }
-        catch (IOException e) {
+        catch (Exception e) {
             throw new AsyncSelectorException(e);
         }
 
