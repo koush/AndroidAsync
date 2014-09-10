@@ -1,5 +1,26 @@
 package com.koushikdutta.async;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.channels.CancelledKeyException;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedSelectorException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
+import java.nio.channels.spi.SelectorProvider;
+import java.util.Comparator;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+
 import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
@@ -13,26 +34,6 @@ import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.util.StreamUtility;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.channels.CancelledKeyException;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.ClosedSelectorException;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.SelectorProvider;
-import java.util.Comparator;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
 
 public class AsyncServer {
     public static final String LOGTAG = "NIO";
@@ -358,6 +359,12 @@ public class AsyncServer {
                     socket.connect(address);
                 }
                 catch (IOException e) {
+                    if (ckey != null)
+                        ckey.cancel();
+                    StreamUtility.closeQuietly(socket);
+                    cancel.setComplete(e);
+                }
+                catch (UnresolvedAddressException e) {
                     if (ckey != null)
                         ckey.cancel();
                     StreamUtility.closeQuietly(socket);
