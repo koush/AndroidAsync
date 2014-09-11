@@ -318,13 +318,9 @@ public class AsyncHttpServer {
                     response.end();
                     return;
                 }
-                callback.onConnected(createWebSocket(request, response), request.getHeaders());
+                callback.onConnected(new WebSocketImpl(request, response), request.getHeaders());
             }
         });
-    }
-    
-    protected WebSocket createWebSocket(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-        return new WebSocketImpl(request, response);
     }
     
     public void get(String regex, HttpServerRequestCallback callback) {
