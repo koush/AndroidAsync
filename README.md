@@ -216,7 +216,7 @@ server.listen(5000);
 ```java
 server.websocket("/live", new WebSocketRequestCallback() {
     @Override
-    public void onConnected(final WebSocket webSocket, RequestHeaders headers) {
+    public void onConnected(final WebSocket webSocket, AsyncHttpServerRequest request) {
         _sockets.add(webSocket);
         
         //Use this to clean up any references to your websocket
