@@ -285,7 +285,7 @@ public class AsyncHttpServer {
     }
 
     public static interface WebSocketRequestCallback {
-        public void onConnected(WebSocket webSocket, RequestHeaders headers);
+        public void onConnected(WebSocket webSocket, AsyncHttpServerRequest request);
     }
 
     public void websocket(String regex, final WebSocketRequestCallback callback) {
@@ -318,7 +318,7 @@ public class AsyncHttpServer {
                     response.end();
                     return;
                 }
-                callback.onConnected(new WebSocketImpl(request, response), request.getHeaders());
+                callback.onConnected(new WebSocketImpl(request, response), request);
             }
         });
     }

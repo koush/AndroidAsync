@@ -9,6 +9,7 @@ import com.koushikdutta.async.http.WebSocket.StringCallback;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServer.WebSocketRequestCallback;
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 
 import junit.framework.TestCase;
 
@@ -34,7 +35,7 @@ public class WebSocketTests extends TestCase {
     
         httpServer.websocket("/ws", new WebSocketRequestCallback() {
             @Override
-            public void onConnected(final WebSocket webSocket, RequestHeaders headers) {
+            public void onConnected(final WebSocket webSocket, AsyncHttpServerRequest request) {
                 webSocket.setStringCallback(new StringCallback() {
                     @Override
                     public void onStringAvailable(String s) {
