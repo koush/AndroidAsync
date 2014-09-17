@@ -587,7 +587,12 @@ public class AsyncServer {
             }
             catch (AsyncSelectorException e) {
                 Log.e(LOGTAG, "Selector exception", e);
-                StreamUtility.closeQuietly(selector.getSelector());
+                try {
+                    // StreamUtility.closeQuiety is throwing ArrayStoreException?
+                    selector.getSelector().close();
+                }
+                catch (Exception ex) {
+                }
             }
             return;
         }
@@ -610,7 +615,12 @@ public class AsyncServer {
             }
             catch (AsyncSelectorException e) {
                 Log.e(LOGTAG, "Selector exception", e);
-                StreamUtility.closeQuietly(selector.getSelector());
+                try {
+                    // StreamUtility.closeQuiety is throwing ArrayStoreException?
+                    selector.getSelector().close();
+                }
+                catch (Exception ex) {
+                }
             }
             // see if we keep looping, this must be in a synchronized block since the queue is accessed.
             synchronized (server) {
