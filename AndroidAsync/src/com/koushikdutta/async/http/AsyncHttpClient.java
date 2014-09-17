@@ -420,6 +420,7 @@ public class AsyncHttpClient {
         // set up the system default proxy and connect
         setupAndroidProxy(request);
 
+        final Exception unsupportedURI;
         synchronized (mMiddleware) {
             for (AsyncHttpClientMiddleware middleware: mMiddleware) {
                 Cancellable socketCancellable = middleware.getSocket(data);
@@ -429,8 +430,9 @@ public class AsyncHttpClient {
                     return;
                 }
             }
+            unsupportedURI = new IllegalArgumentException("invalid uri="+uri+" middlewares="+mMiddleware);
         }
-        reportConnectedCompleted(cancel, new IllegalArgumentException("invalid uri"), null, request, callback);
+        reportConnectedCompleted(cancel, unsupportedURI, null, request, callback);
     }
 
     public static abstract class RequestCallbackBase<T> implements RequestCallback<T> {
