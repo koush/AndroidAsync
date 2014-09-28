@@ -206,13 +206,13 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         responseCode(200);
         String contentType = mRawHeaders.get("Content-Type");
         if (contentType == null)
-            contentType = "text/html; charset=utf8";
+            contentType = "text/html; charset=utf-8";
         send(contentType, string);
     }
 
     @Override
     public void send(JSONObject json) {
-        send("application/json; charset=utf8", json.toString());
+        send("application/json; charset=utf-8", json.toString());
     }
 
     @Override
