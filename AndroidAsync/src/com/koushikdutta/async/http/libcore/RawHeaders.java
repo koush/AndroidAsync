@@ -233,6 +233,20 @@ public final class RawHeaders {
     }
 
     /**
+     * Returns all value corresponding to the specified field, or an Empty list.
+     */
+    public List<String> getList(String fieldName){
+        ArrayList<String> result = new ArrayList<String>(2);
+        for (int i = namesAndValues.size() - 2; i >= 0; i -= 2) {
+            if (fieldName.equalsIgnoreCase(namesAndValues.get(i))) {
+                result.add(namesAndValues.get(i + 1));
+            }
+        }
+        return result;
+    }
+
+
+    /**
      * @param fieldNames a case-insensitive set of HTTP header field names.
      */
     public RawHeaders getAll(Set<String> fieldNames) {
