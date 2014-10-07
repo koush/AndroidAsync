@@ -18,13 +18,15 @@ public class XHRPollingTransport implements SocketIOTransport {
     private StringCallback stringCallback;
     private CompletedCallback closedCallback;
     private boolean connected;
+	private String sessionId;
 
     private static final String SEPARATOR = "\ufffd";
 
-    public XHRPollingTransport(AsyncHttpClient client, String sessionUrl) {
+    public XHRPollingTransport(AsyncHttpClient client, String sessionUrl, String sessionId) {
         this.client = client;
         this.sessionUrl = Uri.parse(sessionUrl);
-
+        this.sessionId = sessionId;
+        
         doLongPolling();
         connected = true;
     }
@@ -135,4 +137,9 @@ public class XHRPollingTransport implements SocketIOTransport {
     public boolean heartbeats() {
         return false;
     }
+
+	@Override
+	public String getSessionId() {
+		return this.sessionId;
+	}
 }

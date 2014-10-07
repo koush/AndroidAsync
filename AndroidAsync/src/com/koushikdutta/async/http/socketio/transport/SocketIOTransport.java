@@ -35,4 +35,6 @@ public interface SocketIOTransport {
      * @return
      */
     public boolean heartbeats();
+    
+    public String getSessionId();
 }
