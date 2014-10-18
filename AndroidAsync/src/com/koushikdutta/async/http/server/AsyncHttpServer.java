@@ -332,7 +332,7 @@ public class AsyncHttpServer {
     }
 
     public static android.util.Pair<Integer, InputStream> getAssetStream(final Context context, String asset) {
-        AssetManager am = context.getAssets();
+        AssetManager am = context.getResources().getAssets();
         try {
             InputStream is = am.open(asset);
             return new android.util.Pair<Integer, InputStream>(is.available(), is);
@@ -373,12 +373,16 @@ public class AsyncHttpServer {
         return null;
     }
 
+    private String replacePrefix(Matcher m) {
+        return m.group(0).substring(m.end(1));
+    }
+
     public void directory(Context context, String regex, final String assetPath) {
         final Context _context = context.getApplicationContext();
         addAction(AsyncHttpGet.METHOD, regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                String path = request.getMatcher().replaceAll("");
+                String path = replacePrefix(request.getMatcher());
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
                 final InputStream is = pair.second;
                 response.getHeaders().getHeaders().set("Content-Length", String.valueOf(pair.first));
@@ -401,7 +405,7 @@ public class AsyncHttpServer {
         addAction(AsyncHttpHead.METHOD, regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                String path = request.getMatcher().replaceAll("");
+                String path = replacePrefix(request.getMatcher());
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
                 final InputStream is = pair.second;
                 StreamUtility.closeQuietly(is);
@@ -428,7 +432,7 @@ public class AsyncHttpServer {
         addAction("GET", regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                String path = request.getMatcher().replaceAll("");
+                String path = replacePrefix(request.getMatcher());
                 File file = new File(directory, path);
                 
                 if (file.isDirectory() && list) {
