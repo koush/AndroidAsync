@@ -104,7 +104,7 @@ class SocketIOConnection {
 
         request.logi("Reconnecting socket.io");
 
-        Cancellable connecting = httpClient.executeString(request, null)
+        connecting = httpClient.executeString(request, null)
         .then(new TransformFuture<SocketIOTransport, String>() {
             @Override
             protected void transform(String result) throws Exception {
