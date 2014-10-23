@@ -403,8 +403,8 @@ public class AsyncServer {
 
     private static ExecutorService newSynchronousWorkers() {
         ThreadFactory tf = new NamedThreadFactory("AsyncServer-worker-");
-        ThreadPoolExecutor tpe = new ThreadPoolExecutor(4, 4, 0L,
-            TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(), tf);
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(1, 4, 10L,
+            TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), tf);
         return tpe;
     }
 
