@@ -217,12 +217,21 @@ class SocketIOConnection {
             public void run() {
                 reconnect(null);
             }
-        }, reconnectDelay);
+        }, nextReconnectDelay(reconnectDelay));
 
         reconnectDelay = reconnectDelay * 2;
         if (request.config.reconnectDelayMax > 0L) {
             reconnectDelay = Math.min(reconnectDelay, request.config.reconnectDelayMax);
         }
+    }
+
+    private long nextReconnectDelay(long targetDelay) {
+        if (targetDelay < 2L || targetDelay > (Long.MAX_VALUE >> 1) ||
+            !request.config.randomizeReconnectDelay)
+        {
+            return targetDelay;
+        }
+        return (targetDelay >> 1) + (long) (targetDelay * Math.random());
     }
 
     private void reportDisconnect(final Exception ex) {

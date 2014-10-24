@@ -40,6 +40,14 @@ public class SocketIORequest extends AsyncHttpPost {
     }
 
     public static class Config {
+        boolean randomizeReconnectDelay = false;
+        public void setRandomizeReconnectDelay(boolean randomizeReconnectDelay) {
+            this.randomizeReconnectDelay = randomizeReconnectDelay;
+        }
+        public boolean isRandomizeReconnectDelay() {
+            return randomizeReconnectDelay;
+        }
+
         long reconnectDelay = 1000L;
         public void setReconnectDelay(long reconnectDelay) {
             if (reconnectDelay < 0L) {
