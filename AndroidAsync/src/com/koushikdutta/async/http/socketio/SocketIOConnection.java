@@ -30,6 +30,7 @@ import java.util.Hashtable;
 class SocketIOConnection {
     AsyncHttpClient httpClient;
     int heartbeat;
+    long reconnectDelay;
     ArrayList<SocketIOClient> clients = new ArrayList<SocketIOClient>();
     SocketIOTransport transport;
     SocketIORequest request;
@@ -37,6 +38,7 @@ class SocketIOConnection {
     public SocketIOConnection(AsyncHttpClient httpClient, SocketIORequest request) {
         this.httpClient = httpClient;
         this.request = request;
+        this.reconnectDelay = this.request.config.reconnectDelay;
     }
 
     public boolean isConnected() {
@@ -104,7 +106,7 @@ class SocketIOConnection {
 
         request.logi("Reconnecting socket.io");
 
-        Cancellable connecting = httpClient.executeString(request, null)
+        connecting = httpClient.executeString(request, null)
         .then(new TransformFuture<SocketIOTransport, String>() {
             @Override
             protected void transform(String result) throws Exception {
@@ -157,7 +159,7 @@ class SocketIOConnection {
                     return;
                 }
 
-                reconnectDelay = 1000L;
+                reconnectDelay = request.config.reconnectDelay;
                 SocketIOConnection.this.transport = result;
                 attach();
             }
@@ -215,11 +217,23 @@ class SocketIOConnection {
             public void run() {
                 reconnect(null);
             }
-        }, reconnectDelay);
-        reconnectDelay *= 2;
+        }, nextReconnectDelay(reconnectDelay));
+
+        reconnectDelay = reconnectDelay * 2;
+        if (request.config.reconnectDelayMax > 0L) {
+            reconnectDelay = Math.min(reconnectDelay, request.config.reconnectDelayMax);
+        }
     }
 
-    long reconnectDelay = 1000L;
+    private long nextReconnectDelay(long targetDelay) {
+        if (targetDelay < 2L || targetDelay > (Long.MAX_VALUE >> 1) ||
+            !request.config.randomizeReconnectDelay)
+        {
+            return targetDelay;
+        }
+        return (targetDelay >> 1) + (long) (targetDelay * Math.random());
+    }
+
     private void reportDisconnect(final Exception ex) {
         if (ex != null) {
             request.loge("socket.io disconnected", ex);
