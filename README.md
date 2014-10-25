@@ -282,3 +282,6 @@ client.getString("http://foo.com/hello.txt")
 });
 ```
 
+### Note on SSLv3
+
+https://github.com/koush/AndroidAsync/issues/174
