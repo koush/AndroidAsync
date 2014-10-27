@@ -205,7 +205,6 @@ public class AsyncSpdyConnection implements FrameReader.Handler {
             int canWrite = (int)Math.min(bytesLeftInWriteWindow, AsyncSpdyConnection.this.bytesLeftInWriteWindow);
             canWrite = Math.min(bb.remaining(), canWrite);
             if (canWrite == 0) {
-                System.out.println("derp");
                 return;
             }
             if (canWrite < bb.remaining()) {
