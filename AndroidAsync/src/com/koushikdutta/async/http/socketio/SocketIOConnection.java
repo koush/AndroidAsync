@@ -111,7 +111,7 @@ class SocketIOConnection {
             @Override
             protected void transform(String result) throws Exception {
                 String[] parts = result.split(":");
-                String session = parts[0];
+                final String sessionId = parts[0];
                 if (!"".equals(parts[1]))
                     heartbeat = Integer.parseInt(parts[1]) / 2 * 1000;
                 else
@@ -124,7 +124,7 @@ class SocketIOConnection {
 
                 if (set.contains("websocket")) {
                     final String sessionUrl = Uri.parse(request.getUri().toString()).buildUpon()
-                            .appendPath("websocket").appendPath(session)
+                            .appendPath("websocket").appendPath(sessionId)
                             .build().toString();
 
                     httpClient.websocket(sessionUrl, null, null)
@@ -135,14 +135,14 @@ class SocketIOConnection {
                                 transport.setComplete(e);
                                 return;
                             }
-                            transport.setComplete(new WebSocketTransport(result));
+                            transport.setComplete(new WebSocketTransport(result, sessionId));
                         }
                     });
                 } else if (set.contains("xhr-polling")) {
                     final String sessionUrl = Uri.parse(request.getUri().toString()).buildUpon()
-                            .appendPath("xhr-polling").appendPath(session)
+                            .appendPath("xhr-polling").appendPath(sessionId)
                             .build().toString();
-                    XHRPollingTransport xhrPolling = new XHRPollingTransport(httpClient, sessionUrl);
+                    XHRPollingTransport xhrPolling = new XHRPollingTransport(httpClient, sessionUrl, sessionId);
                     transport.setComplete(xhrPolling);
                 } else {
                     throw new SocketIOException("transport not supported");

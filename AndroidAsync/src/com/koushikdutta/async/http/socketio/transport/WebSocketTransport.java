@@ -8,10 +8,11 @@ import com.koushikdutta.async.http.WebSocket;
 public class WebSocketTransport implements SocketIOTransport {
     private WebSocket webSocket;
     private StringCallback stringCallback;
+	private String sessionId;
 
-    public WebSocketTransport(WebSocket webSocket) {
+    public WebSocketTransport(WebSocket webSocket, String sessionId) {
         this.webSocket = webSocket;
-
+        this.sessionId = sessionId;
         this.webSocket.setDataCallback(new NullDataCallback());
     }
 
@@ -63,4 +64,10 @@ public class WebSocketTransport implements SocketIOTransport {
     public boolean heartbeats() {
         return true;
     }
+
+	@Override
+	public String getSessionId() {
+		return this.sessionId;
+	}
 }
+
