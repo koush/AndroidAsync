@@ -60,7 +60,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
     public static final String CONTENT_TYPE = "application/x-www-form-urlencoded";
     @Override
     public String getContentType() {
-        return CONTENT_TYPE + "; charset=utf8";
+        return CONTENT_TYPE + "; charset=utf-8";
     }
 
     @Override

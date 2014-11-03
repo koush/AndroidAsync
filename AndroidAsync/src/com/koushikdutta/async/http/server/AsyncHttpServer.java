@@ -300,7 +300,7 @@ public class AsyncHttpServer {
     }
 
     public static interface WebSocketRequestCallback {
-        public void onConnected(WebSocket webSocket, Headers headers);
+        public void onConnected(WebSocket webSocket, AsyncHttpServerRequest request);
     }
 
     public void websocket(String regex, final WebSocketRequestCallback callback) {
@@ -333,13 +333,9 @@ public class AsyncHttpServer {
                     response.end();
                     return;
                 }
-                callback.onConnected(createWebSocket(request, response), request.getHeaders());
+                callback.onConnected(new WebSocketImpl(request, response), request);
             }
         });
-    }
-    
-    protected WebSocket createWebSocket(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-        return new WebSocketImpl(request, response);
     }
     
     public void get(String regex, HttpServerRequestCallback callback) {
@@ -351,7 +347,7 @@ public class AsyncHttpServer {
     }
 
     public static android.util.Pair<Integer, InputStream> getAssetStream(final Context context, String asset) {
-        AssetManager am = context.getAssets();
+        AssetManager am = context.getResources().getAssets();
         try {
             InputStream is = am.open(asset);
             return new android.util.Pair<Integer, InputStream>(is.available(), is);
@@ -392,12 +388,16 @@ public class AsyncHttpServer {
         return null;
     }
 
+    private String replacePrefix(Matcher m) {
+        return m.group(0).substring(m.end(1));
+    }
+
     public void directory(Context context, String regex, final String assetPath) {
         final Context _context = context.getApplicationContext();
         addAction(AsyncHttpGet.METHOD, regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                String path = request.getMatcher().replaceAll("");
+                String path = replacePrefix(request.getMatcher());
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
                 if (pair == null || pair.second == null) {
                     response.code(404);
@@ -420,7 +420,7 @@ public class AsyncHttpServer {
         addAction(AsyncHttpHead.METHOD, regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                String path = request.getMatcher().replaceAll("");
+                String path = replacePrefix(request.getMatcher());
                 android.util.Pair<Integer, InputStream> pair = getAssetStream(_context, assetPath + path);
                 if (pair == null || pair.second == null) {
                     response.code(404);
@@ -447,7 +447,7 @@ public class AsyncHttpServer {
         addAction("GET", regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                String path = request.getMatcher().replaceAll("");
+                String path = replacePrefix(request.getMatcher());
                 File file = new File(directory, path);
                 
                 if (file.isDirectory() && list) {

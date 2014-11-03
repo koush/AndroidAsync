@@ -297,6 +297,7 @@ public class AsyncHttpClient {
                 request.getHeaders().set("Content-Type", request.getBody().getContentType());
         }
 
+        final Exception unsupportedURI;
         synchronized (mMiddleware) {
             for (AsyncHttpClientMiddleware middleware: mMiddleware) {
                 Cancellable socketCancellable = middleware.getSocket(data);
@@ -306,8 +307,9 @@ public class AsyncHttpClient {
                     return;
                 }
             }
+            unsupportedURI = new IllegalArgumentException("invalid uri="+request.getUri()+" middlewares="+mMiddleware);
         }
-        reportConnectedCompleted(cancel, new IllegalArgumentException("invalid uri"), null, request, callback);
+        reportConnectedCompleted(cancel, unsupportedURI, null, request, callback);
     }
 
     private void executeSocket(final AsyncHttpRequest request, final int redirectCount,
