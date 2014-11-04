@@ -1,11 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     package="com.koushikdutta.async"
     android:versionCode="200"
     android:versionName="2.0.0">
 
-    <uses-sdk
-        tools:node="replace" />
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application>
