@@ -27,11 +27,6 @@ public class OutputStreamDataSink implements DataSink {
         }
     }
 
-    @Override
-    public void close() {
-        end();
-    }
-
     AsyncServer server;
     public OutputStreamDataSink(AsyncServer server, OutputStream stream) {
         this.server = server;
@@ -45,18 +40,6 @@ public class OutputStreamDataSink implements DataSink {
     
     public OutputStream getOutputStream() throws IOException {
         return mStream;
-    }
-
-    @Override
-    public void write(final ByteBuffer bb) {
-        try {
-            getOutputStream().write(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
-        }
-        catch (IOException e) {
-            reportClose(e);
-        }
-        bb.position(0);
-        bb.limit(0);
     }
 
     @Override

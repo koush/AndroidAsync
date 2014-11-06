@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.koushikdutta.async.http.libcore;
+package com.koushikdutta.async.http.cache;
 
 import android.net.Uri;
 
+import com.koushikdutta.async.http.HttpDate;
+
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Parsed HTTP response headers.
  */
-public final class ResponseHeaders {
+final class ResponseHeaders {
 
     /** HTTP header name for the local time when the request was sent. */
     private static final String SENT_MILLIS = "X-Android-Sent-Millis";
@@ -159,7 +160,7 @@ public final class ResponseHeaders {
                     varyFields = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
                 }
                 for (String varyField : value.split(",")) {
-                    varyFields.add(varyField.trim());
+                    varyFields.add(varyField.trim().toLowerCase());
                 }
             } else if ("Content-Encoding".equalsIgnoreCase(fieldName)) {
                 contentEncoding = value;

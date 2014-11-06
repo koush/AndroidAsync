@@ -5,7 +5,7 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;
 
 public class FilteredDataEmitter extends DataEmitterBase implements DataEmitter, DataCallback, DataEmitterWrapper, DataTrackingEmitter {
-    DataEmitter mEmitter;
+    private DataEmitter mEmitter;
     @Override
     public DataEmitter getDataEmitter() {
         return mEmitter;
@@ -41,8 +41,8 @@ public class FilteredDataEmitter extends DataEmitterBase implements DataEmitter,
         this.tracker = tracker;
     }
 
-    DataTracker tracker;
-    int totalRead;
+    private DataTracker tracker;
+    private int totalRead;
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         if (bb != null)

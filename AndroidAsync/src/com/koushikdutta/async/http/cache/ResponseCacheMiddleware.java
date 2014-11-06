@@ -1,4 +1,4 @@
-package com.koushikdutta.async.http;
+package com.koushikdutta.async.http.cache;
 
 import android.net.Uri;
 import android.util.Base64;
@@ -14,12 +14,14 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.SimpleCancellable;
-import com.koushikdutta.async.util.Charsets;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.ResponseHeaders;
-import com.koushikdutta.async.http.libcore.ResponseSource;
-import com.koushikdutta.async.http.libcore.StrictLineReader;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpClientMiddleware;
+import com.koushikdutta.async.http.AsyncHttpGet;
+import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.http.Headers;
+import com.koushikdutta.async.http.SimpleMiddleware;
 import com.koushikdutta.async.util.Allocator;
+import com.koushikdutta.async.util.Charsets;
 import com.koushikdutta.async.util.FileCache;
 import com.koushikdutta.async.util.StreamUtility;
 
@@ -94,7 +96,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     // also see if this can be turned into a conditional cache request.
     @Override
     public Cancellable getSocket(final GetSocketData data) {
-        if (cache == null || !caching || data.request.getHeaders().isNoCache()) {
+        RequestHeaders requestHeaders = new RequestHeaders(data.request.getUri(), RawHeaders.fromMultimap(data.request.getHeaders().getMultiMap()));
+        data.state.put("request-headers", requestHeaders);
+
+        if (cache == null || !caching || requestHeaders.isNoCache()) {
             networkCount++;
             return null;
         }
@@ -120,7 +125,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         // verify the entry matches
-        if (!entry.matches(data.request.getUri(), data.request.getMethod(), data.request.getHeaders().getHeaders().toMultimap())) {
+        if (!entry.matches(data.request.getUri(), data.request.getMethod(), data.request.getHeaders().getMultiMap())) {
             networkCount++;
             StreamUtility.closeQuietly(snapshot);
             return null;
@@ -153,7 +158,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         cachedResponseHeaders.setLocalTimestamps(System.currentTimeMillis(), System.currentTimeMillis());
 
         long now = System.currentTimeMillis();
-        ResponseSource responseSource = cachedResponseHeaders.chooseResponseSource(now, data.request.getHeaders());
+        ResponseSource responseSource = cachedResponseHeaders.chooseResponseSource(now, requestHeaders);
 
         if (responseSource == ResponseSource.CACHE) {
             data.request.logi("Response retrieved from cache");
@@ -168,7 +173,10 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 }
             });
             cacheHitCount++;
-            return new SimpleCancellable();
+            data.state.put("socket-owner", this);
+            SimpleCancellable ret = new SimpleCancellable();
+            ret.setComplete();
+            return ret;
         }
         else if (responseSource == ResponseSource.CONDITIONAL_CACHE) {
             data.request.logi("Response may be served from conditional cache");
@@ -208,22 +216,28 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     // step 2) if this is a conditional cache request, serve it from the cache if necessary
     // otherwise, see if it is cacheable
     @Override
-    public void onBodyDecoder(OnBodyData data) {
+    public void onBodyDecoder(OnBodyDataOnRequestSentData data) {
         CachedSocket cached = com.koushikdutta.async.Util.getWrappedSocket(data.socket, CachedSocket.class);
         if (cached != null) {
-            data.headers.getHeaders().set(SERVED_FROM, CACHE);
+            data.response.headers().set(SERVED_FROM, CACHE);
             return;
         }
 
         CacheData cacheData = data.state.get("cache-data");
+        RawHeaders rh = RawHeaders.fromMultimap(data.response.headers().getMultiMap());
+        rh.removeAll("Content-Length");
+        rh.setStatusLine(String.format("%s %s %s", data.response.protocol(), data.response.code(), data.response.message()));
+        ResponseHeaders networkResponse = new ResponseHeaders(data.request.getUri(), rh);
+        data.state.put("response-headers", networkResponse);
         if (cacheData != null) {
-            if (cacheData.cachedResponseHeaders.validate(data.headers)) {
+            if (cacheData.cachedResponseHeaders.validate(networkResponse)) {
                 data.request.logi("Serving response from conditional cache");
-                data.headers.getHeaders().removeAll("Content-Length");
-                data.headers = cacheData.cachedResponseHeaders.combine(data.headers);
-                data.headers.getHeaders().setStatusLine(cacheData.cachedResponseHeaders.getHeaders().getStatusLine());
+                ResponseHeaders combined = cacheData.cachedResponseHeaders.combine(networkResponse);
+                data.response.headers(new Headers(combined.getHeaders().toMultimap()));
+                data.response.code(combined.getHeaders().getResponseCode());
+                data.response.message(combined.getHeaders().getResponseMessage());
 
-                data.headers.getHeaders().set(SERVED_FROM, CONDITIONAL_CACHE);
+                data.response.headers().set(SERVED_FROM, CONDITIONAL_CACHE);
                 conditionalCacheHitCount++;
 
                 CachedBodyEmitter bodySpewer = new CachedBodyEmitter(cacheData.candidate, cacheData.contentLength);
@@ -241,7 +255,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         if (!caching)
             return;
 
-        if (!data.headers.isCacheable(data.request.getHeaders()) || !data.request.getMethod().equals(AsyncHttpGet.METHOD)) {
+        RequestHeaders requestHeaders = data.state.get("request-headers");
+        if (requestHeaders == null || !networkResponse.isCacheable(requestHeaders) || !data.request.getMethod().equals(AsyncHttpGet.METHOD)) {
             /*
              * Don't cache non-GET responses. We're technically allowed to cache
              * HEAD requests and some POST requests, but the complexity of doing
@@ -253,8 +268,8 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         String key = FileCache.toKeyString(data.request.getUri());
-        RawHeaders varyHeaders = data.request.getHeaders().getHeaders().getAll(data.headers.getVaryFields());
-        Entry entry = new Entry(data.request.getUri(), varyHeaders, data.request, data.headers);
+        RawHeaders varyHeaders = requestHeaders.getHeaders().getAll(networkResponse.getVaryFields());
+        Entry entry = new Entry(data.request.getUri(), varyHeaders, data.request, networkResponse.getHeaders());
         BodyCacher cacher = new BodyCacher();
         EntryEditor editor = new EntryEditor(key);
         try {
@@ -280,7 +295,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
     // step 3: close up shop
     @Override
-    public void onRequestComplete(OnRequestCompleteData data) {
+    public void onResponseComplete(OnResponseCompleteDataOnRequestSentData data) {
         CacheData cacheData = data.state.get("cache-data");
         if (cacheData != null && cacheData.snapshot != null)
             StreamUtility.closeQuietly(cacheData.snapshot);
@@ -556,11 +571,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             }
         }
 
-        public Entry(Uri uri, RawHeaders varyHeaders, AsyncHttpRequest request, ResponseHeaders responseHeaders) {
+        public Entry(Uri uri, RawHeaders varyHeaders, AsyncHttpRequest request, RawHeaders responseHeaders) {
             this.uri = uri.toString();
             this.varyHeaders = varyHeaders;
             this.requestMethod = request.getMethod();
-            this.responseHeaders = responseHeaders.getHeaders();
+            this.responseHeaders = responseHeaders;
 
 //            if (isHttps()) {
 //                HttpsURLConnection httpsConnection = (HttpsURLConnection) httpConnection;
@@ -712,12 +727,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             closed = true;
             if (closedCallback != null)
                 closedCallback.onCompleted(e);
-        }
-
-        @Override
-        public void write(ByteBuffer bb) {
-            // it's gonna write headers and stuff... whatever
-            bb.limit(bb.position());
         }
 
         @Override

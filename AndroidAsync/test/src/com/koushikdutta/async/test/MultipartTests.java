@@ -1,6 +1,7 @@
 package com.koushikdutta.async.test;
 
 import android.os.Environment;
+import android.test.AndroidTestCase;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
@@ -26,7 +27,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.TimeUnit;
 
-public class MultipartTests extends TestCase {
+public class MultipartTests extends AndroidTestCase {
     AsyncHttpServer httpServer;
 
     @Override
@@ -81,7 +82,7 @@ public class MultipartTests extends TestCase {
     }
 
     public void testUpload() throws Exception {
-        File dummy = new File(Environment.getExternalStorageDirectory(), "AndroidAsync/dummy.txt");
+        File dummy = getContext().getFileStreamPath("dummy.txt");
         final String FIELD_VAL = "bar";
         dummy.getParentFile().mkdirs();
         FileOutputStream fout = new FileOutputStream(dummy);

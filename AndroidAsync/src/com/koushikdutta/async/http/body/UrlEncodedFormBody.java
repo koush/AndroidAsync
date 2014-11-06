@@ -46,6 +46,7 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
             mBodyBytes = b.toString().getBytes("UTF-8");
         }
         catch (UnsupportedEncodingException e) {
+            throw new AssertionError(e);
         }
     }
     

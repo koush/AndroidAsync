@@ -45,27 +45,6 @@ public class BufferedDataSink implements DataSink {
     ByteBufferList mPendingWrites = new ByteBufferList();
 
     @Override
-    public void write(ByteBuffer bb) {
-        if (remaining() >= getMaxBuffer())
-            return;
-
-        boolean needsWrite = true;
-        if (!mPendingWrites.hasRemaining()) {
-            needsWrite = false;
-            mDataSink.write(bb);
-        }
-
-        if (bb.hasRemaining()) {
-            ByteBuffer dup = ByteBufferList.obtain(bb.remaining());
-            dup.put(bb);
-            dup.flip();
-            mPendingWrites.add(dup);
-            if (needsWrite)
-                mDataSink.write(mPendingWrites);
-        }
-    }
-
-    @Override
     public void write(ByteBufferList bb) {
         write(bb, false);
     }
@@ -112,11 +91,6 @@ public class BufferedDataSink implements DataSink {
     @Override
     public boolean isOpen() {
         return mDataSink.isOpen();
-    }
-
-    @Override
-    public void close() {
-        mDataSink.close();
     }
 
     boolean endPending;

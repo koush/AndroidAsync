@@ -2,6 +2,7 @@ package com.koushikdutta.async.test;
 
 import android.net.Uri;
 import android.os.Environment;
+import android.test.AndroidTestCase;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -20,16 +21,14 @@ import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpResponse;
-import com.koushikdutta.async.http.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.body.JSONObjectBody;
+import com.koushikdutta.async.http.cache.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
-import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
-import com.koushikdutta.async.http.server.HttpServerRequestCallback;
+import com.koushikdutta.async.http.server.AsyncProxyServer;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.json.JSONObject;
 
@@ -40,7 +39,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class HttpClientTests extends TestCase {
+public class HttpClientTests extends AndroidTestCase {
     AsyncHttpClient client;
     AsyncServer server = new AsyncServer();
     
@@ -115,7 +114,7 @@ public class HttpClientTests extends TestCase {
             @Override
             public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
                 // make sure gzip decoding works, as that is generally what github sends.
-                Assert.assertEquals("gzip", response.getHeaders().getContentEncoding());
+                Assert.assertEquals("gzip", response.headers().get("Content-Encoding"));
                 response.setDataCallback(new DataCallback() {
                     @Override
                     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -226,7 +225,7 @@ public class HttpClientTests extends TestCase {
     }
 
     public void testCache() throws Exception {
-        ResponseCacheMiddleware cache = ResponseCacheMiddleware.addCache(client, new File(Environment.getExternalStorageDirectory(), "AndroidAsyncTest"), 1024 * 1024 * 10);
+        ResponseCacheMiddleware cache = ResponseCacheMiddleware.addCache(client, new File(getContext().getFilesDir(), "AndroidAsyncTest"), 1024 * 1024 * 10);
         try {
             // clear the old cache
             cache.clear();
@@ -244,7 +243,8 @@ public class HttpClientTests extends TestCase {
     Future<File> fileFuture;
     public void testFileCancel() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
-        fileFuture = client.executeFile(new AsyncHttpGet(github), "/sdcard/hello.txt", new AsyncHttpClient.FileCallback() {
+        File f = getContext().getFileStreamPath("test.txt");
+        fileFuture = client.executeFile(new AsyncHttpGet(github), f.getAbsolutePath(), new AsyncHttpClient.FileCallback() {
             @Override
             public void onCompleted(Exception e, AsyncHttpResponse source, File result) {
                 fail();
@@ -273,7 +273,7 @@ public class HttpClientTests extends TestCase {
         }
 //        Thread.sleep(1000);
 //        assertTrue("timeout", semaphore.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS));
-        assertFalse(new File("/sdcard/hello.txt").exists());
+        assertFalse(f.exists());
     }
 
     boolean wasProxied;
@@ -281,23 +281,13 @@ public class HttpClientTests extends TestCase {
         wasProxied = false;
         final AsyncServer proxyServer = new AsyncServer();
         try {
-            AsyncHttpServer httpServer = new AsyncHttpServer();
-            httpServer.get(".*", new HttpServerRequestCallback() {
+            AsyncProxyServer httpServer = new AsyncProxyServer(proxyServer) {
                 @Override
-                public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                    Log.i("Proxy", "Proxying request");
+                protected boolean onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
                     wasProxied = true;
-                    AsyncHttpClient proxying = new AsyncHttpClient(proxyServer);
-
-                    String url = request.getPath();
-                    proxying.executeString(new AsyncHttpGet(url), new StringCallback() {
-                        @Override
-                        public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
-                            response.send(result);
-                        }
-                    });
+                    return super.onRequest(request, response);
                 }
-            });
+            };
 
             AsyncServerSocket socket = httpServer.listen(proxyServer, 0);
 

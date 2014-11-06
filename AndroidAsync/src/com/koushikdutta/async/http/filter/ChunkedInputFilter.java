@@ -43,6 +43,7 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
         super.report(e);
     }
 
+    ByteBufferList pending = new ByteBufferList();
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
         try {
@@ -82,12 +83,8 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
                     }
                     if (reading == 0)
                         break;
-                    ByteBufferList chunk = bb.get(reading);
-                    int newRemaining = bb.remaining();
-                    assert remaining == chunk.remaining() + bb.remaining();
-                    assert reading == chunk.remaining();
-                    Util.emitAllData(this, chunk);
-                    assert newRemaining == bb.remaining();
+                    bb.get(pending, reading);
+                    Util.emitAllData(this, pending);
                     break;
                 case CHUNK_CR:
                     if (!checkCR(bb.getByteChar()))

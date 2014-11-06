@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package com.koushikdutta.async.http.libcore;
+package com.koushikdutta.async.http.cache;
 
 import android.net.Uri;
+
+import com.koushikdutta.async.http.HttpDate;
 
 import java.util.Date;
 import java.util.List;
@@ -25,7 +27,7 @@ import java.util.Map;
 /**
  * Parsed HTTP request headers.
  */
-public final class RequestHeaders {
+final class RequestHeaders {
     private final Uri uri;
     private final RawHeaders headers;
 

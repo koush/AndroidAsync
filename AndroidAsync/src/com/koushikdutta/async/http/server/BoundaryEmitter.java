@@ -1,6 +1,5 @@
 package com.koushikdutta.async.http.server;
 
-import android.util.Log;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;

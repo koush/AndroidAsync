@@ -3,12 +3,18 @@ package com.koushikdutta.async;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 
-public class BufferedDataEmitter implements DataEmitter, DataCallback {
+public class BufferedDataEmitter implements DataEmitter {
     DataEmitter mEmitter;
     public BufferedDataEmitter(DataEmitter emitter) {
         mEmitter = emitter;
-        mEmitter.setDataCallback(this);
-        
+        mEmitter.setDataCallback(new DataCallback() {
+            @Override
+            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                bb.get(mBuffers);
+                BufferedDataEmitter.this.onDataAvailable();
+            }
+        });
+
         mEmitter.setEndCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
@@ -29,10 +35,10 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     Exception mEndException;
     
     public void onDataAvailable() {
-        if (mDataCallback != null && !mPaused && mBuffers.remaining() > 0)
+        if (mDataCallback != null && !isPaused() && mBuffers.remaining() > 0)
             mDataCallback.onDataAvailable(this, mBuffers);
-        
-        if (mEnded && mBuffers.remaining() == 0 && mEndCallback != null)
+
+        if (mEnded && !mBuffers.hasRemaining() && mEndCallback != null)
             mEndCallback.onCompleted(mEndException);
     }
     
@@ -41,6 +47,8 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     DataCallback mDataCallback;
     @Override
     public void setDataCallback(DataCallback callback) {
+        if (mDataCallback != null)
+            throw new RuntimeException("Buffered Data Emitter callback may only be set once");
         mDataCallback = callback;
     }
 
@@ -55,29 +63,19 @@ public class BufferedDataEmitter implements DataEmitter, DataCallback {
     }
 
     @Override
-    public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        bb.get(mBuffers);
-
-        onDataAvailable();        
-    }
-
-    private boolean mPaused;
-    @Override
     public void pause() {
-        mPaused = true;
+        mEmitter.pause();
     }
 
     @Override
     public void resume() {
-        if (!mPaused)
-            return;
-        mPaused = false;
+        mEmitter.resume();
         onDataAvailable();
     }
 
     @Override
     public boolean isPaused() {
-        return mPaused;
+        return mEmitter.isPaused();
     }
 
 

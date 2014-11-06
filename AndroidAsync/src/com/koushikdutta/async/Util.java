@@ -3,6 +3,8 @@ package com.koushikdutta.async;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.util.Allocator;
+import com.koushikdutta.async.util.StreamUtility;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 import com.koushikdutta.async.wrapper.DataEmitterWrapper;
 
@@ -67,38 +69,31 @@ public class Util {
             private void cleanup() {
                 ds.setClosedCallback(null);
                 ds.setWriteableCallback(null);
-                ByteBufferList.reclaim(pending);
-                pending = null;
-                try {
-                    is.close();
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
+                pending.recycle();
+                StreamUtility.closeQuietly(is);
             }
-            ByteBuffer pending;
-            int mToAlloc = 0;
-            int maxAlloc = 256 * 1024;
+            ByteBufferList pending = new ByteBufferList();
+            Allocator allocator = new Allocator();
 
             @Override
             public void onWriteable() {
                 try {
                     do {
-                        if (pending == null || pending.remaining() == 0) {
-                            ByteBufferList.reclaim(pending);
-                            pending = ByteBufferList.obtain(Math.min(Math.max(mToAlloc, 2 << 11), maxAlloc));
+                        if (!pending.hasRemaining()) {
+                            ByteBuffer b = allocator.allocate();
 
-                            long toRead = Math.min(max - totalRead, pending.capacity());
-                            int read = is.read(pending.array(), 0, (int)toRead);
+                            long toRead = Math.min(max - totalRead, b.capacity());
+                            int read = is.read(b.array(), 0, (int)toRead);
                             if (read == -1 || totalRead == max) {
                                 cleanup();
                                 wrapper.onCompleted(null);
                                 return;
                             }
-                            mToAlloc = read * 2;
+                            allocator.track(read);
                             totalRead += read;
-                            pending.position(0);
-                            pending.limit(read);
+                            b.position(0);
+                            b.limit(read);
+                            pending.add(b);
                         }
                         
                         ds.write(pending);
@@ -131,27 +126,34 @@ public class Util {
         sink.setWriteableCallback(new WritableCallback() {
             @Override
             public void onWriteable() {
-                dataCallback.onDataAvailable(emitter, new ByteBufferList());
                 emitter.resume();
             }
         });
 
-        CompletedCallback wrapper = new CompletedCallback() {
+        final CompletedCallback wrapper = new CompletedCallback() {
             boolean reported;
             @Override
             public void onCompleted(Exception ex) {
                 if (reported)
                     return;
+                reported = true;
+                emitter.setDataCallback(null);
                 emitter.setEndCallback(null);
                 sink.setClosedCallback(null);
                 sink.setWriteableCallback(null);
-                reported = true;
                 callback.onCompleted(ex);
             }
         };
 
         emitter.setEndCallback(wrapper);
-        sink.setClosedCallback(wrapper);
+        sink.setClosedCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                if (ex == null)
+                    ex = new IOException("sink was closed before emitter ended");
+                wrapper.onCompleted(ex);
+            }
+        });
     }
     
     public static void stream(AsyncSocket s1, AsyncSocket s2, CompletedCallback callback) {
@@ -227,5 +229,27 @@ public class Util {
                 return emitter;
         }
         return null;
+    }
+
+    public static void end(DataEmitter emitter, Exception e) {
+        if (emitter == null)
+            return;
+        end(emitter.getEndCallback(), e);
+    }
+
+    public static void end(CompletedCallback end, Exception e) {
+        if (end != null)
+            end.onCompleted(e);
+    }
+
+    public static void writable(DataSink emitter) {
+        if (emitter == null)
+            return;
+        writable(emitter.getWriteableCallback());
+    }
+
+    public static void writable(WritableCallback writable) {
+        if (writable != null)
+            writable.onWriteable();
     }
 }

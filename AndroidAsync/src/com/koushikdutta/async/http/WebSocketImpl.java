@@ -1,11 +1,5 @@
 package com.koushikdutta.async.http;
 
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
-import java.security.MessageDigest;
-import java.util.LinkedList;
-import java.util.UUID;
-
 import android.text.TextUtils;
 import android.util.Base64;
 
@@ -17,9 +11,14 @@ import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
-import com.koushikdutta.async.http.libcore.RawHeaders;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
+import java.security.MessageDigest;
+import java.util.LinkedList;
+import java.util.UUID;
 
 public class WebSocketImpl implements WebSocket {
     @Override
@@ -96,7 +95,7 @@ public class WebSocketImpl implements WebSocket {
             }
             @Override
             protected void sendFrame(byte[] frame) {
-                mSink.write(ByteBuffer.wrap(frame));
+                mSink.write(new ByteBufferList(frame));
             }
 
             @Override
@@ -116,19 +115,19 @@ public class WebSocketImpl implements WebSocket {
     public WebSocketImpl(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
         this(request.getSocket());
         
-        String key = request.getHeaders().getHeaders().get("Sec-WebSocket-Key");
+        String key = request.getHeaders().get("Sec-WebSocket-Key");
         String concat = key + MAGIC;
         String sha1 = SHA1(concat);
-        String origin = request.getHeaders().getHeaders().get("Origin");
+        String origin = request.getHeaders().get("Origin");
         
-        response.responseCode(101);
-        response.getHeaders().getHeaders().set("Upgrade", "WebSocket");
-        response.getHeaders().getHeaders().set("Connection", "Upgrade");
-        response.getHeaders().getHeaders().set("Sec-WebSocket-Accept", sha1);
-        String protocol = request.getHeaders().getHeaders().get("Sec-WebSocket-Protocol");
+        response.code(101);
+        response.getHeaders().set("Upgrade", "WebSocket");
+        response.getHeaders().set("Connection", "Upgrade");
+        response.getHeaders().set("Sec-WebSocket-Accept", sha1);
+        String protocol = request.getHeaders().get("Sec-WebSocket-Protocol");
         // match the protocol (sanity checking and enforcement is done in the caller)
         if (!TextUtils.isEmpty(protocol))
-            response.getHeaders().getHeaders().set("Sec-WebSocket-Protocol", protocol);
+            response.getHeaders().set("Sec-WebSocket-Protocol", protocol);
 //        if (origin != null)
 //            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
         response.writeHead();
@@ -137,7 +136,7 @@ public class WebSocketImpl implements WebSocket {
     }
     
     public static void addWebSocketUpgradeHeaders(AsyncHttpRequest req, String protocol) {
-        RawHeaders headers = req.getHeaders().getHeaders();
+        Headers headers = req.getHeaders();
         final String key = Base64.encodeToString(toByteArray(UUID.randomUUID()),Base64.NO_WRAP);
         headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
@@ -148,8 +147,8 @@ public class WebSocketImpl implements WebSocket {
             headers.set("Sec-WebSocket-Protocol", protocol);
         headers.set("Pragma", "no-cache");
         headers.set("Cache-Control", "no-cache");
-        if (TextUtils.isEmpty(req.getHeaders().getUserAgent()))
-            req.getHeaders().setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.15 Safari/537.36");
+        if (TextUtils.isEmpty(req.getHeaders().get("User-Agent")))
+            req.getHeaders().set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.15 Safari/537.36");
     }
     
     public WebSocketImpl(AsyncSocket socket) {
@@ -157,15 +156,15 @@ public class WebSocketImpl implements WebSocket {
         mSink = new BufferedDataSink(mSocket);
     }
     
-    public static WebSocket finishHandshake(RawHeaders requestHeaders, AsyncHttpResponse response) {
+    public static WebSocket finishHandshake(Headers requestHeaders, AsyncHttpResponse response) {
         if (response == null)
             return null;
-        if (response.getHeaders().getHeaders().getResponseCode() != 101)
+        if (response.code() != 101)
             return null;
-        if (!"websocket".equalsIgnoreCase(response.getHeaders().getHeaders().get("Upgrade")))
+        if (!"websocket".equalsIgnoreCase(response.headers().get("Upgrade")))
             return null;
         
-        String sha1 = response.getHeaders().getHeaders().get("Sec-WebSocket-Accept");
+        String sha1 = response.headers().get("Sec-WebSocket-Accept");
         if (sha1 == null)
             return null;
         String key = requestHeaders.get("Sec-WebSocket-Key");
@@ -221,22 +220,22 @@ public class WebSocketImpl implements WebSocket {
 
     @Override
     public void send(byte[] bytes) {
-        mSink.write(ByteBuffer.wrap(mParser.frame(bytes)));
+        mSink.write(new ByteBufferList((mParser.frame(bytes))));
     }
     
     @Override
     public void send(byte[] bytes, int offset, int len) {
-    	mSink.write(ByteBuffer.wrap(mParser.frame(bytes, offset, len)));
+    	mSink.write(new ByteBufferList(mParser.frame(bytes, offset, len)));
     }
 
     @Override
     public void send(String string) {
-        mSink.write(ByteBuffer.wrap(mParser.frame(string)));
+        mSink.write(new ByteBufferList((mParser.frame(string))));
     }
 
     @Override
     public void ping(String string) {
-        mSink.write(ByteBuffer.wrap(mParser.pingFrame(string)));
+        mSink.write(new ByteBufferList(ByteBuffer.wrap(mParser.pingFrame(string))));
     }
 
     private StringCallback mStringCallback;
@@ -280,15 +279,6 @@ public class WebSocketImpl implements WebSocket {
     @Override
     public boolean isBuffering() {
         return mSink.remaining() > 0;
-    }
-
-    @Override
-    public void write(ByteBuffer bb) {
-        byte[] buf = new byte[bb.remaining()];
-        bb.get(buf);
-        bb.position(0);
-        bb.limit(0);
-        send(buf);
     }
 
     @Override

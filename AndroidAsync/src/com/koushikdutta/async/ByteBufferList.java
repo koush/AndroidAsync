@@ -41,9 +41,22 @@ public class ByteBufferList {
         add(b);
     }
 
-    public void addAll(ByteBuffer... bb) {
+    public ByteBufferList addAll(ByteBuffer... bb) {
         for (ByteBuffer b: bb)
             add(b);
+        return this;
+    }
+
+    public ByteBufferList addAll(ByteBufferList... bb) {
+        for (ByteBufferList b: bb)
+            b.get(this);
+        return this;
+    }
+
+    public byte[] getBytes(int length) {
+        byte[] ret = new byte[length];
+        get(ret);
+        return ret;
     }
 
     public byte[] getAllByteArray() {
@@ -102,6 +115,11 @@ public class ByteBufferList {
         return ret;
     }
 
+    public ByteBufferList skip(int length) {
+        get(null, 0, length);
+        return this;
+    }
+
     public int getInt() {
         int ret = read(4).getInt();
         remaining -= 4;
@@ -114,8 +132,8 @@ public class ByteBufferList {
         return ret;
     }
     
-    public int getShort() {
-        int ret = read(2).getShort();
+    public short getShort() {
+        short ret = read(2).getShort();
         remaining -= 2;
         return ret;
     }
@@ -144,7 +162,8 @@ public class ByteBufferList {
         while (need > 0) {
             ByteBuffer b = mBuffers.peek();
             int read = Math.min(b.remaining(), need);
-            b.get(bytes, offset, read);
+            if (bytes != null)
+                b.get(bytes, offset, read);
             need -= read;
             offset += read;
             if (b.remaining() == 0) {
@@ -256,12 +275,17 @@ public class ByteBufferList {
         // this clears out buffers that are empty in the beginning of the list
         read(0);
     }
-    
-    public void add(ByteBuffer b) {
+
+    public ByteBufferList add(ByteBufferList b) {
+        b.get(this);
+        return this;
+    }
+
+    public ByteBufferList add(ByteBuffer b) {
         if (b.remaining() <= 0) {
 //            System.out.println("reclaiming remaining: " + b.remaining());
             reclaim(b);
-            return;
+            return this;
         }
         addRemaining(b.remaining());
         // see if we can fit the entirety of the buffer into the end
@@ -277,11 +301,12 @@ public class ByteBufferList {
                 last.reset();
                 reclaim(b);
                 trim();
-                return;
+                return this;
             }
         }
         mBuffers.add(b);
         trim();
+        return this;
     }
 
     public void addFirst(ByteBuffer b) {

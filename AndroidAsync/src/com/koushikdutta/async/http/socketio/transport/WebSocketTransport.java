@@ -1,8 +1,8 @@
 package com.koushikdutta.async.http.socketio.transport;
 
 import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.NullDataCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.WebSocket;
 
 public class WebSocketTransport implements SocketIOTransport {
@@ -13,7 +13,7 @@ public class WebSocketTransport implements SocketIOTransport {
     public WebSocketTransport(WebSocket webSocket, String sessionId) {
         this.webSocket = webSocket;
         this.sessionId = sessionId;
-        this.webSocket.setDataCallback(new NullDataCallback());
+        this.webSocket.setDataCallback(new DataCallback.NullDataCallback());
     }
 
     @Override

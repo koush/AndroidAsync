@@ -1,7 +1,5 @@
 package com.koushikdutta.async.http.server;
 
-import java.util.regex.Matcher;
-
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
@@ -9,15 +7,22 @@ import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.LineEmitter.StringCallback;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
+import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.HttpUtil;
-import com.koushikdutta.async.http.libcore.RawHeaders;
-import com.koushikdutta.async.http.libcore.RequestHeaders;
+import com.koushikdutta.async.http.Protocol;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
+
+import java.util.regex.Matcher;
 
 public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter implements AsyncHttpServerRequest, CompletedCallback {
-    private RawHeaders mRawHeaders = new RawHeaders();
+    private String statusLine;
+    private Headers mRawHeaders = new Headers();
     AsyncSocket mSocket;
     Matcher mMatcher;
+
+    public String getStatusLine() {
+        return statusLine;
+    }
 
     private CompletedCallback mReporter = new CompletedCallback() {
         @Override
@@ -36,11 +41,10 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
     abstract protected void onHeadersReceived();
     
     protected void onNotHttp() {
-        System.out.println("not http: " + mRawHeaders.getStatusLine());
-        System.out.println("not http: " + mRawHeaders.getStatusLine().length());
+        System.out.println("not http!");
     }
 
-    protected AsyncHttpRequestBody onUnknownBody(RawHeaders headers) {
+    protected AsyncHttpRequestBody onUnknownBody(Headers headers) {
         return null;
     }
     
@@ -48,9 +52,9 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         @Override
         public void onStringAvailable(String s) {
             try {
-                if (mRawHeaders.getStatusLine() == null) {
-                    mRawHeaders.setStatusLine(s);
-                    if (!mRawHeaders.getStatusLine().contains("HTTP/")) {
+                if (statusLine == null) {
+                    statusLine = s;
+                    if (!statusLine.contains("HTTP/")) {
                         onNotHttp();
                         mSocket.setDataCallback(null);
                     }
@@ -59,7 +63,7 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                     mRawHeaders.addLine(s);
                 }
                 else {
-                    DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, mRawHeaders, true);
+                    DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, Protocol.HTTP_1_1, mRawHeaders, true);
 //                    emitter.setEndCallback(mReporter);
                     mBody = HttpUtil.getBody(emitter, mReporter, mRawHeaders);
                     if (mBody == null) {
@@ -68,7 +72,6 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                             mBody = new UnknownRequestBody(mRawHeaders.get("Content-Type"));
                     }
                     mBody.parse(emitter, mReporter);
-                    mHeaders = new RequestHeaders(null, mRawHeaders);
                     onHeadersReceived();
                 }
             }
@@ -77,10 +80,6 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
             }
         }
     };
-
-    RawHeaders getRawHeaders() {
-        return mRawHeaders;
-    }
 
     String method;
     @Override
@@ -94,6 +93,7 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         LineEmitter liner = new LineEmitter();
         mSocket.setDataCallback(liner);
         liner.setLineCallback(mHeaderCallback);
+        mSocket.setEndCallback(new NullCompletedCallback());
     }
     
     @Override
@@ -101,10 +101,9 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         return mSocket;
     }
 
-    private RequestHeaders mHeaders;
     @Override
-    public RequestHeaders getHeaders() {
-        return mHeaders;
+    public Headers getHeaders() {
+        return mRawHeaders;
     }
 
     @Override
@@ -146,5 +145,12 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
     @Override
     public boolean isPaused() {
         return mSocket.isPaused();
+    }
+
+    @Override
+    public String toString() {
+        if (mRawHeaders == null)
+            return super.toString();
+        return mRawHeaders.toPrefixString(statusLine);
     }
 }
