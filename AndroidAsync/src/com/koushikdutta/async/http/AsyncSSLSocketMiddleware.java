@@ -57,12 +57,12 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         engineConfigurators.clear();
     }
 
-    protected SSLEngine createConfiguredSSLEngine(String host, int port) {
+    protected SSLEngine createConfiguredSSLEngine(GetSocketData data, String host, int port) {
         SSLContext sslContext = getSSLContext();
         SSLEngine sslEngine = sslContext.createSSLEngine();
 
         for (AsyncSSLEngineConfigurator configurator : engineConfigurators) {
-            configurator.configureEngine(sslEngine, host, port);
+            configurator.configureEngine(sslEngine, data, host, port);
         }
 
         return sslEngine;
@@ -79,7 +79,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
 
     protected void tryHandshake(AsyncSocket socket, GetSocketData data, final Uri uri, final int port, final ConnectCallback callback) {
         AsyncSSLSocketWrapper.handshake(socket, uri.getHost(), port,
-        createConfiguredSSLEngine(uri.getHost(), port),
+        createConfiguredSSLEngine(data, uri.getHost(), port),
         trustManagers, hostnameVerifier, true,
         createHandshakeCallback(data, callback));
     }

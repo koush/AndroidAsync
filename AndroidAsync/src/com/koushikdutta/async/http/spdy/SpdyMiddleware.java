@@ -39,13 +39,13 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         super(client);
         addEngineConfigurator(new AsyncSSLEngineConfigurator() {
             @Override
-            public void configureEngine(SSLEngine engine, String host, int port) {
-                configure(engine, host, port);
+            public void configureEngine(SSLEngine engine, GetSocketData data, String host, int port) {
+                configure(engine, data, host, port);
             }
         });
     }
 
-    private void configure(SSLEngine engine, String host, int port) {
+    private void configure(SSLEngine engine, GetSocketData data, String host, int port) {
         if (!initialized && spdyEnabled) {
             initialized = true;
             try {
@@ -82,6 +82,12 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                 nativeGetAlpnNegotiatedProtocol = null;
             }
         }
+
+        // TODO: figure out why POST does not work if sending content-length header
+        // see above regarding app engine comment as to why: drive requires content-length
+        // but app engine sends a GO_AWAY if it sees a content-length...
+        if (!canSpdyRequest(data))
+            return;
 
         if (sslParameters != null) {
             try {
@@ -229,10 +235,16 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             }
         }
 
-
         request.logv("\n" + request);
         final AsyncSpdyConnection.SpdySocket spdy = connection.newStream(headers, requestBody != null, true);
         callback.onConnectCompleted(null, spdy);
+    }
+
+    private boolean canSpdyRequest(GetSocketData data) {
+        // TODO: figure out why POST does not work if sending content-length header
+        // see above regarding app engine comment as to why: drive requires content-length
+        // but app engine sends a GO_AWAY if it sees a content-length...
+        return data.request.getBody() == null;
     }
 
     @Override
@@ -249,7 +261,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         // TODO: figure out why POST does not work if sending content-length header
         // see above regarding app engine comment as to why: drive requires content-length
         // but app engine sends a GO_AWAY if it sees a content-length...
-        if (data.request.getBody() != null)
+        if (!canSpdyRequest(data))
             return super.getSocket(data);
 
         // can we use an existing connection to satisfy this, or do we need a new one?
