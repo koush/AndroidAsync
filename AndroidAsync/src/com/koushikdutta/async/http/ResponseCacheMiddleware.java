@@ -325,7 +325,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
             if (cached != null) {
-                com.koushikdutta.async.Util.emitAllData(this, cached);
+                super.onDataAvailable(emitter, cached);
                 // couldn't emit it all, so just wait for another day...
                 if (cached.remaining() > 0)
                     return;
@@ -367,6 +367,12 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 cached = new ByteBufferList();
                 bb.get(cached);
             }
+        }
+
+        @Override
+        public void close() {
+            abort();
+            super.close();
         }
 
         public void abort() {
