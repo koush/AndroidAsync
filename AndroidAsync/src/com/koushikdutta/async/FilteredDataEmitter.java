@@ -45,6 +45,12 @@ public class FilteredDataEmitter extends DataEmitterBase implements DataEmitter,
     private int totalRead;
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+        if (closed) {
+            // this emitter was closed but for some reason data is still being spewed...
+            // eat it, nom nom.
+            bb.recycle();
+            return;
+        }
         if (bb != null)
             totalRead += bb.remaining();
         Util.emitAllData(this, bb);
@@ -81,9 +87,12 @@ public class FilteredDataEmitter extends DataEmitterBase implements DataEmitter,
         return mEmitter.getServer();
     }
 
+    boolean closed;
     @Override
     public void close() {
-        mEmitter.close();
+        closed = true;
+        if (mEmitter != null)
+            mEmitter.close();
     }
 
     @Override
