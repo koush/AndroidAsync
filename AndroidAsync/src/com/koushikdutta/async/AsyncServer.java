@@ -626,7 +626,7 @@ public class AsyncServer {
                 runLoop(server, selector, queue);
             }
             catch (AsyncSelectorException e) {
-                Log.e(LOGTAG, "Selector exception", e);
+                Log.i(LOGTAG, "Selector exception, shutting down", e);
                 try {
                     // StreamUtility.closeQuiety is throwing ArrayStoreException?
                     selector.getSelector().close();

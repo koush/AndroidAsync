@@ -18,6 +18,10 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
     public Multimap() {
     }
 
+    protected List<String> newList() {
+        return new ArrayList<String>();
+    }
+
     public String getString(String name) {
         List<String> ret = get(name);
         if (ret == null || ret.size() == 0)
@@ -28,14 +32,14 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
     public void add(String name, String value) {
         List<String> ret = get(name);
         if (ret == null) {
-            ret = new ArrayList<String>();
+            ret = newList();
             put(name, ret);
         }
         ret.add(value);
     }
 
     public void put(String name, String value) {
-        ArrayList<String> ret = new ArrayList<String>();
+        List<String> ret = newList();
         ret.add(value);
         put(name, ret);
     }

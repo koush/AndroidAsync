@@ -1,12 +1,5 @@
 package com.koushikdutta.async.sample;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Bitmap;
@@ -26,13 +19,19 @@ import android.widget.Toast;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpPost;
-import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpResponse;
-import com.koushikdutta.async.http.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;
+import com.koushikdutta.async.http.cache.ResponseCacheMiddleware;
+
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 
 public class MainActivity extends Activity {
-    static ResponseCacheMiddleware cacher; 
+    static ResponseCacheMiddleware cacher;
     
     ImageView rommanager;
     ImageView tether;

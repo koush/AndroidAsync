@@ -1,0 +1,36 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:+'
+    }
+}
+apply plugin: 'com.android.application'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile project(':AndroidAsync:AndroidAsync')
+}
+
+android {
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            res.srcDirs = ['res/']
+            java.srcDirs = ['src/']
+        }
+    }
+
+    defaultConfig {
+        targetSdkVersion 21
+        minSdkVersion 9
+    }
+
+    compileSdkVersion 21
+    buildToolsVersion "21.1.0"
+}
+

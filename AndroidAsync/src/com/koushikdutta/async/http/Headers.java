@@ -4,6 +4,7 @@ package com.koushikdutta.async.http;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.http.server.AsyncHttpServer;
+import com.koushikdutta.async.util.TaggedList;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
@@ -24,7 +25,12 @@ public class Headers {
         map.putAll(mm);
     }
 
-    Multimap map = new Multimap();
+    final Multimap map = new Multimap() {
+        @Override
+        protected List<String> newList() {
+            return new TaggedList<String>();
+        }
+    };
     public Multimap getMultiMap() {
         return map;
     }
@@ -38,12 +44,18 @@ public class Headers {
     }
 
     public Headers set(String header, String value) {
-        map.put(header.toLowerCase(), value);
+        String lc = header.toLowerCase();
+        map.put(lc, value);
+        TaggedList<String> list = (TaggedList<String>)map.get(lc);
+        list.tagNull(header);
         return this;
     }
 
     public Headers add(String header, String value) {
-        map.add(header.toLowerCase(), value);
+        String lc = header.toLowerCase();
+        map.add(lc, value);
+        TaggedList<String> list = (TaggedList<String>)map.get(lc);
+        list.tagNull(header);
         return this;
     }
 
@@ -102,8 +114,9 @@ public class Headers {
     public Header[] toHeaderArray() {
         ArrayList<Header> ret = new ArrayList<Header>();
         for (String key: map.keySet()) {
+            TaggedList<String> list = (TaggedList<String>)map.get(key);
             for (String v: map.get(key)) {
-                ret.add(new BasicHeader(key, v));
+                ret.add(new BasicHeader((String)list.tag(), v));
             }
         }
         return ret.toArray(new Header[ret.size()]);
@@ -112,8 +125,9 @@ public class Headers {
     public StringBuilder toStringBuilder() {
         StringBuilder result = new StringBuilder(256);
         for (String key: map.keySet()) {
-            for (String v: map.get(key)) {
-                result.append(key)
+            TaggedList<String> list = (TaggedList<String>)map.get(key);
+            for (String v: list) {
+                result.append((String)list.tag())
                 .append(": ")
                 .append(v)
                 .append("\r\n");

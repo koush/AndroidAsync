@@ -8,9 +8,6 @@ import java.util.Set;
  * Created by koush on 5/27/13.
  */
 public class HashList<T> {
-    class TaggedList<T> extends ArrayList<T> {
-        Object tag;
-    }
     Hashtable<String, TaggedList<T>> internal = new Hashtable<String, TaggedList<T>>();
 
     public HashList() {
@@ -24,7 +21,7 @@ public class HashList<T> {
         TaggedList<T> list = internal.get(key);
         if (list == null)
             return null;
-        return (V)list.tag;
+        return list.tag();
     }
 
     public synchronized <V> void tag(String key, V tag) {
@@ -33,7 +30,7 @@ public class HashList<T> {
             list = new TaggedList<T>();
             internal.put(key, list);
         }
-        list.tag = tag;
+        list.tag(tag);
     }
 
     public synchronized ArrayList<T> remove(String key) {
