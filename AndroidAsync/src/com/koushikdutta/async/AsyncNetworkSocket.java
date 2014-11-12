@@ -10,6 +10,7 @@ import com.koushikdutta.async.util.Allocator;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -91,7 +92,9 @@ public class AsyncNetworkSocket implements AsyncSocket {
         }
     }
     
-    private void handleRemaining(int remaining) {
+    private void handleRemaining(int remaining) throws IOException {
+        if (!mKey.isValid())
+            throw new IOException(new CancelledKeyException());
         if (remaining > 0) {
             // chunked channels should not fail
             assert !mChannel.isChunked();
