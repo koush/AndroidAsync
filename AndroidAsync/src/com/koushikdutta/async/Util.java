@@ -34,7 +34,12 @@ public class Util {
                 throw new RuntimeException("mDataHandler failed to consume data, yet remains the mDataHandler.");
             }
         }
-        if (list.remaining() != 0 && !emitter.isPaused()) {
+        if (list.remaining() != 0 && handler == null) {
+            // The emitter was closed or cancelled while processing data.  Lets just eat the remaining.
+            System.out.println("emitter: " + emitter);
+            list.recycle();
+        }
+        else if (list.remaining() != 0 && !emitter.isPaused()) {
             // not all the data was consumed...
             // call byteBufferList.recycle() or read all the data to prevent this assertion.
             // this is nice to have, as it identifies protocol or parsing errors.
