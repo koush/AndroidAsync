@@ -20,7 +20,11 @@ public class StringParser implements AsyncParser<String> {
         .then(new TransformFuture<String, ByteBufferList>() {
             @Override
             protected void transform(ByteBufferList result) throws Exception {
-                setComplete(result.readString(charset != null ? Charset.forName(charset) : null));
+            	/*
+            	 * If charset is null set a default value "UTF-8";
+            	 * Fix return chinese garbled.
+            	 */
+            	setComplete(result.readString(Charset.forName(charset != null ?charset :"UTF-8")));
             }
         });
     }
