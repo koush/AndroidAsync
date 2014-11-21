@@ -17,7 +17,7 @@ is it.
 
 ### Download
 
-Download [the latest JAR](http://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=com.koushikdutta.async&a=androidasync&v=LATEST
+Download [the latest JAR](https://search.maven.org/remote_content?g=com.koushikdutta.async&a=androidasync&v=LATEST
 ) or grab via Maven:
 
 ```xml
