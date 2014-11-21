@@ -31,7 +31,7 @@ Download [the latest JAR](https://search.maven.org/remote_content?g=com.koushikd
 Gradle: 
 ```groovy
 dependencies {
-    compile 'com.koushikdutta.androidasync:AndroidAsync:1.0.0'
+    compile 'com.koushikdutta.androidasync:AndroidAsync:2.+'
 }
 ```
 
