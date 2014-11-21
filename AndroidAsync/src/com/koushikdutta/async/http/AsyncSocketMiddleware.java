@@ -206,7 +206,9 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                         // if it completed, that means that the connection failed
                         if (lastException == null)
                             lastException = new ConnectionFailedException("Unable to connect to remote address");
-                        setComplete(lastException);
+                        if (setComplete(lastException)) {
+                            data.connectCallback.onConnectCompleted(lastException, null);
+                        }
                     }
                 });
 
