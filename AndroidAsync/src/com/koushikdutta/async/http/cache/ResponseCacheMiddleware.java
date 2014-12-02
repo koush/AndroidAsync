@@ -425,7 +425,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         void spewInternal() {
             if (pending.remaining() > 0) {
-                com.koushikdutta.async.Util.emitAllData(CachedBodyEmitter.this, pending);
+                super.onDataAvailable(CachedBodyEmitter.this, pending);
                 if (pending.remaining() > 0)
                     return;
             }
@@ -451,7 +451,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 report(e);
                 return;
             }
-            com.koushikdutta.async.Util.emitAllData(this, pending);
+            super.onDataAvailable(this, pending);
             if (pending.remaining() > 0)
                 return;
             // this limits max throughput to 256k (aka max alloc) * 100 per second...
