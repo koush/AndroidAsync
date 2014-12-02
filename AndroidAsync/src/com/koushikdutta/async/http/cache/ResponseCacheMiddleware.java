@@ -475,6 +475,12 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         @Override
+        public void close() {
+            StreamUtility.closeQuietly(cacheResponse.getBody());
+            super.close();
+        }
+
+        @Override
         protected void report(Exception e) {
             // a 304 response will immediate call report/end since there is no body.
             // prevent this from happening by waiting for the actual body to be spit out.
