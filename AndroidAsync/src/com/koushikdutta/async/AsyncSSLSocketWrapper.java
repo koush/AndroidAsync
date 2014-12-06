@@ -229,7 +229,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     public void onDataAvailable() {
         Util.emitAllData(this, pending);
 
-        if (mEnded && !pending.hasRemaining())
+        if (mEnded && !pending.hasRemaining() && mEndCallback != null)
             mEndCallback.onCompleted(mEndException);
     }
 
