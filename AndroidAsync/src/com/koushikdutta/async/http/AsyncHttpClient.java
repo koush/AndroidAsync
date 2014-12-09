@@ -73,8 +73,8 @@ public class AsyncHttpClient {
         insertMiddleware(socketMiddleware = new AsyncSocketMiddleware(this));
         insertMiddleware(sslSocketMiddleware = new SpdyMiddleware(this));
         insertMiddleware(httpTransportMiddleware = new HttpTransportMiddleware());
+        sslSocketMiddleware.addEngineConfigurator(new SSLEngineSNIConfigurator());
     }
-
 
     @SuppressLint("NewApi")
     private static void setupAndroidProxy(AsyncHttpRequest request) {
