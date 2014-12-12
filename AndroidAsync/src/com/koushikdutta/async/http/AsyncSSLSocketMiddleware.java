@@ -126,7 +126,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                                     if (statusLine.length() > 128 || code < 200 || code > 299) {
                                         socket.setDataCallback(null);
                                         socket.setEndCallback(null);
-                                        callback.onConnectCompleted(new IOException("non 200 status line"), socket);
+                                        callback.onConnectCompleted(new IOException("non 200 status line: " + statusLine), socket);
                                     }
                                 }
                                 else {
