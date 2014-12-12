@@ -117,7 +117,12 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                             public void onStringAvailable(String s) {
                                 if (statusLine == null) {
                                     statusLine = s;
-                                    if (statusLine.length() > 128 || !statusLine.contains("200")) {
+
+                                    RawHeaders headers = new RawHeaders();
+                                    headers.setStatusLine(statusLine);
+                                    int code = headers.getResponseCode();
+
+                                    if (statusLine.length() > 128 || code < 200 || code > 299) {
                                         socket.setDataCallback(null);
                                         socket.setEndCallback(null);
                                         callback.onConnectCompleted(new IOException("non 200 status line: " + statusLine), socket);
