@@ -361,11 +361,11 @@ public class AsyncServer {
                     ckey.attach(cancel);
                     socket.connect(address);
                 }
-                catch (IOException e) {
+                catch (Throwable e) {
                     if (ckey != null)
                         ckey.cancel();
                     StreamUtility.closeQuietly(socket);
-                    cancel.setComplete(e);
+                    cancel.setComplete(new RuntimeException(e));
                 }
             }
         });
