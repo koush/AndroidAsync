@@ -101,7 +101,8 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
 
                 // this SSL connection is proxied, must issue a CONNECT request to the proxy server
                 // http://stackoverflow.com/a/6594880/704837
-                String connect = String.format("CONNECT %s:%s HTTP/1.1\r\n\r\n", uri.getHost(), port);
+                // some proxies also require 'Host' header, it should be safe to provide it every time
+                String connect = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", uri.getHost(), port, uri.getHost());
                 Util.writeAll(socket, connect.getBytes(), new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
@@ -116,22 +117,17 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                             @Override
                             public void onStringAvailable(String s) {
                                 if (statusLine == null) {
-                                    statusLine = s;
-                                    if (statusLine.length() > 128 || !statusLine.contains("200")) {
+                                    statusLine = s.trim();
+                                    if (!statusLine.matches("HTTP/1.\\d 2\\d\\d .*")) { // connect response is allowed to have any 2xx status code
                                         socket.setDataCallback(null);
                                         socket.setEndCallback(null);
-                                        callback.onConnectCompleted(new IOException("non 200 status line"), socket);
+                                        callback.onConnectCompleted(new IOException("non 2xx status line"), socket);
                                     }
                                 }
-                                else {
+                                else if (TextUtils.isEmpty(s.trim())) { // skip all headers, complete handshake once empty line is received
                                     socket.setDataCallback(null);
                                     socket.setEndCallback(null);
-                                    if (TextUtils.isEmpty(s.trim())) {
-                                        tryHandshake(socket, data, uri, port, callback);
-                                    }
-                                    else {
-                                        callback.onConnectCompleted(new IOException("unknown second status line"), socket);
-                                    }
+                                    tryHandshake(socket, data, uri, port, callback);
                                 }
                             }
                         });
