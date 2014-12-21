@@ -19,6 +19,7 @@ import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.util.Charsets;
@@ -130,6 +131,13 @@ final class Spdy3 implements Variant {
             this.handler = handler;
             this.client = client;
 
+            emitter.setEndCallback(new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception ex) {
+                    // TODO: handle termination
+                }
+            });
+
             reader = new DataEmitterReader();
             parseFrameHeader();
         }
@@ -145,6 +153,7 @@ final class Spdy3 implements Variant {
         int length;
         int streamId;
         boolean inFinished;
+        private final ByteBufferList emptyList = new ByteBufferList();
         private final DataCallback onFrame = new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -160,6 +169,12 @@ final class Spdy3 implements Variant {
                     streamId = w1 & 0x7fffffff;
                     inFinished = (flags & FLAG_FIN) != 0;
                     emitter.setDataCallback(onDataFrame);
+
+                    if (length == 0) {
+                        // zero length packet, immediately trigger the data parsing
+                        // fixes the hanging response portion of https://github.com/koush/ion/issues/443#issuecomment-67729152
+                        onDataFrame.onDataAvailable(emitter, emptyList);
+                    }
                 }
                 else {
                     reader.read(length, onFullFrame);

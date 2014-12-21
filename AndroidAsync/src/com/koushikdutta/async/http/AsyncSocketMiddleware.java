@@ -213,15 +213,17 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 });
 
                 for (final InetAddress address: result) {
+                    final String inetSockAddress = String.format("%s:%s", address, port);
                     keepTrying.add(new ContinuationCallback() {
                         @Override
                         public void onContinue(Continuation continuation, final CompletedCallback next) throws Exception {
+                            data.request.logv("attempting connection to " + inetSockAddress);
                             mClient.getServer().connectSocket(new InetSocketAddress(address, port),
                                 wrapCallback(data, uri, port, false, new ConnectCallback() {
                                 @Override
                                 public void onConnectCompleted(Exception ex, AsyncSocket socket) {
                                     if (isDone()) {
-                                        lastException = new Exception("internal error during connect");
+                                        lastException = new Exception("internal error during connect to " + inetSockAddress);
                                         next.onCompleted(null);
                                         return;
                                     }

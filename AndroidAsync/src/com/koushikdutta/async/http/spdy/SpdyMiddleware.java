@@ -186,6 +186,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
 
                     connections.put(data.request.getUri().getHost(), connection);
 
+                    data.request.logv("using new spdy connection for host: " + data.request.getUri().getHost());
                     newSocket(data, connection, callback);
                 }
                 catch (Exception ex) {
@@ -198,7 +199,6 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
 
     private void newSocket(GetSocketData data, final AsyncSpdyConnection connection, final ConnectCallback callback) {
         final AsyncHttpRequest request = data.request;
-        request.logv("using spdy connection");
 
         data.protocol = connection.protocol.toString();
 
@@ -272,6 +272,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             return super.getSocket(data);
         }
 
+        data.request.logv("using existing spdy connection for host: " + data.request.getUri().getHost());
         newSocket(data, conn, data.connectCallback);
 
         SimpleCancellable ret = new SimpleCancellable();
