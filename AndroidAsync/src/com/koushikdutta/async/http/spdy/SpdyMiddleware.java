@@ -10,10 +10,10 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.future.MultiFuture;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
-import com.koushikdutta.async.http.AsyncHttpClientMiddleware;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncSSLEngineConfigurator;
 import com.koushikdutta.async.http.AsyncSSLSocketMiddleware;
@@ -24,6 +24,7 @@ import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.util.Charsets;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -119,7 +120,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     Field useSni;
     Method nativeGetNpnNegotiatedProtocol;
     Method nativeGetAlpnNegotiatedProtocol;
-    Hashtable<String, AsyncSpdyConnection> connections = new Hashtable<String, AsyncSpdyConnection>();
+    Hashtable<String, MultiFuture<AsyncSpdyConnection>> connections = new Hashtable<String, MultiFuture<AsyncSpdyConnection>>();
     boolean spdyEnabled;
 
     public boolean getSpdyEnabled() {
@@ -159,6 +160,16 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         return pathAndQuery;
     }
 
+    private static class NoSpdyException extends Exception {
+    }
+    private static NoSpdyException NO_SPDY = new NoSpdyException();
+
+    private void noSpdy(String key) {
+        MultiFuture<AsyncSpdyConnection> conn = connections.remove(key);
+        if (conn != null)
+            conn.setComplete(NO_SPDY);
+    }
+
     @Override
     protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(final GetSocketData data, final ConnectCallback callback) {
         return new AsyncSSLSocketWrapper.HandshakeCallback() {
@@ -168,30 +179,46 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                     callback.onConnectCompleted(e, socket);
                     return;
                 }
+                final String key = data.request.getUri().getHost();
                 try {
                     long ptr = (Long)sslNativePointer.get(socket.getSSLEngine());
                     byte[] proto = (byte[])nativeGetAlpnNegotiatedProtocol.invoke(null, ptr);
                     if (proto == null) {
                         callback.onConnectCompleted(null, socket);
+                        noSpdy(key);
                         return;
                     }
                     String protoString = new String(proto);
                     Protocol p = Protocol.get(protoString);
                     if (p == null) {
                         callback.onConnectCompleted(null, socket);
+                        noSpdy(key);
                         return;
                     }
-                    final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString));
-                    connection.sendConnectionPreface();
+                    final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString)) {
+                        boolean hasReceivedSettings;
+                        @Override
+                        public void settings(boolean clearPrevious, Settings settings) {
+                            super.settings(clearPrevious, settings);
+                            if (!hasReceivedSettings) {
+                                try {
+                                    sendConnectionPreface();
+                                } catch (IOException e1) {
+                                    e1.printStackTrace();
+                                }
+                                hasReceivedSettings = true;
 
-                    connections.put(data.request.getUri().getHost(), connection);
-
-                    data.request.logv("using new spdy connection for host: " + data.request.getUri().getHost());
-                    newSocket(data, connection, callback);
+                                connections.get(key).setComplete(this);
+                                data.request.logv("using new spdy connection for host: " + data.request.getUri().getHost());
+                                newSocket(data, this, callback);
+                            }
+                        }
+                    };
                 }
                 catch (Exception ex) {
                     socket.close();
                     callback.onConnectCompleted(ex, null);
+                    noSpdy(key);
                 }
             }
         };
@@ -248,7 +275,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     }
 
     @Override
-    public Cancellable getSocket(GetSocketData data) {
+    public Cancellable getSocket(final GetSocketData data) {
         if (!spdyEnabled)
             return super.getSocket(data);
 
@@ -266,17 +293,35 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
 
         // can we use an existing connection to satisfy this, or do we need a new one?
         String host = uri.getHost();
-        AsyncSpdyConnection conn = connections.get(host);
-        if (conn == null || !conn.socket.isOpen()) {
-            connections.remove(host);
+        MultiFuture<AsyncSpdyConnection> conn = connections.get(host);
+        if (conn == null) {
+            conn = new MultiFuture<AsyncSpdyConnection>();
+            connections.put(host, conn);
             return super.getSocket(data);
         }
 
+        final SimpleCancellable ret = new SimpleCancellable();
         data.request.logv("using existing spdy connection for host: " + data.request.getUri().getHost());
-        newSocket(data, conn, data.connectCallback);
+        conn.setCallback(new FutureCallback<AsyncSpdyConnection>() {
+            @Override
+            public void onCompleted(Exception e, AsyncSpdyConnection conn) {
+                if (e instanceof NoSpdyException) {
+                    data.request.logv("spdy not available");
+                    ret.setParent(SpdyMiddleware.super.getSocket(data));
+                    return;
+                }
+                if (e != null) {
+                    data.request.loge("spdy not available", e);
+                    ret.setComplete();
+                    data.connectCallback.onConnectCompleted(e, null);
+                    return;
+                }
+                data.request.logv("spdy connection ready");
+                ret.setComplete();
+                newSocket(data, conn, data.connectCallback);
+            }
+        });
 
-        SimpleCancellable ret = new SimpleCancellable();
-        ret.setComplete();
         return ret;
     }
 
