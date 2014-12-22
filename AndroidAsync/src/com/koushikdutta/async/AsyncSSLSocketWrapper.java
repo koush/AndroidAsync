@@ -325,8 +325,17 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 }
                 handshakeCallback.onHandshakeCompleted(null, this);
                 handshakeCallback = null;
-                if (mWriteableCallback != null)
-                    mWriteableCallback.onWriteable();
+
+                mSocket.setClosedCallback(null);
+                // handshake can complete during a wrap, so make sure that the call
+                // stack and wrap flag is cleared before invoking writable
+                getServer().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mWriteableCallback != null)
+                            mWriteableCallback.onWriteable();
+                    }
+                });
                 onDataAvailable();
             }
         }

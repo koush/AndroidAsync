@@ -178,6 +178,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         return new AsyncSSLSocketWrapper.HandshakeCallback() {
             @Override
             public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
+                data.request.logv("checking spdy handshake");
                 if (e != null || nativeGetAlpnNegotiatedProtocol == null) {
                     callback.onConnectCompleted(e, socket);
                     return;
@@ -305,11 +306,15 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         }
 
         if (conn == null) {
-            data.request.logv("attempting spdy connection for host: " + data.request.getUri().getHost());
             Cancellable superSocket = super.getSocket(data);;
             // see if we reuse a socket synchronously, otherwise a new connection is being created
-            if (!superSocket.isDone())
+            if (!superSocket.isDone()) {
+                data.request.logv("waiting for spdy connection for host: " + data.request.getUri().getHost());
                 connections.put(key, new SpdyConnectionWaiter());
+            }
+            else {
+                data.request.logv("attempting spdy connection for host: " + data.request.getUri().getHost());
+            }
             return superSocket;
         }
 
