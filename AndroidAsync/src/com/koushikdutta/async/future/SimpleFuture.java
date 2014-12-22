@@ -59,14 +59,14 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         AsyncSemaphore waiter;
         synchronized (this) {
             if (isCancelled() || isDone())
-                return getResult();
+                return getResultOrThrow();
             waiter = ensureWaiterLocked();
         }
         waiter.acquire();
-        return getResult();
+        return getResultOrThrow();
     }
 
-    private T getResult() throws ExecutionException {
+    private T getResultOrThrow() throws ExecutionException {
         if (exception != null)
             throw new ExecutionException(exception);
         return result;
@@ -77,12 +77,12 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         AsyncSemaphore waiter;
         synchronized (this) {
             if (isCancelled() || isDone())
-                return getResult();
+                return getResultOrThrow();
             waiter = ensureWaiterLocked();
         }
         if (!waiter.tryAcquire(timeout, unit))
             throw new TimeoutException();
-        return getResult();
+        return getResultOrThrow();
     }
 
     @Override
@@ -204,5 +204,15 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         silent = false;
 
         return this;
+    }
+
+    @Override
+    public Exception tryGetException() {
+        return exception;
+    }
+
+    @Override
+    public T tryGet() {
+        return result;
     }
 }

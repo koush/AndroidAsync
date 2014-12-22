@@ -123,9 +123,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     Hashtable<String, SpdyConnectionWaiter> connections = new Hashtable<String, SpdyConnectionWaiter>();
     boolean spdyEnabled;
 
-    private static class SpdyConnectionWaiter {
-        AsyncSpdyConnection conn;
-        MultiFuture<AsyncSpdyConnection> future = new MultiFuture<AsyncSpdyConnection>();
+    private static class SpdyConnectionWaiter extends MultiFuture<AsyncSpdyConnection> {
     }
 
     public boolean getSpdyEnabled() {
@@ -172,7 +170,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     private void noSpdy(String key) {
         SpdyConnectionWaiter conn = connections.remove(key);
         if (conn != null)
-            conn.future.setComplete(NO_SPDY);
+            conn.setComplete(NO_SPDY);
     }
 
     @Override
@@ -213,11 +211,11 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                                 }
                                 hasReceivedSettings = true;
 
-                                SpdyConnectionWaiter waiter = connections.get(key);
-                                waiter.conn = this;
-                                waiter.future.setComplete(this);
                                 data.request.logv("using new spdy connection for host: " + data.request.getUri().getHost());
                                 newSocket(data, this, callback);
+
+                                SpdyConnectionWaiter waiter = connections.get(key);
+                                waiter.setComplete(this);
                             }
                         }
                     };
@@ -301,12 +299,13 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         // can we use an existing connection to satisfy this, or do we need a new one?
         String key = uri.getHost();
         SpdyConnectionWaiter conn = connections.get(key);
-        if (conn != null && conn.conn != null && !conn.conn.socket.isOpen()) {
+        if (conn != null && conn.tryGet() != null && !conn.tryGet().socket.isOpen()) {
             connections.remove(key);
             conn = null;
         }
 
         if (conn == null) {
+            data.request.logv("attempting spdy connection for host: " + data.request.getUri().getHost());
             Cancellable superSocket = super.getSocket(data);;
             // see if we reuse a socket synchronously, otherwise a new connection is being created
             if (!superSocket.isDone())
@@ -314,9 +313,9 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             return superSocket;
         }
 
+        data.request.logv("waiting for potential spdy connection for host: " + data.request.getUri().getHost());
         final SimpleCancellable ret = new SimpleCancellable();
-        data.request.logv("using existing spdy connection for host: " + data.request.getUri().getHost());
-        conn.future.setCallback(new FutureCallback<AsyncSpdyConnection>() {
+        conn.setCallback(new FutureCallback<AsyncSpdyConnection>() {
             @Override
             public void onCompleted(Exception e, AsyncSpdyConnection conn) {
                 if (e instanceof NoSpdyException) {
@@ -330,7 +329,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                     data.connectCallback.onConnectCompleted(e, null);
                     return;
                 }
-                data.request.logv("spdy connection ready");
+                data.request.logv("using existing spdy connection for host: " + data.request.getUri().getHost());
                 ret.setComplete();
                 newSocket(data, conn, data.connectCallback);
             }
