@@ -370,7 +370,8 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                 String status = headers.remove(Header.RESPONSE_STATUS.utf8());
                 String[] statusParts = status.split(" ", 2);
                 data.response.code(Integer.parseInt(statusParts[0]));
-                data.response.message(statusParts[1]);
+                if (statusParts.length == 2)
+                    data.response.message(statusParts[1]);
                 data.response.protocol(headers.remove(Header.VERSION.utf8()));
                 data.response.headers(headers);
                 setComplete(headers);
