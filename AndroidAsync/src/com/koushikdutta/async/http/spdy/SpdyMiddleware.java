@@ -120,8 +120,13 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     Field useSni;
     Method nativeGetNpnNegotiatedProtocol;
     Method nativeGetAlpnNegotiatedProtocol;
-    Hashtable<String, MultiFuture<AsyncSpdyConnection>> connections = new Hashtable<String, MultiFuture<AsyncSpdyConnection>>();
+    Hashtable<String, SpdyConnectionWaiter> connections = new Hashtable<String, SpdyConnectionWaiter>();
     boolean spdyEnabled;
+
+    private static class SpdyConnectionWaiter {
+        AsyncSpdyConnection conn;
+        MultiFuture<AsyncSpdyConnection> future = new MultiFuture<AsyncSpdyConnection>();
+    }
 
     public boolean getSpdyEnabled() {
         return spdyEnabled;
@@ -162,12 +167,12 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
 
     private static class NoSpdyException extends Exception {
     }
-    private static NoSpdyException NO_SPDY = new NoSpdyException();
+    private static final NoSpdyException NO_SPDY = new NoSpdyException();
 
     private void noSpdy(String key) {
-        MultiFuture<AsyncSpdyConnection> conn = connections.remove(key);
+        SpdyConnectionWaiter conn = connections.remove(key);
         if (conn != null)
-            conn.setComplete(NO_SPDY);
+            conn.future.setComplete(NO_SPDY);
     }
 
     @Override
@@ -208,7 +213,9 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                                 }
                                 hasReceivedSettings = true;
 
-                                connections.get(key).setComplete(this);
+                                SpdyConnectionWaiter waiter = connections.get(key);
+                                waiter.conn = this;
+                                waiter.future.setComplete(this);
                                 data.request.logv("using new spdy connection for host: " + data.request.getUri().getHost());
                                 newSocket(data, this, callback);
                             }
@@ -292,17 +299,24 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             return super.getSocket(data);
 
         // can we use an existing connection to satisfy this, or do we need a new one?
-        String host = uri.getHost();
-        MultiFuture<AsyncSpdyConnection> conn = connections.get(host);
+        String key = uri.getHost();
+        SpdyConnectionWaiter conn = connections.get(key);
+        if (conn != null && conn.conn != null && !conn.conn.socket.isOpen()) {
+            connections.remove(key);
+            conn = null;
+        }
+
         if (conn == null) {
-            conn = new MultiFuture<AsyncSpdyConnection>();
-            connections.put(host, conn);
-            return super.getSocket(data);
+            Cancellable superSocket = super.getSocket(data);;
+            // see if we reuse a socket synchronously, otherwise a new connection is being created
+            if (!superSocket.isDone())
+                connections.put(key, new SpdyConnectionWaiter());
+            return superSocket;
         }
 
         final SimpleCancellable ret = new SimpleCancellable();
         data.request.logv("using existing spdy connection for host: " + data.request.getUri().getHost());
-        conn.setCallback(new FutureCallback<AsyncSpdyConnection>() {
+        conn.future.setCallback(new FutureCallback<AsyncSpdyConnection>() {
             @Override
             public void onCompleted(Exception e, AsyncSpdyConnection conn) {
                 if (e instanceof NoSpdyException) {

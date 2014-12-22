@@ -68,7 +68,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         return sslEngine;
     }
 
-    protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(GetSocketData data, final ConnectCallback callback) {
+    protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(final GetSocketData data, final ConnectCallback callback) {
         return new AsyncSSLSocketWrapper.HandshakeCallback() {
             @Override
             public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
