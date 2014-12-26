@@ -10,6 +10,7 @@ import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.http.cache.RawHeaders;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -117,10 +118,15 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                             public void onStringAvailable(String s) {
                                 if (statusLine == null) {
                                     statusLine = s;
-                                    if (statusLine.length() > 128 || !statusLine.contains("200")) {
+
+                                    RawHeaders headers = new RawHeaders();
+                                    headers.setStatusLine(statusLine);
+                                    int code = headers.getResponseCode();
+
+                                    if (statusLine.length() > 128 || code < 200 || code > 299) {
                                         socket.setDataCallback(null);
                                         socket.setEndCallback(null);
-                                        callback.onConnectCompleted(new IOException("non 200 status line"), socket);
+                                        callback.onConnectCompleted(new IOException("non 200 status line: " + statusLine), socket);
                                     }
                                 }
                                 else {
