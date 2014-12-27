@@ -124,13 +124,13 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                                     }
                                 }
                                 else {
-                                    socket.setDataCallback(null);
-                                    socket.setEndCallback(null);
                                     if (TextUtils.isEmpty(s.trim())) {
+                                        socket.setDataCallback(null);
+                                        socket.setEndCallback(null);
                                         tryHandshake(socket, data, uri, port, callback);
                                     }
-                                    else {
-                                        callback.onConnectCompleted(new IOException("unknown second status line"), socket);
+                                    else if (!s.contains(":")) {
+                                        callback.onConnectCompleted(new IOException("unknown header line "+s), socket);
                                     }
                                 }
                             }
