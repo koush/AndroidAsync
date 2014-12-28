@@ -39,7 +39,7 @@ public class WebSocketImpl implements WebSocket {
             MessageDigest md = MessageDigest.getInstance("SHA-1");
             md.update(text.getBytes("iso-8859-1"), 0, text.length());
             byte[] sha1hash = md.digest();
-            return Base64.encodeToString(sha1hash, 0);
+            return Base64.encodeToString(sha1hash, Base64.NO_WRAP);
         }
         catch (Exception ex) {
             return null;
