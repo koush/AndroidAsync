@@ -17,8 +17,10 @@ public class FilePart extends StreamPart {
                 add(new BasicNameValuePair("filename", file.getName()));
             }
         });
-
-//        getRawHeaders().set("Content-Type", "application/xml");
+        /*
+         * Fix FilePart.java does not contain Content-Type lead to the server receives the damaged file
+         */
+        getRawHeaders().set("Content-Type", "application/binary");
 
         this.file = file;
     }
