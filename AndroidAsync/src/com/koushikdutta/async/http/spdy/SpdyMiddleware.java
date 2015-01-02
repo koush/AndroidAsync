@@ -167,10 +167,11 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     }
     private static final NoSpdyException NO_SPDY = new NoSpdyException();
 
-    private void noSpdy(String key) {
+    private void noSpdy(final GetSocketData data, String key) {
         SpdyConnectionWaiter conn = connections.remove(key);
         if (conn != null)
             conn.setComplete(NO_SPDY);
+        data.request.logv("not using spdy");
     }
 
     @Override
@@ -178,25 +179,26 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         return new AsyncSSLSocketWrapper.HandshakeCallback() {
             @Override
             public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
+                final String key = data.request.getUri().getHost();
                 data.request.logv("checking spdy handshake");
                 if (e != null || nativeGetAlpnNegotiatedProtocol == null) {
                     callback.onConnectCompleted(e, socket);
+                    noSpdy(data, key);
                     return;
                 }
-                final String key = data.request.getUri().getHost();
                 try {
                     long ptr = (Long)sslNativePointer.get(socket.getSSLEngine());
                     byte[] proto = (byte[])nativeGetAlpnNegotiatedProtocol.invoke(null, ptr);
                     if (proto == null) {
                         callback.onConnectCompleted(null, socket);
-                        noSpdy(key);
+                        noSpdy(data, key);
                         return;
                     }
                     String protoString = new String(proto);
                     Protocol p = Protocol.get(protoString);
                     if (p == null) {
                         callback.onConnectCompleted(null, socket);
-                        noSpdy(key);
+                        noSpdy(data, key);
                         return;
                     }
                     final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString)) {
@@ -224,7 +226,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                 catch (Exception ex) {
                     socket.close();
                     callback.onConnectCompleted(ex, null);
-                    noSpdy(key);
+                    noSpdy(data, key);
                 }
             }
         };
