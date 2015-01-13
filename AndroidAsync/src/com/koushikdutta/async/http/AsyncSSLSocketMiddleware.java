@@ -103,6 +103,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                 // http://stackoverflow.com/a/6594880/704837
                 // some proxies also require 'Host' header, it should be safe to provide it every time
                 String connect = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", uri.getHost(), port, uri.getHost());
+                data.request.logv("Proxying: " + connect);
                 Util.writeAll(socket, connect.getBytes(), new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
@@ -116,12 +117,13 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                             String statusLine;
                             @Override
                             public void onStringAvailable(String s) {
+                                data.request.logv(s);
                                 if (statusLine == null) {
                                     statusLine = s.trim();
                                     if (!statusLine.matches("HTTP/1.\\d 2\\d\\d .*")) { // connect response is allowed to have any 2xx status code
                                         socket.setDataCallback(null);
                                         socket.setEndCallback(null);
-                                        callback.onConnectCompleted(new IOException("non 2xx status line"), socket);
+                                        callback.onConnectCompleted(new IOException("non 2xx status line: " + statusLine), socket);
                                     }
                                 }
                                 else if (TextUtils.isEmpty(s.trim())) { // skip all headers, complete handshake once empty line is received

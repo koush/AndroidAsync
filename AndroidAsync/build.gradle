@@ -1,6 +1,6 @@
 buildscript {
     repositories {
-        maven { url 'http://repo1.maven.org/maven2' }
+        mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:+'
@@ -35,7 +35,7 @@ android {
 //    }
 
     compileSdkVersion 21
-    buildToolsVersion '21.1.1'
+    buildToolsVersion '21.1.2'
 }
 
 // upload to maven task
