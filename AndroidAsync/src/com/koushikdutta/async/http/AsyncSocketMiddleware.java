@@ -182,6 +182,9 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 unresolvedHost = uri.getHost();
                 unresolvedPort = port;
             }
+            if (proxied) {
+                data.request.logv("Using proxy: " + unresolvedHost + ":" + unresolvedPort);
+            }
             return mClient.getServer().connectSocket(unresolvedHost, unresolvedPort,
                 wrapCallback(data, uri, port, proxied, data.connectCallback));
         }
