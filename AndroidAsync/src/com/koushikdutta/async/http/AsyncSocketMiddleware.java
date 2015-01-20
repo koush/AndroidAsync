@@ -141,11 +141,11 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
             info.openCount++;
 
-
             while (!info.sockets.isEmpty()) {
                 IdleSocketHolder idleSocketHolder = info.sockets.pop();
                 final AsyncSocket socket = idleSocketHolder.socket;
                 if (idleSocketHolder.idleTime + idleTimeoutMs < System.currentTimeMillis()) {
+                    socket.setClosedCallback(null);
                     socket.close();
                     continue;
                 }
@@ -305,7 +305,6 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             public void onCompleted(Exception ex) {
                 synchronized (AsyncSocketMiddleware.this) {
                     sockets.remove(idleSocketHolder);
-                    socket.setClosedCallback(null);
                     maybeCleanupConnectionInfo(lookup);
                 }
             }
@@ -317,6 +316,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         socket.setEndCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
+                socket.setClosedCallback(null);
                 socket.close();
             }
         });
@@ -328,6 +328,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                 super.onDataAvailable(emitter, bb);
                 bb.recycle();
+                socket.setClosedCallback(null);
                 socket.close();
             }
         });
@@ -364,12 +365,14 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
             if (data.exception != null || !data.socket.isOpen()) {
                 data.request.logv("closing out socket (exception)");
+                data.socket.setClosedCallback(null);
                 data.socket.close();
                 return;
             }
             if (!HttpUtil.isKeepAlive(data.response.protocol(), data.response.headers())
                 || !HttpUtil.isKeepAlive(Protocol.HTTP_1_1, data.request.getHeaders())) {
                 data.request.logv("closing out socket (not keep alive)");
+                data.socket.setClosedCallback(null);
                 data.socket.close();
                 return;
             }
