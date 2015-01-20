@@ -279,6 +279,8 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             if (idleSocketHolder.idleTime + idleTimeoutMs > System.currentTimeMillis())
                 break;
             info.sockets.pop();
+            // remove the callback, prevent reentrancy.
+            socket.setClosedCallback(null);
             socket.close();
         }
         if (info.openCount == 0 && info.queue.isEmpty() && info.sockets.isEmpty())
