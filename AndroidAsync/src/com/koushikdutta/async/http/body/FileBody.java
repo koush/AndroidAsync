@@ -13,8 +13,15 @@ import java.io.File;
  */
 public class FileBody implements AsyncHttpRequestBody<File> {
     File file;
+    String contentType = "application/binary";
+
     public FileBody(File file) {
         this.file = file;
+    }
+
+    public FileBody(File file, String contentType) {
+        this.file = file;
+        this.contentType = contentType;
     }
 
     @Override
@@ -27,10 +34,13 @@ public class FileBody implements AsyncHttpRequestBody<File> {
         throw new AssertionError("not implemented");
     }
 
-    public static final String CONTENT_TYPE = "application/binary";
     @Override
     public String getContentType() {
-        return CONTENT_TYPE;
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
     }
 
     @Override
