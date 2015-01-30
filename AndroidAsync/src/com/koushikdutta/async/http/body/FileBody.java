@@ -12,8 +12,10 @@ import java.io.File;
  * Created by koush on 10/14/13.
  */
 public class FileBody implements AsyncHttpRequestBody<File> {
+    public static final String CONTENT_TYPE = "application/binary";
+
     File file;
-    String contentType = "application/binary";
+    String contentType = CONTENT_TYPE;
 
     public FileBody(File file) {
         this.file = file;
