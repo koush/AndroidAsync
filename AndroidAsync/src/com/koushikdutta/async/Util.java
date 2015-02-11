@@ -68,7 +68,7 @@ public class Util {
             int totalRead = 0;
             private void cleanup() {
                 ds.setClosedCallback(null);
-                ds.setWriteableCallback(null);
+                ds.setWritableCallback(null);
                 pending.recycle();
                 StreamUtility.closeQuietly(is);
             }
@@ -76,7 +76,7 @@ public class Util {
             Allocator allocator = new Allocator();
 
             @Override
-            public void onWriteable() {
+            public void onWritable() {
                 try {
                     do {
                         if (!pending.hasRemaining()) {
@@ -106,11 +106,11 @@ public class Util {
                 }
             }
         };
-        ds.setWriteableCallback(cb);
+        ds.setWritableCallback(cb);
 
         ds.setClosedCallback(wrapper);
         
-        cb.onWriteable();
+        cb.onWritable();
     }
     
     public static void pump(final DataEmitter emitter, final DataSink sink, final CompletedCallback callback) {
@@ -123,9 +123,9 @@ public class Util {
             }
         };
         emitter.setDataCallback(dataCallback);
-        sink.setWriteableCallback(new WritableCallback() {
+        sink.setWritableCallback(new WritableCallback() {
             @Override
-            public void onWriteable() {
+            public void onWritable() {
                 emitter.resume();
             }
         });
@@ -140,7 +140,7 @@ public class Util {
                 emitter.setDataCallback(null);
                 emitter.setEndCallback(null);
                 sink.setClosedCallback(null);
-                sink.setWriteableCallback(null);
+                sink.setWritableCallback(null);
                 callback.onCompleted(ex);
             }
         };
@@ -188,17 +188,17 @@ public class Util {
 
     public static void writeAll(final DataSink sink, final ByteBufferList bb, final CompletedCallback callback) {
         WritableCallback wc;
-        sink.setWriteableCallback(wc = new WritableCallback() {
+        sink.setWritableCallback(wc = new WritableCallback() {
             @Override
-            public void onWriteable() {
+            public void onWritable() {
                 sink.write(bb);
                 if (bb.remaining() == 0 && callback != null) {
-                    sink.setWriteableCallback(null);
+                    sink.setWritableCallback(null);
                     callback.onCompleted(null);
                 }
             }
         });
-        wc.onWriteable();
+        wc.onWritable();
     }
     public static void writeAll(DataSink sink, byte[] bytes, CompletedCallback callback) {
         ByteBuffer bb = ByteBufferList.obtain(bytes.length);
@@ -245,11 +245,11 @@ public class Util {
     public static void writable(DataSink emitter) {
         if (emitter == null)
             return;
-        writable(emitter.getWriteableCallback());
+        writable(emitter.getWritableCallback());
     }
 
     public static void writable(WritableCallback writable) {
         if (writable != null)
-            writable.onWriteable();
+            writable.onWritable();
     }
 }

@@ -5,8 +5,8 @@ import com.koushikdutta.async.callback.WritableCallback;
 
 public interface DataSink {
     public void write(ByteBufferList bb);
-    public void setWriteableCallback(WritableCallback handler);
-    public WritableCallback getWriteableCallback();
+    public void setWritableCallback(WritableCallback handler);
+    public WritableCallback getWritableCallback();
     
     public boolean isOpen();
     public void end();

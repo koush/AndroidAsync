@@ -45,7 +45,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     HostnameVerifier hostnameVerifier;
     HandshakeCallback handshakeCallback;
     X509Certificate[] peerCertificates;
-    WritableCallback mWriteableCallback;
+    WritableCallback mWritableCallback;
     DataCallback mDataCallback;
     TrustManager[] trustManagers;
     boolean clientMode;
@@ -132,11 +132,11 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         mPort = port;
         engine.setUseClientMode(clientMode);
         mSink = new BufferedDataSink(socket);
-        mSink.setWriteableCallback(new WritableCallback() {
+        mSink.setWritableCallback(new WritableCallback() {
             @Override
-            public void onWriteable() {
-                if (mWriteableCallback != null)
-                    mWriteableCallback.onWriteable();
+            public void onWritable() {
+                if (mWritableCallback != null)
+                    mWritableCallback.onWritable();
             }
         });
 
@@ -332,8 +332,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 getServer().post(new Runnable() {
                     @Override
                     public void run() {
-                        if (mWriteableCallback != null)
-                            mWriteableCallback.onWriteable();
+                        if (mWritableCallback != null)
+                            mWritableCallback.onWritable();
                     }
                 });
                 onDataAvailable();
@@ -406,13 +406,13 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     @Override
-    public void setWriteableCallback(WritableCallback handler) {
-        mWriteableCallback = handler;
+    public void setWritableCallback(WritableCallback handler) {
+        mWritableCallback = handler;
     }
 
     @Override
-    public WritableCallback getWriteableCallback() {
-        return mWriteableCallback;
+    public WritableCallback getWritableCallback() {
+        return mWritableCallback;
     }
 
     private void report(Exception e) {

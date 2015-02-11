@@ -748,12 +748,12 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         }
 
         @Override
-        public WritableCallback getWriteableCallback() {
+        public WritableCallback getWritableCallback() {
             return null;
         }
 
         @Override
-        public void setWriteableCallback(WritableCallback handler) {
+        public void setWritableCallback(WritableCallback handler) {
         }
 
         @Override

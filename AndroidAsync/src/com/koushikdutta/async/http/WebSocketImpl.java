@@ -288,13 +288,13 @@ public class WebSocketImpl implements WebSocket {
     }
 
     @Override
-    public void setWriteableCallback(WritableCallback handler) {
-        mSink.setWriteableCallback(handler);
+    public void setWritableCallback(WritableCallback handler) {
+        mSink.setWritableCallback(handler);
     }
 
     @Override
-    public WritableCallback getWriteableCallback() {
-        return mSink.getWriteableCallback();
+    public WritableCallback getWritableCallback() {
+        return mSink.getWritableCallback();
     }
     
     @Override

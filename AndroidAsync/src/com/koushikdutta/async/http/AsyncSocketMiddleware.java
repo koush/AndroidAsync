@@ -320,7 +320,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 socket.close();
             }
         });
-        socket.setWriteableCallback(null);
+        socket.setWritableCallback(null);
         // should not get any data after this point...
         // if so, eat it and disconnect.
         socket.setDataCallback(new DataCallback.NullDataCallback() {
