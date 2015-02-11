@@ -117,7 +117,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
                 mSink.setClosedCallback(closedCallback);
                 closedCallback = null;
-                mSink.setWriteableCallback(writable);
+                mSink.setWritableCallback(writable);
                 writable = null;
                 if (ended) {
                     // the response ended while headers were written
@@ -127,9 +127,9 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 getServer().post(new Runnable() {
                     @Override
                     public void run() {
-                        WritableCallback wb = getWriteableCallback();
+                        WritableCallback wb = getWritableCallback();
                         if (wb != null)
-                            wb.onWriteable();
+                            wb.onWritable();
                     }
                 });
             }
@@ -138,17 +138,17 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     WritableCallback writable;
     @Override
-    public void setWriteableCallback(WritableCallback handler) {
+    public void setWritableCallback(WritableCallback handler) {
         if (mSink != null)
-            mSink.setWriteableCallback(handler);
+            mSink.setWritableCallback(handler);
         else
             writable = handler;
     }
 
     @Override
-    public WritableCallback getWriteableCallback() {
+    public WritableCallback getWritableCallback() {
         if (mSink != null)
-            return mSink.getWriteableCallback();
+            return mSink.getWritableCallback();
         return writable;
     }
 

@@ -47,9 +47,9 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
     
     public void onDataWritable() {
-//        assert mWriteableHandler != null;
-        if (mWriteableHandler != null)
-            mWriteableHandler.onWriteable();
+//        assert mWritableHandler != null;
+        if (mWritableHandler != null)
+            mWritableHandler.onWritable();
     }
     
     private ChannelWrapper mChannel;
@@ -189,10 +189,10 @@ public class AsyncNetworkSocket implements AsyncSocket {
         }
     }
 
-    WritableCallback mWriteableHandler;
+    WritableCallback mWritableHandler;
     @Override
-    public void setWriteableCallback(WritableCallback handler) {
-        mWriteableHandler = handler;        
+    public void setWritableCallback(WritableCallback handler) {
+        mWritableHandler = handler;        
     }
 
     DataCallback mDataHandler;
@@ -218,8 +218,8 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
 
     @Override
-    public WritableCallback getWriteableCallback() {
-        return mWriteableHandler;
+    public WritableCallback getWritableCallback() {
+        return mWritableHandler;
     }
 
     void reportEnd(Exception e) {

@@ -61,12 +61,12 @@ public class OutputStreamDataSink implements DataSink {
 
     WritableCallback mWritable;
     @Override
-    public void setWriteableCallback(WritableCallback handler) {
+    public void setWritableCallback(WritableCallback handler) {
         mWritable = handler;        
     }
 
     @Override
-    public WritableCallback getWriteableCallback() {
+    public WritableCallback getWritableCallback() {
         return mWritable;
     }
 

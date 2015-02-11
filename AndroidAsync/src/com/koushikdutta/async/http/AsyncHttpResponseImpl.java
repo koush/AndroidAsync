@@ -88,7 +88,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
                 mSocket.close();
             }
         });
-        mSocket.setWriteableCallback(null);
+        mSocket.setWritableCallback(null);
         mSocket.setClosedCallback(null);
         mSocket.setEndCallback(null);
         mCompleted = true;
@@ -191,13 +191,13 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     }
 
     @Override
-    public void setWriteableCallback(WritableCallback handler) {
-        mSink.setWriteableCallback(handler);
+    public void setWritableCallback(WritableCallback handler) {
+        mSink.setWritableCallback(handler);
     }
 
     @Override
-    public WritableCallback getWriteableCallback() {
-        return mSink.getWriteableCallback();
+    public WritableCallback getWritableCallback() {
+        return mSink.getWritableCallback();
     }
 
 

@@ -450,7 +450,7 @@ public class AsyncHttpClient {
                 AsyncSocket socket = socket();
                 if (socket == null)
                     return null;
-                socket.setWriteableCallback(null);
+                socket.setWritableCallback(null);
                 socket.setClosedCallback(null);
                 socket.setEndCallback(null);
                 socket.setDataCallback(null);

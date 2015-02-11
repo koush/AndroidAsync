@@ -21,9 +21,9 @@ public class BufferedDataSink implements DataSink {
 
     public void setDataSink(DataSink datasink) {
         mDataSink = datasink;
-        mDataSink.setWriteableCallback(new WritableCallback() {
+        mDataSink.setWritableCallback(new WritableCallback() {
             @Override
-            public void onWriteable() {
+            public void onWritable() {
                 writePending();
             }
         });
@@ -39,7 +39,7 @@ public class BufferedDataSink implements DataSink {
             }
         }
         if (!mPendingWrites.hasRemaining() && mWritable != null)
-            mWritable.onWriteable();
+            mWritable.onWritable();
     }
     
     ByteBufferList mPendingWrites = new ByteBufferList();
@@ -65,12 +65,12 @@ public class BufferedDataSink implements DataSink {
 
     WritableCallback mWritable;
     @Override
-    public void setWriteableCallback(WritableCallback handler) {
+    public void setWritableCallback(WritableCallback handler) {
         mWritable = handler;
     }
 
     @Override
-    public WritableCallback getWriteableCallback() {
+    public WritableCallback getWritableCallback() {
         return mWritable;
     }
     
