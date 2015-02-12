@@ -44,7 +44,7 @@ public class Headers {
     }
 
     public Headers set(String header, String value) {
-        if (value.contains("\n") || value.contains("\r"))
+        if (value != null && (value.contains("\n") || value.contains("\r")))
             throw new IllegalArgumentException("value must not contain a new line or line feed");
         String lc = header.toLowerCase();
         map.put(lc, value);
