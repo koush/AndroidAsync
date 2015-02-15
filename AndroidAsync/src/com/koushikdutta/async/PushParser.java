@@ -47,7 +47,8 @@ public class PushParser implements DataCallback {
         ParseCallback<byte[]> callback;
         public ByteArrayWaiter(int length, ParseCallback<byte[]> callback) {
             super(length);
-            if (length <= 0) throw new IllegalArgumentException("length should be > 0");
+            if (length <= 0)
+                throw new IllegalArgumentException("length should be > 0");
             this.callback = callback;
         }
 
@@ -71,6 +72,10 @@ public class PushParser implements DataCallback {
         @Override
         public Waiter onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
             int length = bb.getInt();
+            if (length == 0) {
+                callback.parsed(new byte[0]);
+                return null;
+            }
             return new ByteArrayWaiter(length, callback);
         }
     }
