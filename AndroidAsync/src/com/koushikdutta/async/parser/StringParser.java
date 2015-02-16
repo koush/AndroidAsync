@@ -13,6 +13,15 @@ import java.nio.charset.Charset;
  * Created by koush on 5/27/13.
  */
 public class StringParser implements AsyncParser<String> {
+    Charset forcedCharset;
+
+    public StringParser() {
+    }
+
+    public StringParser(Charset charset) {
+        this.forcedCharset = charset;
+    }
+
     @Override
     public Future<String> parse(DataEmitter emitter) {
         final String charset = emitter.charset();
@@ -20,7 +29,10 @@ public class StringParser implements AsyncParser<String> {
         .then(new TransformFuture<String, ByteBufferList>() {
             @Override
             protected void transform(ByteBufferList result) throws Exception {
-                setComplete(result.readString(charset != null ? Charset.forName(charset) : null));
+                Charset charsetToUse = forcedCharset;
+                if (charsetToUse == null && charset != null)
+                    charsetToUse = Charset.forName(charset);
+                setComplete(result.readString(charsetToUse));
             }
         });
     }
