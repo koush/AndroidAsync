@@ -184,7 +184,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         if (getBoundary() == null) {
             setBoundary("----------------------------" + UUID.randomUUID().toString().replace("-", ""));
         }
-        return CONTENT_TYPE + "; boundary=" + getBoundary();
+        return contentType + "; boundary=" + getBoundary();
     }
 
     @Override
