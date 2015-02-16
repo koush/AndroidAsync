@@ -5,6 +5,7 @@ import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
+import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.ConnectCallback;
@@ -124,6 +125,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     boolean spdyEnabled;
 
     private static class SpdyConnectionWaiter extends MultiFuture<AsyncSpdyConnection> {
+        SimpleCancellable originalCancellable = new SimpleCancellable();
     }
 
     public boolean getSpdyEnabled() {
@@ -167,67 +169,78 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     }
     private static final NoSpdyException NO_SPDY = new NoSpdyException();
 
-    private void noSpdy(final GetSocketData data, String key) {
+    private void noSpdy(String key) {
         SpdyConnectionWaiter conn = connections.remove(key);
         if (conn != null)
             conn.setComplete(NO_SPDY);
-        data.request.logv("not using spdy");
+    }
+
+    private void invokeConnect(String key, final ConnectCallback callback, Exception e, AsyncSSLSocket socket) {
+        SpdyConnectionWaiter waiter = connections.get(key);
+        if (waiter.originalCancellable.setComplete())
+            callback.onConnectCompleted(e, socket);
     }
 
     @Override
     protected AsyncSSLSocketWrapper.HandshakeCallback createHandshakeCallback(final GetSocketData data, final ConnectCallback callback) {
+        final String key = data.state.get("spdykey");
+        if (key == null)
+            return super.createHandshakeCallback(data, callback);
+
         return new AsyncSSLSocketWrapper.HandshakeCallback() {
             @Override
             public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket) {
-                final String key = data.request.getUri().getHost();
                 data.request.logv("checking spdy handshake");
                 if (e != null || nativeGetAlpnNegotiatedProtocol == null) {
-                    callback.onConnectCompleted(e, socket);
-                    noSpdy(data, key);
+                    invokeConnect(key, callback, e, socket);
+                    noSpdy(key);
                     return;
                 }
+                String protoString;
                 try {
                     long ptr = (Long)sslNativePointer.get(socket.getSSLEngine());
                     byte[] proto = (byte[])nativeGetAlpnNegotiatedProtocol.invoke(null, ptr);
                     if (proto == null) {
-                        callback.onConnectCompleted(null, socket);
-                        noSpdy(data, key);
+                        invokeConnect(key, callback, null, socket);
+                        noSpdy(key);
                         return;
                     }
-                    String protoString = new String(proto);
+                    protoString = new String(proto);
                     Protocol p = Protocol.get(protoString);
                     if (p == null) {
-                        callback.onConnectCompleted(null, socket);
-                        noSpdy(data, key);
+                        invokeConnect(key, callback, null, socket);
+                        noSpdy(key);
                         return;
                     }
-                    final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString)) {
-                        boolean hasReceivedSettings;
-                        @Override
-                        public void settings(boolean clearPrevious, Settings settings) {
-                            super.settings(clearPrevious, settings);
-                            if (!hasReceivedSettings) {
-                                try {
-                                    sendConnectionPreface();
-                                } catch (IOException e1) {
-                                    e1.printStackTrace();
-                                }
-                                hasReceivedSettings = true;
-
-                                data.request.logv("using new spdy connection for host: " + data.request.getUri().getHost());
-                                newSocket(data, this, callback);
-
-                                SpdyConnectionWaiter waiter = connections.get(key);
-                                waiter.setComplete(this);
-                            }
-                        }
-                    };
                 }
                 catch (Exception ex) {
-                    socket.close();
-                    callback.onConnectCompleted(ex, null);
-                    noSpdy(data, key);
+                    throw new AssertionError(ex);
                 }
+
+                final AsyncSpdyConnection connection = new AsyncSpdyConnection(socket, Protocol.get(protoString)) {
+                    boolean hasReceivedSettings;
+                    @Override
+                    public void settings(boolean clearPrevious, Settings settings) {
+                        super.settings(clearPrevious, settings);
+                        if (!hasReceivedSettings) {
+                            try {
+                                sendConnectionPreface();
+                            } catch (IOException e1) {
+                                e1.printStackTrace();
+                            }
+                            hasReceivedSettings = true;
+
+                            SpdyConnectionWaiter waiter = connections.get(key);
+
+                            if (waiter.originalCancellable.setComplete()) {
+                                data.request.logv("using new spdy connection for host: " + data.request.getUri().getHost());
+                                newSocket(data, this, callback);
+                            }
+
+                            waiter.setComplete(this);
+                        }
+                    }
+                };
             }
         };
     }
@@ -283,15 +296,38 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
     }
 
     @Override
-    public Cancellable getSocket(final GetSocketData data) {
-        if (!spdyEnabled)
-            return super.getSocket(data);
+    protected ConnectCallback wrapCallback(final GetSocketData data, final Uri uri, final int port, final boolean proxied, ConnectCallback callback) {
+        final ConnectCallback superCallback = super.wrapCallback(data, uri, port, proxied, callback);
+        final String key = data.state.get("spdykey");
+        if (key == null)
+            return superCallback;
 
+        // new outgoing connection, try to make this a spdy connection
+        return new ConnectCallback() {
+            @Override
+            public void onConnectCompleted(Exception ex, AsyncSocket socket) {
+                // an exception here is an ssl or network exception... don't rule spdy out yet, but
+                // trigger the waiters
+                if (ex != null) {
+                    final SpdyConnectionWaiter conn = connections.remove(key);
+                    if (conn != null)
+                        conn.setComplete(ex);
+                }
+                superCallback.onConnectCompleted(ex, socket);
+            }
+        };
+    }
+
+    @Override
+    public Cancellable getSocket(final GetSocketData data) {
         final Uri uri = data.request.getUri();
         final int port = getSchemePort(data.request.getUri());
         if (port == -1) {
             return null;
         }
+
+        if (!spdyEnabled)
+            return super.getSocket(data);
 
         // TODO: figure out why POST does not work if sending content-length header
         // see above regarding app engine comment as to why: drive requires content-length
@@ -300,24 +336,30 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             return super.getSocket(data);
 
         // can we use an existing connection to satisfy this, or do we need a new one?
-        String key = uri.getHost();
+        String key = uri.getHost() + port;
         SpdyConnectionWaiter conn = connections.get(key);
-        if (conn != null && conn.tryGet() != null && !conn.tryGet().socket.isOpen()) {
-            connections.remove(key);
-            conn = null;
+        if (conn != null) {
+            if (conn.tryGetException() instanceof NoSpdyException)
+                return super.getSocket(data);
+
+            // dead connection check
+            if (conn.tryGet() != null && !conn.tryGet().socket.isOpen()) {
+                // old spdy connection is derped, kill it with fire.
+                connections.remove(key);
+                conn = null;
+            }
         }
 
         if (conn == null) {
-            Cancellable superSocket = super.getSocket(data);;
-            // see if we reuse a socket synchronously, otherwise a new connection is being created
-            if (!superSocket.isDone()) {
-                data.request.logv("waiting for spdy connection for host: " + data.request.getUri().getHost());
-                connections.put(key, new SpdyConnectionWaiter());
-            }
-            else {
-                data.request.logv("attempting spdy connection for host: " + data.request.getUri().getHost());
-            }
-            return superSocket;
+            // no connection has ever been attempted (or previous one had a network death), so attempt one
+            data.state.put("spdykey", key);
+            // if we got something back synchronously, it's a keep alive socket
+            Cancellable ret = super.getSocket(data);
+            if (ret.isDone() || ret.isCancelled())
+                return ret;
+            conn = new SpdyConnectionWaiter();
+            connections.put(key, conn);
+            return conn.originalCancellable;
         }
 
         data.request.logv("waiting for potential spdy connection for host: " + data.request.getUri().getHost());
@@ -331,14 +373,13 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                     return;
                 }
                 if (e != null) {
-                    data.request.loge("spdy not available", e);
-                    ret.setComplete();
-                    data.connectCallback.onConnectCompleted(e, null);
+                    if (ret.setComplete())
+                        data.connectCallback.onConnectCompleted(e, null);
                     return;
                 }
                 data.request.logv("using existing spdy connection for host: " + data.request.getUri().getHost());
-                ret.setComplete();
-                newSocket(data, conn, data.connectCallback);
+                if (ret.setComplete())
+                    newSocket(data, conn, data.connectCallback);
             }
         });
 

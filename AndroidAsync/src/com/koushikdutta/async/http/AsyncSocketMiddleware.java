@@ -198,7 +198,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             @Override
             protected void error(Exception e) {
                 super.error(e);
-                data.connectCallback.onConnectCompleted(e, null);
+                wrapCallback(data, uri, port, false, data.connectCallback).onConnectCompleted(e, null);
             }
 
             @Override
@@ -210,7 +210,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                         if (lastException == null)
                             lastException = new ConnectionFailedException("Unable to connect to remote address");
                         if (setComplete(lastException)) {
-                            data.connectCallback.onConnectCompleted(lastException, null);
+                            wrapCallback(data, uri, port, false, data.connectCallback).onConnectCompleted(lastException, null);
                         }
                     }
                 });
