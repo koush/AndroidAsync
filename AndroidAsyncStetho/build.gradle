@@ -8,31 +8,29 @@ buildscript {
 }
 apply plugin: 'com.android.library'
 
+dependencies {
+    compile project(':AndroidAsync:AndroidAsync')
+    compile "com.facebook.stetho:stetho:+"
+}
+
 android {
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
-
-            jniLibs.srcDirs = ['libs/']
-
-            java.srcDirs=['src/'
-//                          , '../conscrypt/'
-//                          , '../compat/'
-            ]
+            java {
+                srcDir 'src/'
+            }
         }
-        androidTest.java.srcDirs=['test/src/']
-        androidTest.res.srcDirs=['test/res/']
-        androidTest.assets.srcDirs=['test/assets/']
     }
 
     lintOptions {
         abortOnError false
     }
 
-//    defaultConfig {
-//        targetSdkVersion 21
-//        minSdkVersion 9
-//    }
+    defaultConfig {
+        targetSdkVersion 21
+        minSdkVersion 9
+    }
 
     compileSdkVersion 21
     buildToolsVersion '21.1.2'
