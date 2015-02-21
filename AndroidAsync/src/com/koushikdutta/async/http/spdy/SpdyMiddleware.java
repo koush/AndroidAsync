@@ -177,7 +177,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
 
     private void invokeConnect(String key, final ConnectCallback callback, Exception e, AsyncSSLSocket socket) {
         SpdyConnectionWaiter waiter = connections.get(key);
-        if (waiter.originalCancellable.setComplete())
+        if (waiter != null && waiter.originalCancellable.setComplete())
             callback.onConnectCompleted(e, socket);
     }
 
