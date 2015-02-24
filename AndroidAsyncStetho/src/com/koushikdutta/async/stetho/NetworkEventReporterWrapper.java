@@ -2,6 +2,9 @@
 
 package com.koushikdutta.async.stetho;
 
+import android.util.Base64;
+import android.util.Base64OutputStream;
+
 import com.facebook.stetho.inspector.network.NetworkEventReporter;
 import com.facebook.stetho.inspector.network.NetworkPeerManager;
 import com.facebook.stetho.inspector.network.ResponseHandler;
@@ -10,11 +13,14 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.util.StreamUtility;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.channels.WritableByteChannel;
 
 import javax.annotation.Nullable;
 
@@ -74,17 +80,20 @@ class NetworkEventReporterWrapper implements NetworkEventReporter {
         return null;
     }
 
-    public DataEmitter interpretResponseEmitter(
-    final String requestId,
-    @Nullable DataEmitter body
-    ) {
+    public DataEmitter interpretResponseEmitter(final String requestId, @Nullable DataEmitter body, final boolean b64Encode) {
         final NetworkPeerManager peerManager = getPeerManagerIfEnabled();
         if (peerManager == null)
             return null;
 
-        final FileChannel channel;
+        final WritableByteChannel channel;
         try {
-            channel = ((FileOutputStream)peerManager.getResponseBodyFileManager().openResponseBodyFile(requestId, false)).getChannel();
+            if (b64Encode) {
+                final Base64OutputStream b64out = new Base64OutputStream(peerManager.getResponseBodyFileManager().openResponseBodyFile(requestId, false), Base64.DEFAULT);
+                channel = Channels.newChannel(b64out);
+            }
+            else {
+                channel = ((FileOutputStream)peerManager.getResponseBodyFileManager().openResponseBodyFile(requestId, false)).getChannel();
+            }
         }
         catch (IOException e) {
             return null;
@@ -112,7 +121,9 @@ class NetworkEventReporterWrapper implements NetworkEventReporter {
                     copy[i] = original[i].duplicate();
                 }
                 try {
-                    channel.write(copy);
+                    for (ByteBuffer c: copy) {
+                        channel.write(c);
+                    }
                 }
                 catch (IOException ignored) {
                     StreamUtility.closeQuietly(channel);

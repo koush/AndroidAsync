@@ -189,7 +189,9 @@ public class StethoMiddleware extends SimpleMiddleware {
         if (inspect == null)
             return;
 
-        DataEmitter emitter = eventReporter.interpretResponseEmitter(inspect.id(), data.bodyEmitter);
+        String ct = data.response.headers().get("Content-Type");
+        boolean isImage = ct != null && ct.startsWith("image/");
+        DataEmitter emitter = eventReporter.interpretResponseEmitter(inspect.id(), data.bodyEmitter, isImage);
         if (emitter != null)
             data.bodyEmitter = emitter;
     }
