@@ -10,7 +10,7 @@ apply plugin: 'com.android.library'
 
 dependencies {
     compile project(':AndroidAsync:AndroidAsync')
-    compile "com.facebook.stetho:stetho:+"
+    compile "com.facebook.stetho:stetho:1.0.0"
 }
 
 android {
