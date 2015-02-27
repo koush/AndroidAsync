@@ -61,7 +61,7 @@ public class StethoMiddleware extends SimpleMiddleware {
         @Nullable
         @Override
         public byte[] body() throws IOException {
-            return null;
+            return request.getBody() != null ? request.getBody().toString().getBytes("UTF-8") : null;
         }
 
         @Override
