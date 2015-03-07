@@ -3,10 +3,13 @@ package com.koushikdutta.async.test;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.future.Future;
+import com.koushikdutta.async.parser.DocumentParser;
 import com.koushikdutta.async.parser.StringParser;
 import com.koushikdutta.async.util.Charsets;
 
 import junit.framework.TestCase;
+
+import org.w3c.dom.Document;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -52,5 +55,10 @@ public class ParserTests extends TestCase {
         f.getEndCallback().onCompleted(null);
         String s = ret.get();
         assertEquals(s, "æææ");
+    }
+
+    public void testAsyncParserBase() throws Exception {
+        DocumentParser parser = new DocumentParser();
+        assertEquals(parser.getType(), Document.class);
     }
 }

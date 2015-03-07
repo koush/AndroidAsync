@@ -12,7 +12,7 @@ import java.nio.charset.Charset;
 /**
  * Created by koush on 5/27/13.
  */
-public class StringParser implements AsyncParser<String> {
+public class StringParser extends AsyncParserBase<String> {
     Charset forcedCharset;
 
     public StringParser() {
