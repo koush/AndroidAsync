@@ -27,7 +27,6 @@ import com.koushikdutta.async.parser.JSONObjectParser;
 import com.koushikdutta.async.parser.StringParser;
 import com.koushikdutta.async.stream.OutputStreamDataCallback;
 
-import org.apache.http.NameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -357,7 +356,7 @@ public class AsyncHttpClient {
                 Headers headers = mHeaders;
                 int responseCode = code();
                 if ((responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == 307) && request.getFollowRedirect()) {
-                	String location = headers.get("Location");
+                    String location = headers.get("Location");
                     Uri redirect;
                     try {
                         redirect = Uri.parse(location);
@@ -369,7 +368,7 @@ public class AsyncHttpClient {
                         reportConnectedCompleted(cancel, e, this, request, callback);
                         return;
                     }
-                    final String method = request.getMethod();
+                    final String method = request.getMethod().equals(AsyncHttpHead.METHOD) ? AsyncHttpHead.METHOD : AsyncHttpGet.METHOD;
                     AsyncHttpRequest newReq = new AsyncHttpRequest(redirect, method);
                     newReq.executionTime = request.executionTime;
                     newReq.logLevel = request.logLevel;
@@ -377,16 +376,8 @@ public class AsyncHttpClient {
                     newReq.proxyHost = request.proxyHost;
                     newReq.proxyPort = request.proxyPort;
                     setupAndroidProxy(newReq);
-                     
-                    // Copy all headers from the old request to the new one (except for "host" -
-                    // keeping this in will make the redirect happen again!
-                    for (NameValuePair entry : request.getHeaders().getMultiMap()) {
-                    	if (!entry.getName().toLowerCase().equals("host")) {
-                    		copyHeader(request, newReq, entry.getName());
-                    	}
-                    }
-                    
-                    newReq.setBody(request.getBody());
+                    copyHeader(request, newReq, "User-Agent");
+                    copyHeader(request, newReq, "Range");
                     request.logi("Redirecting");
                     newReq.logi("Redirected");
                     execute(newReq, redirectCount + 1, cancel, callback);
