@@ -17,7 +17,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 /**
  * Created by koush on 8/3/13.
  */
-public class DocumentParser extends AsyncParserBase<Document> {
+public class DocumentParser implements AsyncParser<Document> {
     @Override
     public Future<Document> parse(DataEmitter emitter) {
         return new ByteBufferListParser().parse(emitter)

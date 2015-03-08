@@ -10,7 +10,7 @@ import org.json.JSONObject;
 /**
  * Created by koush on 5/27/13.
  */
-public class JSONObjectParser extends AsyncParserBase<JSONObject> {
+public class JSONObjectParser implements AsyncParser<JSONObject> {
     @Override
     public Future<JSONObject> parse(DataEmitter emitter) {
         return new StringParser().parse(emitter)

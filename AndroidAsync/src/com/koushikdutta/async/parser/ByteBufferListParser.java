@@ -12,7 +12,7 @@ import com.koushikdutta.async.future.SimpleFuture;
 /**
  * Created by koush on 5/27/13.
  */
-public class ByteBufferListParser extends AsyncParserBase<ByteBufferList> {
+public class ByteBufferListParser implements AsyncParser<ByteBufferList> {
     @Override
     public Future<ByteBufferList> parse(final DataEmitter emitter) {
         final ByteBufferList bb = new ByteBufferList();
