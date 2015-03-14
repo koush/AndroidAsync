@@ -1,16 +1,4 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:+'
-    }
-}
 apply plugin: 'com.android.application'
-
-repositories {
-    mavenCentral()
-}
 
 dependencies {
     compile project(':AndroidAsync:AndroidAsync')
@@ -26,11 +14,11 @@ android {
     }
 
     defaultConfig {
-        targetSdkVersion 21
+        targetSdkVersion 22
         minSdkVersion 9
     }
 
-    compileSdkVersion 21
-    buildToolsVersion "21.1.0"
+    compileSdkVersion 22
+    buildToolsVersion "22.0.0"
 }
 
