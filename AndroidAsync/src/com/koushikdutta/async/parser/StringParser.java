@@ -7,12 +7,13 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.TransformFuture;
 
+import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 
 /**
  * Created by koush on 5/27/13.
  */
-public class StringParser extends AsyncParserBase<String> {
+public class StringParser implements AsyncParser<String> {
     Charset forcedCharset;
 
     public StringParser() {
@@ -40,5 +41,10 @@ public class StringParser extends AsyncParserBase<String> {
     @Override
     public void write(DataSink sink, String value, CompletedCallback completed) {
         new ByteBufferListParser().write(sink, new ByteBufferList(value.getBytes()), completed);
+    }
+
+    @Override
+    public Type getType() {
+        return String.class;
     }
 }

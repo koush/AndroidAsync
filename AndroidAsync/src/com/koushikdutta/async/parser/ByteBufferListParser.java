@@ -9,10 +9,12 @@ import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 
+import java.lang.reflect.Type;
+
 /**
  * Created by koush on 5/27/13.
  */
-public class ByteBufferListParser extends AsyncParserBase<ByteBufferList> {
+public class ByteBufferListParser implements AsyncParser<ByteBufferList> {
     @Override
     public Future<ByteBufferList> parse(final DataEmitter emitter) {
         final ByteBufferList bb = new ByteBufferList();
@@ -52,5 +54,10 @@ public class ByteBufferListParser extends AsyncParserBase<ByteBufferList> {
     @Override
     public void write(DataSink sink, ByteBufferList value, CompletedCallback completed) {
         Util.writeAll(sink, value, completed);
+    }
+
+    @Override
+    public Type getType() {
+        return ByteBufferList.class;
     }
 }

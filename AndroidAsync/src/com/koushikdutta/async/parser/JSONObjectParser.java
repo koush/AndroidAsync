@@ -7,10 +7,12 @@ import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.TransformFuture;
 import org.json.JSONObject;
 
+import java.lang.reflect.Type;
+
 /**
  * Created by koush on 5/27/13.
  */
-public class JSONObjectParser extends AsyncParserBase<JSONObject> {
+public class JSONObjectParser implements AsyncParser<JSONObject> {
     @Override
     public Future<JSONObject> parse(DataEmitter emitter) {
         return new StringParser().parse(emitter)
@@ -25,5 +27,10 @@ public class JSONObjectParser extends AsyncParserBase<JSONObject> {
     @Override
     public void write(DataSink sink, JSONObject value, CompletedCallback completed) {
         new StringParser().write(sink, value.toString(), completed);
+    }
+
+    @Override
+    public Type getType() {
+        return JSONObject.class;
     }
 }
