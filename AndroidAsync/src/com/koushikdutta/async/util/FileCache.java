@@ -19,6 +19,9 @@ import java.util.Set;
  * Created by koush on 4/12/14.
  */
 public class FileCache {
+
+    private MessageDigest messageDigest;
+
     class CacheEntry {
         final long size;
         public CacheEntry(File file) {
@@ -62,23 +65,16 @@ public class FileCache {
         return null;
     }
 
-    public static String toKeyString(Object... parts) {
-        MessageDigest messageDigest;
-        synchronized (FileCache.class) {
-            try {
-                messageDigest = MessageDigest.getInstance(hashAlgorithm);
-            } catch (NoSuchAlgorithmException e) {
-                messageDigest = findAlternativeMessageDigest();
-                if (null == messageDigest)
-                    throw new RuntimeException(e);
+    public String toKeyString(Object... parts) {
+        synchronized (FileCache.class) {    // I spreaded synchronized block to whole method to assure
+                                            // that only one thread deals with our copy of MessageDigest
+                                            // instance
+            for (Object part : parts) {
+                messageDigest.update(part.toString().getBytes());
             }
+            byte[] md5bytes = messageDigest.digest();
+            return new BigInteger(1, md5bytes).toString(16);
         }
-
-        for (Object part : parts) {
-            messageDigest.update(part.toString().getBytes());
-        }
-        byte[] md5bytes = messageDigest.digest();
-        return new BigInteger(1, md5bytes).toString(16);
     }
 
     boolean loadAsync;
@@ -275,8 +271,31 @@ public class FileCache {
         this.loadAsync = loadAsync;
         cache = new InternalCache();
 
+        try {
+            messageDigest = (MessageDigest) MessageDigest.getInstance(hashAlgorithm);
+            cloneMessageDigest(messageDigest);
+        } catch (NoSuchAlgorithmException e1) {
+            messageDigest = findAlternativeMessageDigest();
+            if (null == messageDigest)
+                throw new RuntimeException(e1);
+            cloneMessageDigest(messageDigest);
+        }
+
         directory.mkdirs();
         doLoad();
+    }
+
+    // taken from https://github.com/candrews/HttpResponseCache/commit/a93c92d1d8b87778ac7bb2fa2fe2759e7ca06219
+    private void cloneMessageDigest(MessageDigest messageDigest){
+        try {
+            // clone the messageDigest instance as a workaround for
+            // java.security.MessageDigest.getInstance(String) not being thread safe in Android
+            // see https://code.google.com/p/android/issues/detail?id=37937
+            messageDigest = (MessageDigest) messageDigest.clone();
+        } catch (CloneNotSupportedException e) {
+            // ignore the exception and use the original messageDigest.
+            // hopefully whatever platform we're on doesn't have the bug that requires the cloning workaround
+        }
     }
 
     public long size() {
