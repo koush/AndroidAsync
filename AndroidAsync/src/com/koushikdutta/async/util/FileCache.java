@@ -62,18 +62,24 @@ public class FileCache {
         return null;
     }
 
-    public static String toKeyString(Object... parts) {
-        MessageDigest messageDigest;
-        synchronized (FileCache.class) {
-            try {
-                messageDigest = MessageDigest.getInstance(hashAlgorithm);
-            } catch (NoSuchAlgorithmException e) {
-                messageDigest = findAlternativeMessageDigest();
-                if (null == messageDigest)
-                    throw new RuntimeException(e);
-            }
+    static MessageDigest messageDigest;
+    static {
+        try {
+            messageDigest = MessageDigest.getInstance(hashAlgorithm);
+        } catch (NoSuchAlgorithmException e) {
+            messageDigest = findAlternativeMessageDigest();
+            if (null == messageDigest)
+                throw new RuntimeException(e);
         }
+        try {
+            messageDigest = (MessageDigest)messageDigest.clone();
+        }
+        catch (CloneNotSupportedException e) {
+        }
+    }
 
+    public static synchronized String toKeyString(Object... parts) {
+        messageDigest.reset();
         for (Object part : parts) {
             messageDigest.update(part.toString().getBytes());
         }
