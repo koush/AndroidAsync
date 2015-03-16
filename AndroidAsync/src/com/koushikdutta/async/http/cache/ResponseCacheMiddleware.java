@@ -104,7 +104,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return null;
         }
 
-        String key = cache.toKeyString(data.request.getUri());
+        String key = FileCache.toKeyString(data.request.getUri());
         FileInputStream[] snapshot = null;
         long contentLength;
         Entry entry;
@@ -267,7 +267,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             return;
         }
 
-        String key = cache.toKeyString(data.request.getUri());
+        String key = FileCache.toKeyString(data.request.getUri());
         RawHeaders varyHeaders = requestHeaders.getHeaders().getAll(networkResponse.getVaryFields());
         Entry entry = new Entry(data.request.getUri(), varyHeaders, data.request, networkResponse.getHeaders());
         BodyCacher cacher = new BodyCacher();
