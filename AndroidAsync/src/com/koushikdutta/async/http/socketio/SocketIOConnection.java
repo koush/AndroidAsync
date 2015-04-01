@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Locale;
 
 /**
  * Created by koush on 7/1/13.
@@ -54,13 +55,13 @@ class SocketIOConnection {
             ack =  id + "+";
             acknowledges.put(id, acknowledge);
         }
-        transport.send(String.format("%d:%s:%s:%s", type, ack, client.endpoint, message));
+        transport.send(String.format(Locale.US, "%d:%s:%s:%s", type, ack, client.endpoint, message));
     }
 
     public void connect(SocketIOClient client) {
         if (!clients.contains(client))
             clients.add(client);
-        transport.send(String.format("1::%s", client.endpoint));
+        transport.send(String.format(Locale.US, "1::%s", client.endpoint));
     }
 
     public void disconnect(SocketIOClient client) {
@@ -79,7 +80,7 @@ class SocketIOConnection {
         }
 
         if (needsEndpointDisconnect && transport != null)
-            transport.send(String.format("0::%s", client.endpoint));
+            transport.send(String.format(Locale.US, "0::%s", client.endpoint));
 
         // and see if we can disconnect the socket completely
         if (clients.size() > 0 || transport == null)
@@ -357,7 +358,7 @@ class SocketIOConnection {
                     });
                     return;
                 }
-                transport.send(String.format("6:::%s%s", messageId, data));
+                transport.send(String.format(Locale.US, "6:::%s%s", messageId, data));
             }
         };
     }
