@@ -15,6 +15,7 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpParams;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class AsyncHttpRequest {
@@ -44,7 +45,7 @@ public class AsyncHttpRequest {
                 if (query != null && query.length() != 0) {
                     path += "?" + query;
                 }
-                return String.format("%s %s HTTP/1.1", mMethod, path);
+                return String.format(Locale.US, "%s %s HTTP/1.1", mMethod, path);
             }
         };
     }
@@ -68,7 +69,7 @@ public class AsyncHttpRequest {
 
             @Override
             public String toString() {
-                return String.format("%s %s HTTP/1.1", mMethod, AsyncHttpRequest.this.getUri());
+                return String.format(Locale.US, "%s %s HTTP/1.1", mMethod, AsyncHttpRequest.this.getUri());
             }
         };
     }
@@ -348,7 +349,7 @@ public class AsyncHttpRequest {
             elapsed = System.currentTimeMillis() - executionTime;
         else
             elapsed = 0;
-        return String.format("(%d ms) %s: %s", elapsed, getUri(), message);
+        return String.format(Locale.US, "(%d ms) %s: %s", elapsed, getUri(), message);
     }
     public void logi(String message) {
         if (LOGTAG == null)
