@@ -58,7 +58,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             // https://groups.google.com/forum/?fromgroups=#!topic/netty/UCfqPPk5O4s
             // certs that use this extension will throw in Cipher.java.
             // fallback is to use a custom SSLContext, and hack around the x509 extension.
-            if (Build.VERSION.SDK_INT <= 15)
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
                 throw new Exception();
             defaultSSLContext = SSLContext.getInstance("Default");
         }

@@ -168,14 +168,11 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             String unresolvedHost;
             int unresolvedPort;
             boolean proxied = false;
+            if (data.request.getProxyHost() == null && proxyHost != null)
+                data.request.enableProxy(proxyHost, proxyPort);
             if (data.request.getProxyHost() != null) {
                 unresolvedHost = data.request.getProxyHost();
                 unresolvedPort = data.request.getProxyPort();
-                proxied = true;
-            }
-            else if (proxyHost != null) {
-                unresolvedHost = proxyHost;
-                unresolvedPort = proxyPort;
                 proxied = true;
             }
             else {

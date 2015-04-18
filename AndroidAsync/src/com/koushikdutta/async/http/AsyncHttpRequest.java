@@ -37,6 +37,8 @@ public class AsyncHttpRequest {
 
             @Override
             public String toString() {
+                if (proxyHost != null)
+                    return String.format("%s %s HTTP/1.1", mMethod, AsyncHttpRequest.this.getUri());
                 String path = AsyncHttpRequest.this.getUri().getEncodedPath();
                 if (path == null || path.length() == 0)
                     path = "/";
@@ -45,30 +47,6 @@ public class AsyncHttpRequest {
                     path += "?" + query;
                 }
                 return String.format("%s %s HTTP/1.1", mMethod, path);
-            }
-        };
-    }
-
-    public RequestLine getProxyRequestLine() {
-        return new RequestLine() {
-            @Override
-            public String getUri() {
-                return AsyncHttpRequest.this.getUri().toString();
-            }
-
-            @Override
-            public ProtocolVersion getProtocolVersion() {
-                return new ProtocolVersion("HTTP", 1, 1);
-            }
-
-            @Override
-            public String getMethod() {
-                return mMethod;
-            }
-
-            @Override
-            public String toString() {
-                return String.format("%s %s HTTP/1.1", mMethod, AsyncHttpRequest.this.getUri());
             }
         };
     }
