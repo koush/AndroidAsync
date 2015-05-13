@@ -94,7 +94,6 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         if (sslParameters != null) {
             try {
                 byte[] protocols = concatLengthPrefixed(
-                Protocol.HTTP_1_1,
                 Protocol.SPDY_3
                 );
 
@@ -207,7 +206,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                     }
                     protoString = new String(proto);
                     Protocol p = Protocol.get(protoString);
-                    if (p == null) {
+                    if (p == null || !p.needsSpdyConnection()) {
                         invokeConnect(key, callback, null, socket);
                         noSpdy(key);
                         return;

@@ -40,7 +40,12 @@ public enum Protocol {
      * 3.1</a>. Future releases of OkHttp may use this identifier for a newer draft
      * of the SPDY spec.
      */
-    SPDY_3("spdy/3.1"),
+    SPDY_3("spdy/3.1") {
+        @Override
+        public boolean needsSpdyConnection() {
+            return true;
+        }
+    },
 
     /**
      * The IETF's binary-framed protocol that includes header compression,
@@ -54,7 +59,12 @@ public enum Protocol {
      * 6</a>. Future releases of OkHttp may use this identifier for a newer draft
      * of these specs.
      */
-    HTTP_2("h2-13");
+    HTTP_2("h2-13") {
+        @Override
+        public boolean needsSpdyConnection() {
+            return true;
+        }
+    };
 
     private final String protocol;
     private static final Hashtable<String, Protocol> protocols = new Hashtable<String, Protocol>();
@@ -87,5 +97,9 @@ public enum Protocol {
     @Override
     public String toString() {
         return protocol;
+    }
+
+    public boolean needsSpdyConnection() {
+        return false;
     }
 }
