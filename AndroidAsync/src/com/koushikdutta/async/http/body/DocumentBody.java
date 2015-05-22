@@ -7,6 +7,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.parser.DocumentParser;
+import com.koushikdutta.async.util.Charsets;
 
 import org.w3c.dom.Document;
 
@@ -40,7 +41,7 @@ public class DocumentBody implements AsyncHttpRequestBody<Document> {
             TransformerFactory tf = TransformerFactory.newInstance();
             Transformer transformer = tf.newTransformer();
             bout = new ByteArrayOutputStream();
-            OutputStreamWriter writer = new OutputStreamWriter(bout);
+            OutputStreamWriter writer = new OutputStreamWriter(bout, Charsets.UTF_8);
             StreamResult result = new StreamResult(writer);
             transformer.transform(source, result);
             writer.flush();
