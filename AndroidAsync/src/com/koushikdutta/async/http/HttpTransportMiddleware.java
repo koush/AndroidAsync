@@ -28,7 +28,11 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
             if (requestBody.length() >= 0) {
                 request.getHeaders().set("Content-Length", String.valueOf(requestBody.length()));
                 data.response.sink(data.socket);
-            } else {
+            }
+            else if ("close".equals(request.getHeaders().get("Connection"))) {
+                data.response.sink(data.socket);
+            }
+            else {
                 request.getHeaders().set("Transfer-Encoding", "Chunked");
                 data.response.sink(new ChunkedOutputFilter(data.socket));
             }

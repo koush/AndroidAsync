@@ -11,6 +11,7 @@ import java.io.InputStream;
 public class StreamBody implements AsyncHttpRequestBody<InputStream> {
     InputStream stream;
     int length;
+    String contentType = CONTENT_TYPE;
 
     /**
      * Construct an http body from a stream
@@ -35,7 +36,11 @@ public class StreamBody implements AsyncHttpRequestBody<InputStream> {
     public static final String CONTENT_TYPE = "application/binary";
     @Override
     public String getContentType() {
-        return CONTENT_TYPE;
+        return contentType;
+    }
+    public StreamBody setContentType(String contentType) {
+        this.contentType = contentType;
+        return this;
     }
 
     @Override
