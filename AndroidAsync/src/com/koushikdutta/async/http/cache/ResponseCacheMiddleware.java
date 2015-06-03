@@ -425,7 +425,12 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         void spewInternal() {
             if (pending.remaining() > 0) {
-                super.onDataAvailable(CachedBodyEmitter.this, pending);
+                try{
+                    super.onDataAvailable(CachedBodyEmitter.this, pending);
+                }catch(RuntimeException e){
+                    pending.recycle();
+                    return;
+                }
                 if (pending.remaining() > 0)
                     return;
             }
