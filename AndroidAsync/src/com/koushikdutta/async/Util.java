@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 public class Util {
+    static boolean SUPRESS_DEBUG_EXCEPTIONS = false;
     public static void emitAllData(DataEmitter emitter, ByteBufferList list) {
         int remaining;
         DataCallback handler = null;
@@ -32,6 +33,9 @@ public class Util {
 
 //                System.out.println("Data: " + list.peekString());
                 System.out.println("handler: " + handler);
+                list.recycle();
+                if (SUPRESS_DEBUG_EXCEPTIONS)
+                    return;
                 assert false;
                 throw new RuntimeException("mDataHandler failed to consume data, yet remains the mDataHandler.");
             }
@@ -43,6 +47,9 @@ public class Util {
 //            System.out.println("Data: " + list.peekString());
             System.out.println("handler: " + handler);
             System.out.println("emitter: " + emitter);
+            list.recycle();
+            if (SUPRESS_DEBUG_EXCEPTIONS)
+                return;
             assert false;
             throw new RuntimeException("Not all data was consumed by Util.emitAllData");
         }
