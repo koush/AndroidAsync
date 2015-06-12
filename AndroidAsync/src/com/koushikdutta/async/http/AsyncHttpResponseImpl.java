@@ -74,10 +74,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         return this;
     }
 
-    @Override
-    protected void report(Exception e) {
-        super.report(e);
-
+    private void terminate() {
         // DISCONNECT. EVERYTHING.
         // should not get any data after this point...
         // if so, eat it and disconnect.
@@ -88,12 +85,25 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
                 mSocket.close();
             }
         });
+    }
+
+    @Override
+    protected void report(Exception e) {
+        super.report(e);
+
+        terminate();
         mSocket.setWriteableCallback(null);
         mSocket.setClosedCallback(null);
         mSocket.setEndCallback(null);
         mCompleted = true;
     }
-    
+
+    @Override
+    public void close() {
+        super.close();
+        terminate();
+    }
+
     private AsyncHttpRequest mRequest;
     private AsyncSocket mSocket;
     protected Headers mHeaders;
