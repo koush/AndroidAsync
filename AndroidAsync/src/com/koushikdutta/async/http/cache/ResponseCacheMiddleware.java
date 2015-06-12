@@ -169,7 +169,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 @Override
                 public void run() {
                     data.connectCallback.onConnectCompleted(null, socket);
-                    socket.spewInternal();
+                    socket.sendCachedDataOnNetworkThread();
                 }
             });
             cacheHitCount++;
@@ -243,7 +243,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 CachedBodyEmitter bodySpewer = new CachedBodyEmitter(cacheData.candidate, cacheData.contentLength);
                 bodySpewer.setDataEmitter(data.bodyEmitter);
                 data.bodyEmitter = bodySpewer;
-                bodySpewer.spew();
+                bodySpewer.sendCachedData();
                 return;
             }
 
@@ -416,14 +416,14 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             allocator.setCurrentAlloc((int)contentLength);
         }
 
-        Runnable spewRunnable = new Runnable() {
+        Runnable sendCachedDataRunnable = new Runnable() {
             @Override
             public void run() {
-                spewInternal();
+                sendCachedDataOnNetworkThread();
             }
         };
 
-        void spewInternal() {
+        void sendCachedDataOnNetworkThread() {
             if (pending.remaining() > 0) {
                 super.onDataAvailable(CachedBodyEmitter.this, pending);
                 if (pending.remaining() > 0)
@@ -456,17 +456,17 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
                 return;
             // this limits max throughput to 256k (aka max alloc) * 100 per second...
             // roughly 25MB/s
-            getServer().postDelayed(spewRunnable, 10);
+            getServer().postDelayed(sendCachedDataRunnable, 10);
         }
 
-        void spew() {
-            getServer().post(spewRunnable);
+        void sendCachedData() {
+            getServer().post(sendCachedDataRunnable);
         }
 
         @Override
         public void resume() {
             paused = false;
-            spew();
+            sendCachedData();
         }
 
         @Override
