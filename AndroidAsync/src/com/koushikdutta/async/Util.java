@@ -15,7 +15,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 public class Util {
-    static boolean SUPRESS_DEBUG_EXCEPTIONS = false;
+    public static boolean SUPRESS_DEBUG_EXCEPTIONS = false;
     public static void emitAllData(DataEmitter emitter, ByteBufferList list) {
         int remaining;
         DataCallback handler = null;
