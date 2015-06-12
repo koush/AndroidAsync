@@ -58,10 +58,14 @@ public class AsyncHttpClient {
 
     final ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
     public ArrayList<AsyncHttpClientMiddleware> getMiddleware() {
-        return mMiddleware;
+        synchronized (mMiddleware) {
+            return mMiddleware;
+        }
     }
     public void insertMiddleware(AsyncHttpClientMiddleware middleware) {
-        mMiddleware.add(0, middleware);
+        synchronized (mMiddleware) {
+            mMiddleware.add(0, middleware);
+        }
     }
 
     SpdyMiddleware sslSocketMiddleware;
