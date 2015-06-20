@@ -440,8 +440,9 @@ abstract class HybiParser {
         } else if (opcode == OP_PING) {
             if (payload.length > 125) { throw new ProtocolError("Ping payload too large"); }
 //            Log.d(TAG, "Sending pong!!");
+            String message = encode(payload);
             sendFrame(frame(OP_PONG, payload, -1));
-
+            onPing(message);
         } else if (opcode == OP_PONG) {
             String message = encode(payload);
             onPong(message);
@@ -452,6 +453,7 @@ abstract class HybiParser {
     protected abstract void onMessage(byte[] payload);
     protected abstract void onMessage(String payload);
     protected abstract void onPong(String payload);
+    protected abstract void onPing(String payload);
     protected abstract void onDisconnect(int code, String reason);
     protected abstract void report(Exception ex);
 
