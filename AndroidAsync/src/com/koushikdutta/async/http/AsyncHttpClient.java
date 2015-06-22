@@ -43,8 +43,9 @@ import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
 
 public class AsyncHttpClient {
@@ -56,16 +57,12 @@ public class AsyncHttpClient {
         return mDefaultInstance;
     }
 
-    final ArrayList<AsyncHttpClientMiddleware> mMiddleware = new ArrayList<AsyncHttpClientMiddleware>();
-    public ArrayList<AsyncHttpClientMiddleware> getMiddleware() {
-        synchronized (mMiddleware) {
-            return mMiddleware;
-        }
+    final List<AsyncHttpClientMiddleware> mMiddleware = new CopyOnWriteArrayList<>();
+    public Collection<AsyncHttpClientMiddleware> getMiddleware() {
+        return mMiddleware;
     }
     public void insertMiddleware(AsyncHttpClientMiddleware middleware) {
-        synchronized (mMiddleware) {
-            mMiddleware.add(0, middleware);
-        }
+        mMiddleware.add(0, middleware);
     }
 
     SpdyMiddleware sslSocketMiddleware;
@@ -221,10 +218,8 @@ public class AsyncHttpClient {
 
         request.logd("Executing request.");
 
-        synchronized (mMiddleware) {
-            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                middleware.onRequest(data);
-            }
+        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+            middleware.onRequest(data);
         }
 
         // flow:
@@ -302,17 +297,15 @@ public class AsyncHttpClient {
         }
 
         final Exception unsupportedURI;
-        synchronized (mMiddleware) {
-            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                Cancellable socketCancellable = middleware.getSocket(data);
-                if (socketCancellable != null) {
-                    data.socketCancellable = socketCancellable;
-                    cancel.setParent(socketCancellable);
-                    return;
-                }
+        for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+            Cancellable socketCancellable = middleware.getSocket(data);
+            if (socketCancellable != null) {
+                data.socketCancellable = socketCancellable;
+                cancel.setParent(socketCancellable);
+                return;
             }
-            unsupportedURI = new IllegalArgumentException("invalid uri="+request.getUri()+" middlewares="+mMiddleware);
         }
+        unsupportedURI = new IllegalArgumentException("invalid uri="+request.getUri()+" middlewares="+mMiddleware);
         reportConnectedCompleted(cancel, unsupportedURI, null, request, callback);
     }
 
@@ -339,20 +332,16 @@ public class AsyncHttpClient {
                     cancel.scheduled = mServer.postDelayed(cancel.timeoutRunnable, getTimeoutRemaining(request));
                 }
 
-                synchronized (mMiddleware) {
-                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                        middleware.onRequestSent(data);
-                    }
+                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                    middleware.onRequestSent(data);
                 }
             }
 
             @Override
             public void setDataEmitter(DataEmitter emitter) {
                 data.bodyEmitter = emitter;
-                synchronized (mMiddleware) {
-                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                        middleware.onBodyDecoder(data);
-                    }
+                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                    middleware.onBodyDecoder(data);
                 }
 
                 super.setDataEmitter(data.bodyEmitter);
@@ -408,10 +397,8 @@ public class AsyncHttpClient {
                 // allow the middleware to massage the headers before the body is decoded
                 request.logv("Received headers:\n" + toString());
 
-                synchronized (mMiddleware) {
-                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                        middleware.onHeadersReceived(data);
-                    }
+                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                    middleware.onHeadersReceived(data);
                 }
 
                 // drop through, and setDataEmitter will be called for the body decoder.
@@ -441,10 +428,8 @@ public class AsyncHttpClient {
                 }
 
                 data.exception = ex;
-                synchronized (mMiddleware) {
-                    for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                        middleware.onResponseComplete(data);
-                    }
+                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                    middleware.onResponseComplete(data);
                 }
             }
 
@@ -484,11 +469,9 @@ public class AsyncHttpClient {
         data.response = ret;
         ret.setSocket(data.socket);
 
-        synchronized (mMiddleware) {
-            for (AsyncHttpClientMiddleware middleware: mMiddleware) {
-                if (middleware.exchangeHeaders(data))
-                    break;
-            }
+        for (AsyncHttpClientMiddleware middleware : mMiddleware) {
+            if (middleware.exchangeHeaders(data))
+                break;
         }
     }
 
