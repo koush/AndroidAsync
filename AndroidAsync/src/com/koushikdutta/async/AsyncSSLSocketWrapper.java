@@ -103,7 +103,10 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         socket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                callback.onHandshakeCompleted(new SSLException(ex), null);
+                if (ex != null)
+                    callback.onHandshakeCompleted(ex, null);
+                else
+                    callback.onHandshakeCompleted(new SSLException("socket closed during handshake"), null);
             }
         });
         try {
@@ -421,6 +424,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             handshakeCallback = null;
             mSocket.setDataCallback(new DataCallback.NullDataCallback());
             mSocket.end();
+            // handshake sets this callback. unset it.
+            mSocket.setClosedCallback(null);
             mSocket.close();
             hs.onHandshakeCompleted(e, null);
             return;
