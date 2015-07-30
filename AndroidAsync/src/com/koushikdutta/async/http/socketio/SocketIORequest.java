@@ -33,7 +33,7 @@ public class SocketIORequest extends AsyncHttpPost {
     }
 
     public SocketIORequest(String uri, String endpoint, String query, Config config) {
-        super(Uri.parse(uri + (query == null ? "" : "?" + query)).buildUpon().encodedPath("/socket.io/1/").build().toString());
+        super(Uri.parse(uri + (query == null ? "" : "?" + query)).buildUpon().encodedPath(endpoint).appendEncodedPath("socket.io/1/").build().toString());
         this.config = (config != null) ? config : new Config();
         this.endpoint = endpoint;
         this.query = query;
