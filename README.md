@@ -133,7 +133,7 @@ AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocket
             }
         });
         webSocket.setDataCallback(new DataCallback() {
-            public void onDataAvailable(ByteBufferList byteBufferList) {
+            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
                 System.out.println("I got some bytes!");
                 // note that this data has been read
                 byteBufferList.recycle();
