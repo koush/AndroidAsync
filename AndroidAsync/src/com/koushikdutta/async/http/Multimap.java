@@ -3,7 +3,6 @@ package com.koushikdutta.async.http;
 import android.net.Uri;
 
 import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
 
 import java.net.URLDecoder;
 import java.util.ArrayList;

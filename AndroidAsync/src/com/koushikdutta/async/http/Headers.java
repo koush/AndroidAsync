@@ -3,13 +3,8 @@ package com.koushikdutta.async.http;
 
 import android.text.TextUtils;
 
-import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.util.TaggedList;
 
-import org.apache.http.Header;
-import org.apache.http.message.BasicHeader;
-
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -111,17 +106,6 @@ public class Headers {
             remove(header);
         }
         return this;
-    }
-
-    public Header[] toHeaderArray() {
-        ArrayList<Header> ret = new ArrayList<Header>();
-        for (String key: map.keySet()) {
-            TaggedList<String> list = (TaggedList<String>)map.get(key);
-            for (String v: map.get(key)) {
-                ret.add(new BasicHeader((String)list.tag(), v));
-            }
-        }
-        return ret.toArray(new Header[ret.size()]);
     }
 
     public StringBuilder toStringBuilder() {

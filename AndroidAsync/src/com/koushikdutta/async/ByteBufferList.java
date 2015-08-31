@@ -412,8 +412,11 @@ public class ByteBufferList {
     static PriorityQueue<ByteBuffer> reclaimed = new PriorityQueue<ByteBuffer>(8, new Reclaimer());
 
     private static PriorityQueue<ByteBuffer> getReclaimed() {
-        if (Thread.currentThread() == Looper.getMainLooper().getThread())
-            return null;
+        Looper mainLooper = Looper.getMainLooper();
+        if (mainLooper != null) {
+            if (Thread.currentThread() == mainLooper.getThread())
+                return null;
+        }
         return reclaimed;
     }
 

@@ -3,9 +3,6 @@ package com.koushikdutta.async.dns;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.http.Multimap;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;

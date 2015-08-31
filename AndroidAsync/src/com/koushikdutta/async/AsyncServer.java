@@ -317,6 +317,7 @@ public class AsyncServer {
                     });
                 }
                 catch (IOException e) {
+                    Log.e(LOGTAG, "wtf", e);
                     StreamUtility.closeQuietly(closeableWrapper, closeableServer);
                     handler.onCompleted(e);
                 }

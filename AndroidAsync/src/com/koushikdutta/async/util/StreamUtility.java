@@ -65,7 +65,16 @@ public class StreamUtility {
     static public String readFile(String filename) throws IOException {
         return readFile(new File(filename));
     }
-    
+
+    static public String readFileSilent(String filename) {
+        try {
+            return readFile(new File(filename));
+        }
+        catch (IOException e) {
+            return null;
+        }
+    }
+
     static public String readFile(File file) throws IOException {
         byte[] buffer = new byte[(int) file.length()];
         DataInputStream input = null;

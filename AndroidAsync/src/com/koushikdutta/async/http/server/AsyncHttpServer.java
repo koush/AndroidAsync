@@ -283,6 +283,21 @@ public class AsyncHttpServer {
     }
     
     final Hashtable<String, ArrayList<Pair>> mActions = new Hashtable<String, ArrayList<Pair>>();
+
+    public void removeAction(String action, String regex) {
+        synchronized (mActions) {
+            ArrayList<Pair> pairs = mActions.get(action);
+            if (pairs == null)
+                return;
+            for (int i = 0; i < pairs.size(); i++) {
+                Pair p = pairs.get(i);
+                if (regex.equals(p.regex.toString())) {
+                    pairs.remove(i);
+                    return;
+                }
+            }
+        }
+    }
     
     public void addAction(String action, String regex, HttpServerRequestCallback callback) {
         Pair p = new Pair();
