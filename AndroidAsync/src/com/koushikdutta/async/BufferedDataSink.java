@@ -49,18 +49,23 @@ public class BufferedDataSink implements DataSink {
         write(bb, false);
     }
     
-    protected void write(ByteBufferList bb, boolean ignoreBuffer) {
-        if (!mPendingWrites.hasRemaining())
-            mDataSink.write(bb);
+    protected void write(final ByteBufferList bb, final boolean ignoreBuffer) {
+        getServer().run(new Runnable() {
+            @Override
+            public void run() {
+                if (!mPendingWrites.hasRemaining())
+                    mDataSink.write(bb);
 
-        if (bb.remaining() > 0) {
-            int toRead = Math.min(bb.remaining(), mMaxBuffer);
-            if (ignoreBuffer)
-                toRead = bb.remaining();
-            if (toRead > 0) {
-                bb.get(mPendingWrites, toRead);
+                if (bb.remaining() > 0) {
+                    int toRead = Math.min(bb.remaining(), mMaxBuffer);
+                    if (ignoreBuffer)
+                        toRead = bb.remaining();
+                    if (toRead > 0) {
+                        bb.get(mPendingWrites, toRead);
+                    }
+                }
             }
-        }
+        });
     }
 
     WritableCallback mWritable;
@@ -96,11 +101,16 @@ public class BufferedDataSink implements DataSink {
     boolean endPending;
     @Override
     public void end() {
-        if (mPendingWrites.hasRemaining()) {
-            endPending = true;
-            return;
-        }
-        mDataSink.end();
+        getServer().run(new Runnable() {
+            @Override
+            public void run() {
+                if (mPendingWrites.hasRemaining()) {
+                    endPending = true;
+                    return;
+                }
+                mDataSink.end();
+            }
+        });
     }
 
     @Override
