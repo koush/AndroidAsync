@@ -197,23 +197,27 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     @Override
+    public void send(String contentType, byte[] bytes) {
+        assert mContentLength < 0;
+        mContentLength = bytes.length;
+        mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
+        mRawHeaders.set("Content-Type", contentType);
+
+        Util.writeAll(this, bytes, new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                onEnd();
+            }
+        });
+    }
+
+    @Override
     public void send(String contentType, final String string) {
         try {
-            assert mContentLength < 0;
-            byte[] bytes = string.getBytes("UTF-8");
-            mContentLength = bytes.length;
-            mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
-            mRawHeaders.set("Content-Type", contentType);
-
-            Util.writeAll(this, string.getBytes(), new CompletedCallback() {
-                @Override
-                public void onCompleted(Exception ex) {
-                    onEnd();
-                }
-            });
+            send(contentType, string.getBytes("UTF-8"));
         }
         catch (UnsupportedEncodingException e) {
-            assert false;
+            throw new AssertionError(e);
         }
     }
     

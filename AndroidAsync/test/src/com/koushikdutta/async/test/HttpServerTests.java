@@ -16,19 +16,12 @@ import com.koushikdutta.async.util.StreamUtility;
 
 import junit.framework.TestCase;
 
-import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.List;
 
 public class HttpServerTests extends TestCase {
     AsyncHttpServer httpServer;
@@ -105,17 +98,17 @@ public class HttpServerTests extends TestCase {
         assertEquals(json.getString("foo"), "bar");
     }
 
-    public void testUrlEncodedFormBody() throws Exception {
-        List<NameValuePair> params = new ArrayList<NameValuePair>();
-        params.add(new BasicNameValuePair("foo", "bar"));
-        HttpPost post = new HttpPost("http://localhost:5000/echo");
-        post.setEntity(new UrlEncodedFormEntity(params));
-
-        HttpResponse response = new DefaultHttpClient().execute(post);
-        String contents = StreamUtility.readToEnd(response.getEntity().getContent());
-        JSONObject json = new JSONObject(contents);
-        assertEquals(json.getString("foo"), "bar");
-    }
+//    public void testUrlEncodedFormBody() throws Exception {
+//        List<NameValuePair> params = new ArrayList<NameValuePair>();
+//        params.add(new BasicNameValuePair("foo", "bar"));
+//        HttpPost post = new HttpPost("http://localhost:5000/echo");
+//        post.setEntity(new UrlEncodedFormEntity(params));
+//
+//        HttpResponse response = new DefaultHttpClient().execute(post);
+//        String contents = StreamUtility.readToEnd(response.getEntity().getContent());
+//        JSONObject json = new JSONObject(contents);
+//        assertEquals(json.getString("foo"), "bar");
+//    }
     
     public void testServerHello() throws Exception {
         URL url = new URL("http://localhost:5000/hello");

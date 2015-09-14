@@ -13,6 +13,7 @@ import java.io.InputStream;
 
 public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     public void end();
+    public void send(String contentType, byte[] bytes);
     public void send(String contentType, String string);
     public void send(String string);
     public void send(JSONObject json);
