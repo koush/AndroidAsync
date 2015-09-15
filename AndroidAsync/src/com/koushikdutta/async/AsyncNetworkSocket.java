@@ -48,6 +48,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
     
     public void onDataWritable() {
 //        assert mWriteableHandler != null;
+        mKey.interestOps(SelectionKey.OP_READ);
         if (mWriteableHandler != null)
             mWriteableHandler.onWriteable();
     }
