@@ -70,13 +70,13 @@ public class AsyncHttpClient {
     //If you want to use TLS 1.2 in old versions of Android, you need to update SSLEngine
     //Inspired by thus post: http://www.dahuatu.com/bawYXMDjmQ.html
 
-    public void enableSSLProtocolOnOlderVersionsOfAndroid(Context context, String procotol) throws GooglePlayServicesNotAvailableException, GooglePlayServicesRepairableException {
+    public void enableTLSProtocolOnOlderVersionsOfAndroid(Context context, String protocol) throws GooglePlayServicesNotAvailableException, GooglePlayServicesRepairableException {
         //Get the a more recent security provider using google play services
         //Will raise exceptions if device doesn't have proper google play services installed
         ProviderInstaller.installIfNeeded(context);
 
         //Example: set protocol to "TLSv1.2" for TLS 1.2
-        SSLContext sslContext = SSLContext.getInstance(procotol);
+        SSLContext sslContext = SSLContext.getInstance(protocol);
 
         //Create new SSL Engine and insert it as middlewear
         SSLEngine engine = sslContext.createSSLEngine();
