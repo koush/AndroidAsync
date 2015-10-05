@@ -187,8 +187,8 @@ body.addStringPart("foo", "bar");
 post.setBody(body);
 AsyncHttpClient.getDefaultInstance().execute(post, new StringCallback() {
     @Override
-    public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
-        if (e != null) {
+    public void onCompleted(Exception ex, AsyncHttpResponse source, String result) {
+        if (ex != null) {
             ex.printStackTrace();
             return;
         }
