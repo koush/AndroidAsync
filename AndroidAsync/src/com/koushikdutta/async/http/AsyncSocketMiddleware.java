@@ -18,6 +18,7 @@ import com.koushikdutta.async.future.TransformFuture;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Hashtable;
+import java.util.Locale;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
     String scheme;
@@ -213,7 +214,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 });
 
                 for (final InetAddress address: result) {
-                    final String inetSockAddress = String.format("%s:%s", address, port);
+                    final String inetSockAddress = String.format(Locale.ENGLISH, "%s:%s", address, port);
                     keepTrying.add(new ContinuationCallback() {
                         @Override
                         public void onContinue(Continuation continuation, final CompletedCallback next) throws Exception {

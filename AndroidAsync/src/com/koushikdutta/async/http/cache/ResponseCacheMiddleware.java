@@ -43,6 +43,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.net.ssl.SSLEngine;
@@ -226,7 +227,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         CacheData cacheData = data.state.get("cache-data");
         RawHeaders rh = RawHeaders.fromMultimap(data.response.headers().getMultiMap());
         rh.removeAll("Content-Length");
-        rh.setStatusLine(String.format("%s %s %s", data.response.protocol(), data.response.code(), data.response.message()));
+        rh.setStatusLine(String.format(Locale.ENGLISH, "%s %s %s", data.response.protocol(), data.response.code(), data.response.message()));
         ResponseHeaders networkResponse = new ResponseHeaders(data.request.getUri(), rh);
         data.state.put("response-headers", networkResponse);
         if (cacheData != null) {

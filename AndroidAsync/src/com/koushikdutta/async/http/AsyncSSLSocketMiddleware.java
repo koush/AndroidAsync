@@ -14,6 +14,7 @@ import com.koushikdutta.async.callback.ConnectCallback;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -102,7 +103,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
                 // this SSL connection is proxied, must issue a CONNECT request to the proxy server
                 // http://stackoverflow.com/a/6594880/704837
                 // some proxies also require 'Host' header, it should be safe to provide it every time
-                String connect = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", uri.getHost(), port, uri.getHost());
+                String connect = String.format(Locale.ENGLISH, "CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", uri.getHost(), port, uri.getHost());
                 data.request.logv("Proxying: " + connect);
                 Util.writeAll(socket, connect.getBytes(), new CompletedCallback() {
                     @Override

@@ -6,6 +6,8 @@ import android.util.Log;
 import com.koushikdutta.async.AsyncSSLException;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
+import java.util.Locale;
+
 public class AsyncHttpRequest {
     public RequestLine getRequestLine() {
         return new RequestLine() {
@@ -27,7 +29,7 @@ public class AsyncHttpRequest {
             @Override
             public String toString() {
                 if (proxyHost != null)
-                    return String.format("%s %s HTTP/1.1", mMethod, AsyncHttpRequest.this.getUri());
+                    return String.format(Locale.ENGLISH, "%s %s HTTP/1.1", mMethod, AsyncHttpRequest.this.getUri());
                 String path = AsyncHttpRequest.this.getUri().getEncodedPath();
                 if (path == null || path.length() == 0)
                     path = "/";
@@ -35,7 +37,7 @@ public class AsyncHttpRequest {
                 if (query != null && query.length() != 0) {
                     path += "?" + query;
                 }
-                return String.format("%s %s HTTP/1.1", mMethod, path);
+                return String.format(Locale.ENGLISH, "%s %s HTTP/1.1", mMethod, path);
             }
         };
     }
@@ -187,7 +189,7 @@ public class AsyncHttpRequest {
             elapsed = System.currentTimeMillis() - executionTime;
         else
             elapsed = 0;
-        return String.format("(%d ms) %s: %s", elapsed, getUri(), message);
+        return String.format(Locale.ENGLISH, "(%d ms) %s: %s", elapsed, getUri(), message);
     }
     public void logi(String message) {
         if (LOGTAG == null)
