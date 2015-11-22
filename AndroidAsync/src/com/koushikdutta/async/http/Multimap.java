@@ -2,8 +2,6 @@ package com.koushikdutta.async.http;
 
 import android.net.Uri;
 
-import org.apache.http.NameValuePair;
-
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Iterator;

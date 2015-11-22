@@ -29,7 +29,7 @@
  *
  */
 
-package org.apache.http;
+package com.koushikdutta.async.http;
 
 /**
  * A simple class encapsulating an attribute/value pair.

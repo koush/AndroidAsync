@@ -33,8 +33,6 @@ package com.koushikdutta.async.http;
 
 import android.text.TextUtils;
 
-import org.apache.http.NameValuePair;
-
 /**
  * A simple class encapsulating an attribute/value pair.
  * <p>
