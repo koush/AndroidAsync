@@ -48,10 +48,14 @@ public class AsyncNetworkSocket implements AsyncSocket {
     
     public void onDataWritable() {
 //        assert mWriteableHandler != null;
+        if (!mChannel.isChunked()) {
+            // turn write off
+            mKey.interestOps(~SelectionKey.OP_WRITE & mKey.interestOps());
+        }
         if (mWriteableHandler != null)
             mWriteableHandler.onWriteable();
     }
-    
+
     private ChannelWrapper mChannel;
     private SelectionKey mKey;
     private AsyncServer mServer;
@@ -99,10 +103,12 @@ public class AsyncNetworkSocket implements AsyncSocket {
             // chunked channels should not fail
             assert !mChannel.isChunked();
             // register for a write notification if a write fails
-            mKey.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            // turn write on
+            mKey.interestOps(SelectionKey.OP_WRITE | mKey.interestOps());
         }
         else {
-            mKey.interestOps(SelectionKey.OP_READ);
+            // turn write off
+            mKey.interestOps(~SelectionKey.OP_WRITE & mKey.interestOps());
         }
     }
     private ByteBufferList pending = new ByteBufferList();
