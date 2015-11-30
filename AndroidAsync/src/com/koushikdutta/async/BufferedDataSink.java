@@ -12,11 +12,18 @@ public class BufferedDataSink implements DataSink {
     }
 
     public boolean isBuffering() {
-        return mPendingWrites.hasRemaining();
+        return mPendingWrites.hasRemaining() || forceBuffering;
     }
     
     public DataSink getDataSink() {
         return mDataSink;
+    }
+
+    boolean forceBuffering;
+    public void forceBuffering(boolean forceBuffering) {
+        this.forceBuffering = forceBuffering;
+        if (!forceBuffering)
+            writePending();
     }
 
     public void setDataSink(DataSink datasink) {
@@ -30,6 +37,9 @@ public class BufferedDataSink implements DataSink {
     }
 
     private void writePending() {
+        if (forceBuffering)
+            return;
+
 //        Log.i("NIO", "Writing to buffer...");
         if (mPendingWrites.hasRemaining()) {
             mDataSink.write(mPendingWrites);
@@ -53,7 +63,7 @@ public class BufferedDataSink implements DataSink {
         getServer().run(new Runnable() {
             @Override
             public void run() {
-                if (!mPendingWrites.hasRemaining())
+                if (!isBuffering())
                     mDataSink.write(bb);
 
                 if (bb.remaining() > 0) {

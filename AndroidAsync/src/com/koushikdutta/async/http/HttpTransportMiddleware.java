@@ -3,9 +3,12 @@ package com.koushikdutta.async.http;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.BufferedDataSink;
 import com.koushikdutta.async.DataEmitter;
+import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.LineEmitter;
 import com.koushikdutta.async.Util;
+import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 
@@ -38,11 +41,40 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
             }
         }
 
+        // try to get the request body in the same packet as the request headers... if it will fit
+        // in the max MTU (1540 or whatever).
+        final boolean waitForBody = requestBody != null && requestBody.length() >= 0 && requestBody.length() < 1024;
+        final BufferedDataSink bsink;
+        final DataSink headerSink;
+        if (waitForBody) {
+            // force buffering of headers
+            bsink = new BufferedDataSink(data.response.sink());
+            bsink.forceBuffering(true);
+            data.response.sink(bsink);
+            headerSink = bsink;
+        }
+        else {
+            bsink = null;
+            headerSink = data.socket;
+        }
+
         String rl = request.getRequestLine().toString();
         String rs = request.getHeaders().toPrefixString(rl);
         request.logv("\n" + rs);
 
-        Util.writeAll(data.socket, rs.getBytes(), data.sendHeadersCallback);
+        if (bsink != null)
+            bsink.setMaxBuffer(1024);
+
+        final CompletedCallback sentCallback = data.sendHeadersCallback;
+        Util.writeAll(headerSink, rs.getBytes(), new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                Util.end(sentCallback, ex);
+                // flush headers and any request body that was written by the callback
+                if (bsink != null)
+                    bsink.forceBuffering(false);
+            }
+        });
 
         LineEmitter.StringCallback headerCallback = new LineEmitter.StringCallback() {
             Headers mRawHeaders = new Headers();
