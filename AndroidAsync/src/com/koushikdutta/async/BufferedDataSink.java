@@ -60,22 +60,27 @@ public class BufferedDataSink implements DataSink {
     }
     
     protected void write(final ByteBufferList bb, final boolean ignoreBuffer) {
-        getServer().run(new Runnable() {
-            @Override
-            public void run() {
-                if (!isBuffering())
-                    mDataSink.write(bb);
-
-                if (bb.remaining() > 0) {
-                    int toRead = Math.min(bb.remaining(), mMaxBuffer);
-                    if (ignoreBuffer)
-                        toRead = bb.remaining();
-                    if (toRead > 0) {
-                        bb.get(mPendingWrites, toRead);
-                    }
+        if (getServer().getAffinity() != Thread.currentThread()) {
+            getServer().run(new Runnable() {
+                @Override
+                public void run() {
+                    write(bb, ignoreBuffer);
                 }
+            });
+            return;
+        }
+
+        if (!isBuffering())
+            mDataSink.write(bb);
+
+        if (bb.remaining() > 0) {
+            int toRead = Math.min(bb.remaining(), mMaxBuffer);
+            if (ignoreBuffer)
+                toRead = bb.remaining();
+            if (toRead > 0) {
+                bb.get(mPendingWrites, toRead);
             }
-        });
+        }
     }
 
     WritableCallback mWritable;
@@ -111,16 +116,21 @@ public class BufferedDataSink implements DataSink {
     boolean endPending;
     @Override
     public void end() {
-        getServer().run(new Runnable() {
-            @Override
-            public void run() {
-                if (mPendingWrites.hasRemaining()) {
-                    endPending = true;
-                    return;
+        if (getServer().getAffinity() != Thread.currentThread()) {
+            getServer().run(new Runnable() {
+                @Override
+                public void run() {
+                    end();
                 }
-                mDataSink.end();
-            }
-        });
+            });
+            return;
+        }
+
+        if (mPendingWrites.hasRemaining()) {
+            endPending = true;
+            return;
+        }
+        mDataSink.end();
     }
 
     @Override

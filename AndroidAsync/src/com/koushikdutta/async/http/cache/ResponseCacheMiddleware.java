@@ -476,6 +476,17 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         @Override
         public void close() {
+            if (getServer().getAffinity() != Thread.currentThread()) {
+                getServer().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        close();
+                    }
+                });
+                return;
+            }
+
+            pending.recycle();
             StreamUtility.closeQuietly(cacheResponse.getBody());
             super.close();
         }
