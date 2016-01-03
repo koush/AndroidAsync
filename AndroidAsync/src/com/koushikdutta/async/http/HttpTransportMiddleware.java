@@ -71,8 +71,10 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
             public void onCompleted(Exception ex) {
                 Util.end(sentCallback, ex);
                 // flush headers and any request body that was written by the callback
-                if (bsink != null)
+                if (bsink != null) {
                     bsink.forceBuffering(false);
+                    bsink.setMaxBuffer(0);
+                }
             }
         });
 
