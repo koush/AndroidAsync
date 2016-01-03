@@ -222,11 +222,6 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                     public void settings(boolean clearPrevious, Settings settings) {
                         super.settings(clearPrevious, settings);
                         if (!hasReceivedSettings) {
-                            try {
-                                sendConnectionPreface();
-                            } catch (IOException e1) {
-                                e1.printStackTrace();
-                            }
                             hasReceivedSettings = true;
 
                             SpdyConnectionWaiter waiter = connections.get(key);
@@ -240,6 +235,12 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
                         }
                     }
                 };
+
+                try {
+                    connection.sendConnectionPreface();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
             }
         };
     }
