@@ -306,6 +306,10 @@ abstract class HybiParser {
         return frame(OP_PING, data, -1);
     }
 
+    public byte[] pongFrame(String data) {
+        return frame(OP_PONG, data, -1);
+    }
+
     /**
      * Flip the opcode so to avoid the name collision with the public method
      * 

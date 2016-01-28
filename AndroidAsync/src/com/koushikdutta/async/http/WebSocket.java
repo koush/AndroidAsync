@@ -18,6 +18,7 @@ public interface WebSocket extends AsyncSocket {
     public void send(String string);
     public void send(byte [] bytes, int offset, int len);
     public void ping(String message);
+    public void pong(String message);
     
     public void setStringCallback(StringCallback callback);
     public StringCallback getStringCallback();
