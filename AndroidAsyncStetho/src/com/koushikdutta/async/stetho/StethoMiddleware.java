@@ -3,11 +3,9 @@ package com.koushikdutta.async.stetho;
 import com.facebook.stetho.inspector.network.NetworkEventReporter;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.http.AsyncHttpRequest;
+import com.koushikdutta.async.http.BasicNameValuePair;
+import com.koushikdutta.async.http.NameValuePair;
 import com.koushikdutta.async.http.SimpleMiddleware;
-
-import org.apache.http.Header;
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicHeader;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,12 +22,16 @@ public class StethoMiddleware extends SimpleMiddleware {
     private static class AsyncInspectorRequest implements NetworkEventReporter.InspectorRequest {
         AsyncHttpRequest request;
         String id = UUID.randomUUID().toString();
-        Header[] headers;
+        NameValuePair[] headers;
         AsyncInspectorResponse response;
 
         public AsyncInspectorRequest(AsyncHttpRequest request) {
             this.request = request;
-            headers = request.asHttpRequest().getAllHeaders();
+            ArrayList<BasicNameValuePair> a = new ArrayList<>();
+            for (NameValuePair nvp : request.getHeaders().getMultiMap()) {
+                a.add(new BasicNameValuePair(nvp.getName(), nvp.getValue()));
+            }
+            headers = a.toArray(new BasicNameValuePair[a.size()]);
         }
 
         @Override
@@ -89,16 +91,16 @@ public class StethoMiddleware extends SimpleMiddleware {
     private static class AsyncInspectorResponse implements NetworkEventReporter.InspectorResponse {
         ResponseHead head;
         AsyncInspectorRequest request;
-        Header[] headers;
+        NameValuePair[] headers;
 
         public AsyncInspectorResponse(ResponseHead head, AsyncInspectorRequest request) {
             this.request = request;
             this.head = head;
-            ArrayList<Header> a = new ArrayList<Header>();
-            for (NameValuePair nvp: head.headers().getMultiMap()) {
-                a.add(new BasicHeader(nvp.getName(), nvp.getValue()));
+            ArrayList<BasicNameValuePair> a = new ArrayList<>();
+            for (NameValuePair nvp : head.headers().getMultiMap()) {
+                a.add(new BasicNameValuePair(nvp.getName(), nvp.getValue()));
             }
-            headers = a.toArray(new Header[a.size()]);
+            headers = a.toArray(new BasicNameValuePair[a.size()]);
         }
 
         @Override
