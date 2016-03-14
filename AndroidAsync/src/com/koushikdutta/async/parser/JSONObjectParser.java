@@ -5,6 +5,8 @@ import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.TransformFuture;
+import com.koushikdutta.async.util.Charsets;
+
 import org.json.JSONObject;
 
 import java.lang.reflect.Type;
@@ -15,7 +17,7 @@ import java.lang.reflect.Type;
 public class JSONObjectParser implements AsyncParser<JSONObject> {
     @Override
     public Future<JSONObject> parse(DataEmitter emitter) {
-        return new StringParser().parse(emitter)
+        return new StringParser(emitter.charset() == null ? Charsets.UTF_8 : null ).parse(emitter)
         .then(new TransformFuture<JSONObject, String>() {
             @Override
             protected void transform(String result) throws Exception {
