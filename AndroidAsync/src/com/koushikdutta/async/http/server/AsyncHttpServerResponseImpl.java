@@ -245,6 +245,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void sendStream(final InputStream inputStream, long totalLength) {
+        sendStream(inputStream, totalLength, true);
+    }
+
+    @Override
+    public void sendStream(final InputStream inputStream, long totalLength, boolean streamFromStart) {
         long start = 0;
         long end = totalLength - 1;
 
@@ -279,8 +284,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             }
         }
         try {
-            if (start != inputStream.skip(start))
-                throw new StreamSkipException("skip failed to skip requested amount");
+            //If the offset pos of input stream is from start, then skip the beginning part of bytes.
+            if(streamFromStart) {
+                if (start != inputStream.skip(start))
+                    throw new StreamSkipException("skip failed to skip requested amount");
+            }
             mContentLength = end - start + 1;
             mRawHeaders.set("Content-Length", String.valueOf(mContentLength));
             mRawHeaders.set("Accept-Ranges", "bytes");
