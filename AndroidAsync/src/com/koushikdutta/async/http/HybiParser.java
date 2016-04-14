@@ -30,12 +30,20 @@
 
 package com.koushikdutta.async.http;
 
+import android.app.Application;
+import android.os.Environment;
+import android.widget.Toast;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
 import com.koushikdutta.async.callback.DataCallback;
+import com.tpad.common.utils.TimeUtils;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
@@ -351,8 +359,9 @@ abstract class HybiParser {
             frame[2] = (byte) (length / 256);
             frame[3] = (byte) (length & BYTE);
         } else {
-        	
-        	frame[1] = (byte) (masked | 127);
+            // Original codes:
+            /*
+            frame[1] = (byte) (masked | 127);
             frame[2] = (byte) (( length / _2_TO_56_) & BYTE);
             frame[3] = (byte) (( length / _2_TO_48_) & BYTE);
             frame[4] = (byte) (( length / _2_TO_40_) & BYTE);
@@ -361,25 +370,63 @@ abstract class HybiParser {
             frame[7] = (byte) (( length / _2_TO_16_) & BYTE);
             frame[8] = (byte) (( length / _2_TO_8_)  & BYTE);
             frame[9] = (byte) (length & BYTE);
+            */
+
+            // Fixed #437. I guess there are some code rendering issues that
+            // probably affect the arraycopy process of the frame byte array.
+            // So I wrote S32_TO_8BYTES function to bypass it. It doesn't force
+            // to cast int  to byte and assigns byte values that return from the
+            // function so that no code rendering will occur around this frame.
+            // Therefore, we will have a correct byte array of frames.
+            // Rogerus Rex scripsit 14/Apr/2016.
+            byte[] len=S32_TO_8BYTES(length);
+            frame[1] = (byte) (masked | 127);
+            frame[2] = len[0];
+            frame[3] = len[1];
+            frame[4] = len[2];
+            frame[5] = len[3];
+            frame[6] = len[4];
+            frame[7] = len[5];
+            frame[8] = len[6];
+            frame[9] = len[7];
+
+
         }
 
         if (errorCode > 0) {
             frame[offset] = (byte) ((errorCode / 256) & BYTE);
             frame[offset+1] = (byte) (errorCode & BYTE);
         }
-        
-        System.arraycopy(buffer, dataOffset, frame, offset + insert, dataLength - dataOffset);
 
+        
         if (mMasking) {
             byte[] mask = {
                 (byte) Math.floor(Math.random() * 256), (byte) Math.floor(Math.random() * 256),
                 (byte) Math.floor(Math.random() * 256), (byte) Math.floor(Math.random() * 256)
             };
+
+
             System.arraycopy(mask, 0, frame, header, mask.length);
             mask(frame, mask, offset);
+            
+
         }
 
+       
         return frame;
+    }
+
+    private static byte[] S32_TO_8BYTES(int s32){
+        byte[] ret=new byte[8];
+        ret[0]=0;
+        ret[1]=0;
+        ret[2]=0;
+        ret[3]=0;
+        ret[4]=Integer.valueOf(((s32&0xFF000000) >>> 24) & 0xFF).byteValue();
+        ret[5]=Integer.valueOf(((s32&0x00FF0000) >>> 16) & 0xFF).byteValue();
+        ret[6]=Integer.valueOf(((s32&0x0000FF00) >>> 8 ) & 0xFF).byteValue();
+        ret[7]=Integer.valueOf(  s32&0x000000FF ).byteValue();
+        return ret;
     }
 
     public void close(int code, String reason) {
