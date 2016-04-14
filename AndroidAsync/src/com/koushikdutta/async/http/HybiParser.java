@@ -30,20 +30,13 @@
 
 package com.koushikdutta.async.http;
 
-import android.app.Application;
-import android.os.Environment;
-import android.widget.Toast;
-
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
 import com.koushikdutta.async.callback.DataCallback;
-import com.tpad.common.utils.TimeUtils;
+
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
@@ -361,7 +354,7 @@ abstract class HybiParser {
         } else {
             // Original codes:
             /*
-            frame[1] = (byte) (masked | 127);
+        	frame[1] = (byte) (masked | 127);
             frame[2] = (byte) (( length / _2_TO_56_) & BYTE);
             frame[3] = (byte) (( length / _2_TO_48_) & BYTE);
             frame[4] = (byte) (( length / _2_TO_40_) & BYTE);
@@ -375,10 +368,10 @@ abstract class HybiParser {
             // Fixed #437. I guess there are some code rendering issues that
             // probably affect the arraycopy process of the frame byte array.
             // So I wrote S32_TO_8BYTES function to bypass it. It doesn't force
-            // to cast int  to byte and assigns byte values that return from the
-            // function so that no code rendering will occur around this frame.
+            // to cast int typ to byte and assigns byte values return from the
+            // function so that no code rendering will occur around frame.
             // Therefore, we will have a correct byte array of frames.
-            // Rogerus Rex scripsit 14/Apr/2016.
+            // Rogerus Rex scripsit. 14/4/2016
             byte[] len=S32_TO_8BYTES(length);
             frame[1] = (byte) (masked | 127);
             frame[2] = len[0];
@@ -398,7 +391,9 @@ abstract class HybiParser {
             frame[offset+1] = (byte) (errorCode & BYTE);
         }
 
-        
+
+        System.arraycopy(buffer, dataOffset, frame, offset + insert, dataLength - dataOffset);
+
         if (mMasking) {
             byte[] mask = {
                 (byte) Math.floor(Math.random() * 256), (byte) Math.floor(Math.random() * 256),
@@ -408,11 +403,10 @@ abstract class HybiParser {
 
             System.arraycopy(mask, 0, frame, header, mask.length);
             mask(frame, mask, offset);
-            
 
         }
 
-       
+
         return frame;
     }
 
