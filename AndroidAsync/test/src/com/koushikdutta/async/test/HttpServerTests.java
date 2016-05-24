@@ -4,6 +4,7 @@ import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.NameValuePair;
 import com.koushikdutta.async.http.body.JSONObjectBody;
 import com.koushikdutta.async.http.body.MultipartFormDataBody;
 import com.koushikdutta.async.http.body.StringBody;
@@ -16,7 +17,6 @@ import com.koushikdutta.async.util.StreamUtility;
 
 import junit.framework.TestCase;
 
-import org.apache.http.NameValuePair;
 import org.json.JSONObject;
 
 import java.io.InputStream;
