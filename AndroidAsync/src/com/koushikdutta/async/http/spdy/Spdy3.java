@@ -30,6 +30,7 @@ import java.net.ProtocolException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
+import java.util.Locale;
 import java.util.zip.Deflater;
 
 
@@ -351,7 +352,7 @@ final class Spdy3 implements Variant {
         }
 
         private static IOException ioException(String message, Object... args) throws IOException {
-            throw new IOException(String.format(message, args));
+            throw new IOException(String.format(Locale.ENGLISH, message, args));
         }
     }
 

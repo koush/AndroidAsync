@@ -18,6 +18,7 @@ package com.koushikdutta.async.http.spdy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import static java.lang.String.format;
 
@@ -68,7 +69,7 @@ interface BitArray {
 
     private static int checkInput(int index) {
       if (index < 0 || index > 63) {
-        throw new IllegalArgumentException(format("input must be between 0 and 63: %s", index));
+        throw new IllegalArgumentException(format(Locale.ENGLISH, "input must be between 0 and 63: %s", index));
       }
       return index;
     }
@@ -169,7 +170,7 @@ interface BitArray {
 
     private static int checkInput(int index) {
       if (index < 0) {
-        throw new IllegalArgumentException(format("input must be a positive number: %s", index));
+        throw new IllegalArgumentException(format(Locale.ENGLISH, "input must be a positive number: %s", index));
       }
       return index;
     }

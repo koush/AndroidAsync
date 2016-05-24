@@ -30,6 +30,7 @@ import java.lang.reflect.Field;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Locale;
 
 /**
  * An immutable sequence of bytes.
@@ -253,11 +254,11 @@ final class ByteString implements Serializable {
     }
 
     if (data.length <= 16) {
-      return String.format("ByteString[size=%s data=%s]", data.length, hex());
+      return String.format(Locale.ENGLISH, "ByteString[size=%s data=%s]", data.length, hex());
     }
 
     try {
-      return String.format("ByteString[size=%s md5=%s]", data.length,
+      return String.format(Locale.ENGLISH, "ByteString[size=%s md5=%s]", data.length,
           ByteString.of(MessageDigest.getInstance("MD5").digest(data)).hex());
     } catch (NoSuchAlgorithmException e) {
       throw new AssertionError();

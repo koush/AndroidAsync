@@ -9,6 +9,7 @@ import com.koushikdutta.async.callback.DataCallback;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Locale;
 import java.util.zip.CRC32;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.Inflater;
@@ -55,7 +56,7 @@ public class GZIPInputFilter extends InflaterInputFilter {
                 public void parsed(byte[] header) {
                     short magic = peekShort(header, 0, ByteOrder.LITTLE_ENDIAN);
                     if (magic != (short) GZIPInputStream.GZIP_MAGIC) {
-                        report(new IOException(String.format("unknown format (magic number %x)", magic)));
+                        report(new IOException(String.format(Locale.ENGLISH, "unknown format (magic number %x)", magic)));
                         emitter.setDataCallback(new NullDataCallback());
                         return;
                     }

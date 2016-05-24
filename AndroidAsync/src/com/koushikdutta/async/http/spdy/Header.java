@@ -1,6 +1,8 @@
 package com.koushikdutta.async.http.spdy;
 
 
+import java.util.Locale;
+
 /** HTTP header: the name is an ASCII string, but the value can be UTF-8. */
 final class Header {
   // Special header names defined in the SPDY and HTTP/2 specs.
@@ -50,6 +52,6 @@ final class Header {
   }
 
   @Override public String toString() {
-    return String.format("%s: %s", name.utf8(), value.utf8());
+    return String.format(Locale.ENGLISH, "%s: %s", name.utf8(), value.utf8());
   }
 }

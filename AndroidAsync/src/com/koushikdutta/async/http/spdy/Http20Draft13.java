@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Logger;
 
 import static com.koushikdutta.async.http.spdy.Http20Draft13.FrameLogger.formatHeader;
@@ -431,7 +432,7 @@ final class Http20Draft13 implements Variant {
             if (closed) throw new IOException("closed");
             if (!client) return; // Nothing to write; servers don't send connection headers!
             if (logger.isLoggable(FINE)) {
-                logger.fine(format(">> CONNECTION %s", CONNECTION_PREFACE.hex()));
+                logger.fine(format(Locale.ENGLISH, ">> CONNECTION %s", CONNECTION_PREFACE.hex()));
             }
             sink.write(new ByteBufferList(CONNECTION_PREFACE.toByteArray()));
         }
@@ -632,11 +633,11 @@ final class Http20Draft13 implements Variant {
     }
 
     private static IllegalArgumentException illegalArgument(String message, Object... args) {
-        throw new IllegalArgumentException(format(message, args));
+        throw new IllegalArgumentException(format(Locale.ENGLISH, message, args));
     }
 
     private static IOException ioException(String message, Object... args) throws IOException {
-        throw new IOException(format(message, args));
+        throw new IOException(format(Locale.ENGLISH, message, args));
     }
 
     private static short lengthWithoutPadding(short length, byte flags, short padding)
@@ -669,9 +670,9 @@ final class Http20Draft13 implements Variant {
     static final class FrameLogger {
 
         static String formatHeader(boolean inbound, int streamId, int length, byte type, byte flags) {
-            String formattedType = type < TYPES.length ? TYPES[type] : format("0x%02x", type);
+            String formattedType = type < TYPES.length ? TYPES[type] : format(Locale.ENGLISH, "0x%02x", type);
             String formattedFlags = formatFlags(type, flags);
-            return format("%s 0x%08x %5d %-13s %s", inbound ? "<<" : ">>", streamId, length,
+            return format(Locale.ENGLISH, "%s 0x%08x %5d %-13s %s", inbound ? "<<" : ">>", streamId, length,
             formattedType, formattedFlags);
         }
 
@@ -727,7 +728,7 @@ final class Http20Draft13 implements Variant {
 
         static {
             for (int i = 0; i < BINARY.length; i++) {
-                BINARY[i] = format("%8s", Integer.toBinaryString(i)).replace(' ', '0');
+                BINARY[i] = format(Locale.ENGLISH, "%8s", Integer.toBinaryString(i)).replace(' ', '0');
             }
 
             FLAGS[FLAG_NONE] = "";

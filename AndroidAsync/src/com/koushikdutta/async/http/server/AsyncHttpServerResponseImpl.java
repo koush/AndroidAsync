@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Locale;
 
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private Headers mRawHeaders = new Headers();
@@ -96,7 +97,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             isChunked = false;
         }
 
-        String statusLine = String.format("HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
+        String statusLine = String.format(Locale.ENGLISH, "HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
         String rh = mRawHeaders.toPrefixString(statusLine);
 
         Util.writeAll(mSocket, rh.getBytes(), new CompletedCallback() {
@@ -270,7 +271,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                     end = totalLength - 1;
 
                 code(206);
-                getHeaders().set("Content-Range", String.format("bytes %d-%d/%d", start, end, totalLength));
+                getHeaders().set("Content-Range", String.format(Locale.ENGLISH, "bytes %d-%d/%d", start, end, totalLength));
             }
             catch (Exception e) {
                 code(416);
@@ -392,7 +393,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     public String toString() {
         if (mRawHeaders == null)
             return super.toString();
-        String statusLine = String.format("HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
+        String statusLine = String.format(Locale.ENGLISH, "HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
         return mRawHeaders.toPrefixString(statusLine);
     }
 }
