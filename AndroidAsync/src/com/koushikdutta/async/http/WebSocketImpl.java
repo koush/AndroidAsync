@@ -244,6 +244,11 @@ public class WebSocketImpl implements WebSocket {
         mSink.write(new ByteBufferList(ByteBuffer.wrap(mParser.pingFrame(string))));
     }
 
+    @Override
+    public void pong(String string) {
+        mSink.write(new ByteBufferList(ByteBuffer.wrap(mParser.pongFrame(string))));
+    }
+
     private StringCallback mStringCallback;
     @Override
     public void setStringCallback(StringCallback callback) {
