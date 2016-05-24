@@ -302,7 +302,9 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                                     verifier.verify(mHost, StrictHostnameVerifier.getCNs(peerCertificates[0]), StrictHostnameVerifier.getDNSSubjectAlts(peerCertificates[0]));
                                 }
                                 else {
-                                    hostnameVerifier.verify(mHost, engine.getSession());
+                                    if (!hostnameVerifier.verify(mHost, engine.getSession())) {
+                                        throw new SSLException("hostname <" + mHost + "> has been denied");
+                                    }
                                 }
                             }
                             trusted = true;
