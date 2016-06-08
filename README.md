@@ -227,7 +227,7 @@ server.websocket("/live", new WebSocketRequestCallback() {
         _sockets.add(webSocket);
         
         //Use this to clean up any references to your websocket
-        websocket.setClosedCallback(new CompletedCallback() {
+        webSocket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
                 try {
