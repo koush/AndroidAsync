@@ -1,13 +1,28 @@
 package com.koushikdutta.async;
 
+import android.util.Log;
+
 import com.koushikdutta.async.callback.DataCallback;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+
 public class LineEmitter implements DataCallback {
-    static public interface StringCallback {
-        public void onStringAvailable(String s);
+    public interface StringCallback {
+        void onStringAvailable(String s);
     }
 
-    StringBuilder data = new StringBuilder();
+    public LineEmitter() {
+        this(null);
+    }
+
+    public LineEmitter(Charset charset) {
+        this.charset = charset;
+    }
+
+    Charset charset;
+
+    ByteBufferList data = new ByteBufferList();
 
     StringCallback mLineCallback;
     public void setLineCallback(StringCallback callback) {
@@ -20,17 +35,22 @@ public class LineEmitter implements DataCallback {
 
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+        ByteBuffer buffer = ByteBuffer.allocate(bb.remaining());
         while (bb.remaining() > 0) {
             byte b = bb.get();
             if (b == '\n') {
                 assert mLineCallback != null;
-                mLineCallback.onStringAvailable(data.toString());
-                data = new StringBuilder();
+                buffer.flip();
+                data.add(buffer);
+                mLineCallback.onStringAvailable(data.readString(charset));
+                data = new ByteBufferList();
                 return;
             }
             else {
-                data.append((char)b);
+                buffer.put(b);
             }
-        }        
+        }
+        buffer.flip();
+        data.add(buffer);
     }
 }
