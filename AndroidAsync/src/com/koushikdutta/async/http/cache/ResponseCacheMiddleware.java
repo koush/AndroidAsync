@@ -93,6 +93,11 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         this.caching = caching;
     }
 
+    public void removeFromCache(Uri uri) {
+        String key = FileCache.toKeyString(uri);
+        getFileCache().remove(key);
+    }
+
     // step 1) see if we can serve request from the cache directly.
     // also see if this can be turned into a conditional cache request.
     @Override
