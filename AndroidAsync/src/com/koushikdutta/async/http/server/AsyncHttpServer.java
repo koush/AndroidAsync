@@ -511,6 +511,7 @@ public class AsyncHttpServer {
     private static Hashtable<Integer, String> mCodes = new Hashtable<Integer, String>();
     static {
         mCodes.put(200, "OK");
+        mCodes.put(202, "Accepted");
         mCodes.put(206, "Partial Content");
         mCodes.put(101, "Switching Protocols");
         mCodes.put(301, "Moved Permanently");
