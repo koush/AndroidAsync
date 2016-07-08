@@ -32,6 +32,7 @@ class SocketIOConnection {
     int heartbeat;
     long reconnectDelay;
     ArrayList<SocketIOClient> clients = new ArrayList<SocketIOClient>();
+
     SocketIOTransport transport;
     SocketIORequest request;
 
@@ -170,19 +171,19 @@ class SocketIOConnection {
     }
 
     void setupHeartbeat() {
-        final SocketIOTransport ts = transport;
         Runnable heartbeatRunner = new Runnable() {
             @Override
             public void run() {
-                if (heartbeat <= 0 || ts != transport || ts == null || !ts.isConnected())
+                final SocketIOTransport ts = transport;
+
+                if (heartbeat <= 0 || ts == null || !ts.isConnected())
                     return;
 
-                transport.send("2:::");
-
-                if (transport != null)
-                    transport.getServer().postDelayed(this, heartbeat);
+                ts.send("2:::");
+                ts.getServer().postDelayed(this, heartbeat);
             }
         };
+
         heartbeatRunner.run();
     }
 
