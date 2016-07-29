@@ -79,16 +79,18 @@ class SocketIOConnection {
             }
         }
 
-        if (needsEndpointDisconnect && transport != null)
-            transport.send(String.format(Locale.ENGLISH, "0::%s", client.endpoint));
+        final SocketIOTransport ts = transport;
+
+        if (needsEndpointDisconnect && ts != null)
+            ts.send(String.format(Locale.ENGLISH, "0::%s", client.endpoint));
 
         // and see if we can disconnect the socket completely
-        if (clients.size() > 0 || transport == null)
+        if (clients.size() > 0 || ts == null)
             return;
 
-        transport.setStringCallback(null);
-        transport.setClosedCallback(null);
-        transport.disconnect();
+        ts.setStringCallback(null);
+        ts.setClosedCallback(null);
+        ts.disconnect();
         transport = null;
     }
 
