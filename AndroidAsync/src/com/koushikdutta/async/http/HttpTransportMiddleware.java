@@ -41,9 +41,14 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
             }
         }
 
+        String rl = request.getRequestLine().toString();
+        String rs = request.getHeaders().toPrefixString(rl);
+
+        byte[] rsBytes = rs.getBytes();
+
         // try to get the request body in the same packet as the request headers... if it will fit
         // in the max MTU (1540 or whatever).
-        final boolean waitForBody = requestBody != null && requestBody.length() >= 0 && requestBody.length() < 1024;
+        final boolean waitForBody = requestBody != null && requestBody.length() >= 0 && requestBody.length() + rsBytes.length < 1024;
         final BufferedDataSink bsink;
         final DataSink headerSink;
         if (waitForBody) {
@@ -58,15 +63,10 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
             headerSink = data.socket;
         }
 
-        String rl = request.getRequestLine().toString();
-        String rs = request.getHeaders().toPrefixString(rl);
         request.logv("\n" + rs);
 
-        if (bsink != null)
-            bsink.setMaxBuffer(1024);
-
         final CompletedCallback sentCallback = data.sendHeadersCallback;
-        Util.writeAll(headerSink, rs.getBytes(), new CompletedCallback() {
+        Util.writeAll(headerSink, rsBytes, new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
                 Util.end(sentCallback, ex);
