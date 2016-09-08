@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-    compile project(':AndroidAsync:AndroidAsync')
+    compile project(':AndroidAsync')
 }
 
 android {

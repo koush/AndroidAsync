@@ -17,7 +17,7 @@ public class CacheOverrideMiddleware extends SimpleMiddleware {
     public static CacheOverrideMiddleware add(AsyncHttpClient client) {
         CacheOverrideMiddleware ret = new CacheOverrideMiddleware();
         // add this first so it gets called before everything else
-        client.getMiddleware().add(0, ret);
+        client.getMiddleware().add(ret);
         return ret;
     }
 
