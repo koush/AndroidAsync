@@ -64,8 +64,9 @@ abstract class HybiParser {
 
     private boolean mClosed = false;
 
-    private final ByteArrayOutputStream mBuffer = new ByteArrayOutputStream();
-    private final byte[] mInflateBuffer = new byte[4096];
+    private ByteArrayOutputStream mBuffer = new ByteArrayOutputStream();
+    private Inflater mInflater = new Inflater(true);
+    private byte[] mInflateBuffer = new byte[4096];
 
     private static final int BYTE   = 255;
     private static final int FIN    = 128;
@@ -115,26 +116,19 @@ abstract class HybiParser {
     private byte[] inflate(byte[] payload) throws DataFormatException {
         ByteArrayOutputStream inflated = new ByteArrayOutputStream();
 
-        Inflater inflater = new Inflater(true);
-        inflater.setInput(payload);
-
-        while (!inflater.needsInput()) {
-            int chunkSize = inflater.inflate(mInflateBuffer);
+        mInflater.setInput(payload);
+        while (!mInflater.needsInput()) {
+            int chunkSize = mInflater.inflate(mInflateBuffer);
             inflated.write(mInflateBuffer, 0, chunkSize);
         }
 
-        inflater.setInput(new byte[] { 0, 0, -1, -1 });
-
-        while (!inflater.needsInput()) {
-            int chunkSize = inflater.inflate(mInflateBuffer);
+        mInflater.setInput(new byte[] { 0, 0, -1, -1 });
+        while (!mInflater.needsInput()) {
+            int chunkSize = mInflater.inflate(mInflateBuffer);
             inflated.write(mInflateBuffer, 0, chunkSize);
         }
 
-        try {
-            return inflated.toByteArray();
-        } finally {
-            inflater.end();
-        }
+        return inflated.toByteArray();
     }
 
     public void setMasking(boolean masking) {
@@ -158,7 +152,7 @@ abstract class HybiParser {
             parse();
         }
     };
-
+    
     DataCallback mStage1 = new DataCallback() {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -166,7 +160,7 @@ abstract class HybiParser {
             parse();
         }
     };
-
+    
     DataCallback mStage2 = new DataCallback() {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -182,7 +176,7 @@ abstract class HybiParser {
             parse();
         }
     };
-
+    
     DataCallback mStage3 = new DataCallback() {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -210,7 +204,7 @@ abstract class HybiParser {
             parse();
         }
     };
-
+    
     void parse() {
         switch (mStage) {
         case 0:
@@ -230,7 +224,7 @@ abstract class HybiParser {
             break;
         }
     }
-
+    
     private DataEmitterReader mReader = new DataEmitterReader();
 
 	private static final long BASE = 2;
@@ -303,7 +297,7 @@ abstract class HybiParser {
     public byte[] frame(byte[] data) {
         return frame(OP_BINARY, data, -1);
     }
-
+    
     public byte[] frame(byte[] data, int offset, int length) {
     	return frame(OP_BINARY, data, -1, offset, length);
     }
@@ -318,7 +312,7 @@ abstract class HybiParser {
 
     /**
      * Flip the opcode so to avoid the name collision with the public method
-     *
+     * 
      * @param opcode
      * @param data
      * @param errorCode
@@ -330,7 +324,7 @@ abstract class HybiParser {
 
     /**
      * Don't actually need the flipped method signature, trying to keep it in line with the byte[] version
-     *
+     * 
      * @param opcode
      * @param data
      * @param errorCode
@@ -339,7 +333,7 @@ abstract class HybiParser {
     private byte[] frame(int opcode, String data, int errorCode) {
         return frame(opcode, decode(data), errorCode);
     }
-
+    
     private byte[] frame(int opcode, byte [] data, int errorCode, int dataOffset, int dataLength) {
         if (mClosed) return null;
 
@@ -361,7 +355,7 @@ abstract class HybiParser {
             frame[2] = (byte) (length / 256);
             frame[3] = (byte) (length & BYTE);
         } else {
-
+        	
         	frame[1] = (byte) (masked | 127);
             frame[2] = (byte) (( length / _2_TO_56_) & BYTE);
             frame[3] = (byte) (( length / _2_TO_48_) & BYTE);
@@ -377,7 +371,7 @@ abstract class HybiParser {
             frame[offset] = (byte) ((errorCode / 256) & BYTE);
             frame[offset+1] = (byte) (errorCode & BYTE);
         }
-
+        
         System.arraycopy(buffer, dataOffset, frame, offset + insert, dataLength - dataOffset);
 
         if (mMasking) {
@@ -459,7 +453,7 @@ abstract class HybiParser {
 //            Log.d(TAG, "Got pong! " + message);
         }
     }
-
+    
     protected abstract void onMessage(byte[] payload);
     protected abstract void onMessage(String payload);
     protected abstract void onPong(String payload);
