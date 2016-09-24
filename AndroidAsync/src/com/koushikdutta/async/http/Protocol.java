@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http;
 
 import java.util.Hashtable;
+import java.util.Locale;
 
 /**
  * Protocols that OkHttp implements for <a
@@ -87,7 +88,7 @@ public enum Protocol {
     public static Protocol get(String protocol) {
         if (protocol == null)
             return null;
-        return protocols.get(protocol.toLowerCase());
+        return protocols.get(protocol.toLowerCase(Locale.US));
     }
 
     /**

@@ -32,6 +32,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Locale;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -279,7 +280,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
             if (SpdyTransport.isProhibitedHeader(connection.protocol, key))
                 continue;
             for (String value: mm.get(key)) {
-                headers.add(new Header(key.toLowerCase(), value));
+                headers.add(new Header(key.toLowerCase(Locale.US), value));
             }
         }
 

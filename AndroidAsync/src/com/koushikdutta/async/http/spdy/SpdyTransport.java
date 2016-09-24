@@ -20,6 +20,7 @@ package com.koushikdutta.async.http.spdy;
 import com.koushikdutta.async.http.Protocol;
 
 import java.util.List;
+import java.util.Locale;
 
 
 final class SpdyTransport {
@@ -45,9 +46,9 @@ final class SpdyTransport {
   /** When true, this header should not be emitted or consumed. */
   static boolean isProhibitedHeader(Protocol protocol, String name) {
     if (protocol == Protocol.SPDY_3) {
-      return SPDY_3_PROHIBITED_HEADERS.contains(name.toLowerCase());
+      return SPDY_3_PROHIBITED_HEADERS.contains(name.toLowerCase(Locale.US));
     } else if (protocol == Protocol.HTTP_2) {
-      return HTTP_2_PROHIBITED_HEADERS.contains(name.toLowerCase());
+      return HTTP_2_PROHIBITED_HEADERS.contains(name.toLowerCase(Locale.US));
     } else {
       throw new AssertionError(protocol);
     }

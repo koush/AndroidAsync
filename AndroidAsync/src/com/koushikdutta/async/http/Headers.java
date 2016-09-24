@@ -7,6 +7,7 @@ import com.koushikdutta.async.util.TaggedList;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -31,17 +32,17 @@ public class Headers {
     }
 
     public List<String> getAll(String header) {
-        return map.get(header.toLowerCase());
+        return map.get(header.toLowerCase(Locale.US));
     }
 
     public String get(String header) {
-        return map.getString(header.toLowerCase());
+        return map.getString(header.toLowerCase(Locale.US));
     }
 
     public Headers set(String header, String value) {
         if (value != null && (value.contains("\n") || value.contains("\r")))
             throw new IllegalArgumentException("value must not contain a new line or line feed");
-        String lc = header.toLowerCase();
+        String lc = header.toLowerCase(Locale.US);
         map.put(lc, value);
         TaggedList<String> list = (TaggedList<String>)map.get(lc);
         list.tagNull(header);
@@ -49,7 +50,7 @@ public class Headers {
     }
 
     public Headers add(String header, String value) {
-        String lc = header.toLowerCase();
+        String lc = header.toLowerCase(Locale.US);
         map.add(lc, value);
         TaggedList<String> list = (TaggedList<String>)map.get(lc);
         list.tagNull(header);
@@ -91,11 +92,11 @@ public class Headers {
     }
 
     public List<String> removeAll(String header) {
-        return map.remove(header.toLowerCase());
+        return map.remove(header.toLowerCase(Locale.US));
     }
 
     public String remove(String header) {
-        List<String> r = removeAll(header.toLowerCase());
+        List<String> r = removeAll(header.toLowerCase(Locale.US));
         if (r == null || r.size() == 0)
             return null;
         return r.get(0);
