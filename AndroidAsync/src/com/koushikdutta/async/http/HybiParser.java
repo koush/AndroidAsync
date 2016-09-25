@@ -30,6 +30,8 @@
 
 package com.koushikdutta.async.http;
 
+import android.util.Log;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
@@ -152,7 +154,7 @@ abstract class HybiParser {
             parse();
         }
     };
-    
+
     DataCallback mStage1 = new DataCallback() {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -160,7 +162,7 @@ abstract class HybiParser {
             parse();
         }
     };
-    
+
     DataCallback mStage2 = new DataCallback() {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -176,7 +178,7 @@ abstract class HybiParser {
             parse();
         }
     };
-    
+
     DataCallback mStage3 = new DataCallback() {
         @Override
         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
@@ -204,7 +206,7 @@ abstract class HybiParser {
             parse();
         }
     };
-    
+
     void parse() {
         switch (mStage) {
         case 0:
@@ -224,7 +226,7 @@ abstract class HybiParser {
             break;
         }
     }
-    
+
     private DataEmitterReader mReader = new DataEmitterReader();
 
 	private static final long BASE = 2;
@@ -297,7 +299,7 @@ abstract class HybiParser {
     public byte[] frame(byte[] data) {
         return frame(OP_BINARY, data, -1);
     }
-    
+
     public byte[] frame(byte[] data, int offset, int length) {
     	return frame(OP_BINARY, data, -1, offset, length);
     }
@@ -312,7 +314,7 @@ abstract class HybiParser {
 
     /**
      * Flip the opcode so to avoid the name collision with the public method
-     * 
+     *
      * @param opcode
      * @param data
      * @param errorCode
@@ -324,7 +326,7 @@ abstract class HybiParser {
 
     /**
      * Don't actually need the flipped method signature, trying to keep it in line with the byte[] version
-     * 
+     *
      * @param opcode
      * @param data
      * @param errorCode
@@ -333,7 +335,7 @@ abstract class HybiParser {
     private byte[] frame(int opcode, String data, int errorCode) {
         return frame(opcode, decode(data), errorCode);
     }
-    
+
     private byte[] frame(int opcode, byte [] data, int errorCode, int dataOffset, int dataLength) {
         if (mClosed) return null;
 
@@ -355,7 +357,7 @@ abstract class HybiParser {
             frame[2] = (byte) (length / 256);
             frame[3] = (byte) (length & BYTE);
         } else {
-        	
+
         	frame[1] = (byte) (masked | 127);
             frame[2] = (byte) (( length / _2_TO_56_) & BYTE);
             frame[3] = (byte) (( length / _2_TO_48_) & BYTE);
@@ -371,7 +373,7 @@ abstract class HybiParser {
             frame[offset] = (byte) ((errorCode / 256) & BYTE);
             frame[offset+1] = (byte) (errorCode & BYTE);
         }
-        
+
         System.arraycopy(buffer, dataOffset, frame, offset + insert, dataLength - dataOffset);
 
         if (mMasking) {
@@ -453,7 +455,7 @@ abstract class HybiParser {
 //            Log.d(TAG, "Got pong! " + message);
         }
     }
-    
+
     protected abstract void onMessage(byte[] payload);
     protected abstract void onMessage(String payload);
     protected abstract void onPong(String payload);
@@ -498,6 +500,21 @@ abstract class HybiParser {
         return copy;
     }
 
+    @Override
+    protected void finalize() throws Throwable {
+        Inflater inflater = mInflater;
+
+        if (inflater != null) {
+            try {
+                inflater.end();
+            } catch (Exception e) {
+                Log.e(TAG, "inflater.end failed", e);
+            }
+        }
+
+        super.finalize();
+    }
+
     public static class ProtocolError extends IOException {
         public ProtocolError(String detailMessage) {
             super(detailMessage);
@@ -515,5 +532,4 @@ abstract class HybiParser {
         }
         return value;
     }
-
 }
