@@ -15,7 +15,10 @@
  */
 package com.koushikdutta.async.http.spdy;
 
+import android.os.Build;
+
 import com.koushikdutta.async.BufferedDataSink;
+import com.koushikdutta.async.BuildConfig;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataEmitterReader;
@@ -508,7 +511,14 @@ final class Spdy3 implements Variant {
             deflater.setInput(headerBlockOut.array(), 0, headerBlockOut.remaining());
             while (!deflater.needsInput()) {
                 ByteBuffer deflated = ByteBufferList.obtain(headerBlockOut.capacity()).order(ByteOrder.BIG_ENDIAN);
-                int read = deflater.deflate(deflated.array(), 0, deflated.capacity(), Deflater.SYNC_FLUSH);
+                final int read;
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    read = deflater.deflate(deflated.array(), 0, deflated.capacity(), Deflater.SYNC_FLUSH);
+                } else {
+                    read = deflater.deflate(deflated.array(), 0, deflated.capacity());
+                }
+
                 deflated.limit(read);
                 headerBlockList.add(deflated);
             }

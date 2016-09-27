@@ -24,6 +24,7 @@ import java.net.HttpURLConnection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -160,7 +161,7 @@ final class ResponseHeaders {
                     varyFields = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
                 }
                 for (String varyField : value.split(",")) {
-                    varyFields.add(varyField.trim().toLowerCase());
+                    varyFields.add(varyField.trim().toLowerCase(Locale.US));
                 }
             } else if ("Content-Encoding".equalsIgnoreCase(fieldName)) {
                 contentEncoding = value;
