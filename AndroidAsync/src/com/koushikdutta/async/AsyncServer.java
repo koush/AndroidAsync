@@ -129,6 +129,7 @@ public class AsyncServer {
         }
     }
 
+    private static ExecutorService synchronousWorkers = newSynchronousWorkers("AsyncServer-worker-");
     private static void wakeup(final SelectorWrapper selector) {
         synchronousWorkers.execute(new Runnable() {
             @Override
@@ -418,8 +419,8 @@ public class AsyncServer {
         return connectSocket(InetSocketAddress.createUnresolved(host, port), callback);
     }
 
-    private static ExecutorService newSynchronousWorkers() {
-        ThreadFactory tf = new NamedThreadFactory("AsyncServer-worker-");
+    private static ExecutorService newSynchronousWorkers(String prefix) {
+        ThreadFactory tf = new NamedThreadFactory(prefix);
         ThreadPoolExecutor tpe = new ThreadPoolExecutor(1, 4, 10L,
             TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), tf);
         return tpe;
@@ -438,10 +439,10 @@ public class AsyncServer {
         }
     };
 
-    private static ExecutorService synchronousWorkers = newSynchronousWorkers();
+    private static ExecutorService synchronousResolverWorkers = newSynchronousWorkers("AsyncServer-resolver-");
     public Future<InetAddress[]> getAllByName(final String host) {
         final SimpleFuture<InetAddress[]> ret = new SimpleFuture<InetAddress[]>();
-        synchronousWorkers.execute(new Runnable() {
+        synchronousResolverWorkers.execute(new Runnable() {
             @Override
             public void run() {
                 try {
