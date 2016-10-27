@@ -2,6 +2,7 @@ package com.koushikdutta.async.http.filter;
 
 import java.nio.ByteBuffer;
 
+import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.FilteredDataSink;
@@ -9,6 +10,10 @@ import com.koushikdutta.async.FilteredDataSink;
 public class ChunkedOutputFilter extends FilteredDataSink {
     public ChunkedOutputFilter(DataSink sink) {
         super(sink);
+    }
+
+    public ChunkedOutputFilter(AsyncSocket mSocket, ByteBufferList mWritePenings) {
+        super(mSocket, mWritePenings);
     }
 
     @Override

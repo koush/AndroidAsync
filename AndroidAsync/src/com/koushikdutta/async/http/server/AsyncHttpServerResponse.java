@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http.server;
 
 import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpResponse;
@@ -34,4 +35,6 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
      */
     public void onCompleted(Exception ex);
     public AsyncSocket getSocket();
+
+    void writeHead(ByteBufferList mWritePendings);
 }

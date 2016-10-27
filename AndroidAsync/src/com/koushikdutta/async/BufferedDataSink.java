@@ -8,7 +8,13 @@ import java.nio.ByteBuffer;
 public class BufferedDataSink implements DataSink {
     DataSink mDataSink;
     public BufferedDataSink(DataSink datasink) {
+        mPendingWrites = new ByteBufferList();
         setDataSink(datasink);
+    }
+
+    public BufferedDataSink(AsyncSocket mSocket, ByteBufferList byteBufferList) {
+        mPendingWrites = byteBufferList;
+        setDataSink(mSocket);
     }
 
     public boolean isBuffering() {
@@ -52,7 +58,7 @@ public class BufferedDataSink implements DataSink {
             mWritable.onWriteable();
     }
     
-    ByteBufferList mPendingWrites = new ByteBufferList();
+    ByteBufferList mPendingWrites;
 
     @Override
     public void write(ByteBufferList bb) {
