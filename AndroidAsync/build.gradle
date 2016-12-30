@@ -22,12 +22,12 @@ android {
     }
 
     defaultConfig {
-        targetSdkVersion 24
+        targetSdkVersion 25
         minSdkVersion 9
     }
 
-    compileSdkVersion 24
-    buildToolsVersion '24.0.2'
+    compileSdkVersion 25
+    buildToolsVersion '24.0.3'
 }
 
 // upload to maven task

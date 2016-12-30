@@ -1,5 +1,6 @@
 package com.koushikdutta.async;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -70,6 +71,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         return new X509Certificate[0];
                     }
 
+                    @SuppressLint("TrustAllX509TrustManager")
                     public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
                     }
 
@@ -364,6 +366,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     ByteBufferList writeList = new ByteBufferList();
+    @SuppressLint("TrulyRandom")
     @Override
     public void write(ByteBufferList bb) {
         if (mWrapping)
