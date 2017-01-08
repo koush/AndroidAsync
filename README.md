@@ -118,7 +118,7 @@ ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(),
 ### Can also create web sockets:
 
 ```java
-AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocketConnectCallback() {
+AsyncHttpClient.getDefaultInstance().websocket("my-protocol", new WebSocketConnectCallback() {
     @Override
     public void onCompleted(Exception ex, WebSocket webSocket) {
         if (ex != null) {
