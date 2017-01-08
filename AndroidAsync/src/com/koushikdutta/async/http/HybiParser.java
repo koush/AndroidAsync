@@ -66,9 +66,8 @@ abstract class HybiParser {
 
     private boolean mClosed = false;
 
-    private ByteArrayOutputStream mBuffer = new ByteArrayOutputStream();
-    private Inflater mInflater = new Inflater(true);
-    private byte[] mInflateBuffer = new byte[4096];
+    private final ByteArrayOutputStream mBuffer = new ByteArrayOutputStream();
+    private final byte[] mInflateBuffer = new byte[4096];
 
     private static final int BYTE   = 255;
     private static final int FIN    = 128;
@@ -118,19 +117,26 @@ abstract class HybiParser {
     private byte[] inflate(byte[] payload) throws DataFormatException {
         ByteArrayOutputStream inflated = new ByteArrayOutputStream();
 
-        mInflater.setInput(payload);
-        while (!mInflater.needsInput()) {
-            int chunkSize = mInflater.inflate(mInflateBuffer);
+        Inflater inflater = new Inflater(true);
+        inflater.setInput(payload);
+
+        while (!inflater.needsInput()) {
+            int chunkSize = inflater.inflate(mInflateBuffer);
             inflated.write(mInflateBuffer, 0, chunkSize);
         }
 
-        mInflater.setInput(new byte[] { 0, 0, -1, -1 });
-        while (!mInflater.needsInput()) {
-            int chunkSize = mInflater.inflate(mInflateBuffer);
+        inflater.setInput(new byte[] { 0, 0, -1, -1 });
+
+        while (!inflater.needsInput()) {
+            int chunkSize = inflater.inflate(mInflateBuffer);
             inflated.write(mInflateBuffer, 0, chunkSize);
         }
 
-        return inflated.toByteArray();
+        try {
+            return inflated.toByteArray();
+        } finally {
+            inflater.end();
+        }
     }
 
     public void setMasking(boolean masking) {
