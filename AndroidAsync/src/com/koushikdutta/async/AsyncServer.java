@@ -1,19 +1,5 @@
 package com.koushikdutta.async;
 
-import android.os.Build;
-import android.os.Handler;
-import android.util.Log;
-
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.ListenCallback;
-import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.async.future.SimpleFuture;
-import com.koushikdutta.async.future.TransformFuture;
-import com.koushikdutta.async.util.StreamUtility;
-
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -26,6 +12,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -40,6 +27,20 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import android.os.Build;
+import android.os.Handler;
+import android.util.Log;
+
+import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.ConnectCallback;
+import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.Future;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.future.TransformFuture;
+import com.koushikdutta.async.util.StreamUtility;
 
 public class AsyncServer {
     public static final String LOGTAG = "NIO";
@@ -384,6 +385,12 @@ public class AsyncServer {
                         ckey.cancel();
                     StreamUtility.closeQuietly(socket);
                     cancel.setComplete(new RuntimeException(e));
+                }
+                catch (UnresolvedAddressException e) {
+                    if (ckey != null)
+                        ckey.cancel();
+                    StreamUtility.closeQuietly(socket);
+                    cancel.setComplete(e);
                 }
             }
         });
