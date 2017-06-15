@@ -3,6 +3,7 @@ package com.koushikdutta.async.http;
 import java.lang.reflect.Field;
 import java.util.Hashtable;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
 /**
@@ -14,6 +15,11 @@ public class SSLEngineSNIConfigurator implements AsyncSSLEngineConfigurator {
         Field peerPort;
         Field sslParameters;
         Field useSni;
+
+        @Override
+        public SSLEngine createEngine(SSLContext sslContext, String peerHost, int peerPort) {
+            return null;
+        }
 
         public EngineHolder(Class engineClass) {
             try {
@@ -49,6 +55,11 @@ public class SSLEngineSNIConfigurator implements AsyncSSLEngineConfigurator {
     }
 
     Hashtable<String, EngineHolder> holders = new Hashtable<String, EngineHolder>();
+
+    @Override
+    public SSLEngine createEngine(SSLContext sslContext, String peerHost, int peerPort) {
+        return null;
+    }
 
     @Override
     public void configureEngine(SSLEngine engine, AsyncHttpClientMiddleware.GetSocketData data, String host, int port) {

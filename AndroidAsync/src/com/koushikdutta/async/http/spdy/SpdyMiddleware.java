@@ -42,6 +42,11 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         super(client);
         addEngineConfigurator(new AsyncSSLEngineConfigurator() {
             @Override
+            public SSLEngine createEngine(SSLContext sslContext, String peerHost, int peerPort) {
+                return null;
+            }
+
+            @Override
             public void configureEngine(SSLEngine engine, GetSocketData data, String host, int port) {
                 configure(engine, data, host, port);
             }
