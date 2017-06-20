@@ -69,7 +69,7 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
         }
 
         if (sslEngine == null)
-            sslEngine = sslContext.createSSLEngine();
+            sslEngine = sslContext.createSSLEngine(host, port);
 
         for (AsyncSSLEngineConfigurator configurator : engineConfigurators) {
             configurator.configureEngine(sslEngine, data, host, port);
