@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http;
 
 import android.net.Uri;
+import android.os.Build;
 import android.text.TextUtils;
 
 import com.koushikdutta.async.AsyncSSLSocket;
@@ -67,9 +68,6 @@ public class AsyncSSLSocketMiddleware extends AsyncSocketMiddleware {
             if (sslEngine != null)
                 break;
         }
-
-        if (sslEngine == null)
-            sslEngine = sslContext.createSSLEngine();
 
         for (AsyncSSLEngineConfigurator configurator : engineConfigurators) {
             configurator.configureEngine(sslEngine, data, host, port);

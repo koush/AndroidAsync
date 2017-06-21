@@ -1,11 +1,11 @@
 package com.koushikdutta.async.test;
 
 import android.net.Uri;
-import android.os.Environment;
 import android.test.AndroidTestCase;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.google.android.gms.security.ProviderInstaller;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.ByteBufferList;
@@ -38,6 +38,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import javax.net.ssl.SSLContext;
 
 public class HttpClientTests extends AndroidTestCase {
     AsyncHttpClient client;
@@ -175,6 +177,18 @@ public class HttpClientTests extends AndroidTestCase {
         Future<ByteBufferList> bb = client.executeByteBufferList(new AsyncHttpGet(github), null);
         md5.update(bb.get(TIMEOUT, TimeUnit.MILLISECONDS));
         assertEquals(md5.digest(), dataNameAndHash);
+    }
+
+    public void testSni() throws Exception {
+//        ProviderInstaller.installIfNeeded(getContext());
+//        AsyncHttpClient.getDefaultInstance().getSSLSocketMiddleware().setSSLContext(SSLContext.getInstance("TLS"));
+
+        // this server requires SNI as it serves multiple SSL certificates
+        // LOLLIPOP_MR1 and lower requires SSLEngineSNIConfigurator to set the appropriate fields via reflection.
+        // Higher than LOLLIPOP_MR1 can use createSSLEngine(host, port) as it is based off recent-ish versions of Conscrypt
+        // Conscrypt, if it is being used in GPS ProviderInstaller, can also use createSSLEngine(host, port)
+        Future<String> string = client.executeString(new AsyncHttpGet("https://koush.com/"), null);
+        string.get(TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     public void testGithubHelloWithFuture() throws Exception {

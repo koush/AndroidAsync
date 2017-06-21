@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http;
 
+import android.os.Build;
+
 import java.lang.reflect.Field;
 import java.util.Hashtable;
 
@@ -15,6 +17,7 @@ public class SSLEngineSNIConfigurator implements AsyncSSLEngineConfigurator {
         Field peerPort;
         Field sslParameters;
         Field useSni;
+        boolean skipReflection;
 
         @Override
         public SSLEngine createEngine(SSLContext sslContext, String peerHost, int peerPort) {
@@ -41,7 +44,7 @@ public class SSLEngineSNIConfigurator implements AsyncSSLEngineConfigurator {
 
         @Override
         public void configureEngine(SSLEngine engine, AsyncHttpClientMiddleware.GetSocketData data, String host, int port) {
-            if (useSni == null)
+            if (useSni == null || skipReflection)
                 return;
             try {
                 peerHost.set(engine, host);
@@ -58,18 +61,30 @@ public class SSLEngineSNIConfigurator implements AsyncSSLEngineConfigurator {
 
     @Override
     public SSLEngine createEngine(SSLContext sslContext, String peerHost, int peerPort) {
-        return null;
+        // pre M, must use reflection to enable SNI, otherwise createSSLEngine(peerHost, peerPort) works.
+        SSLEngine engine;
+        boolean skipReflection = "GmsCore_OpenSSL".equals(sslContext.getProvider().getName()) || Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+        if (skipReflection)
+            engine = sslContext.createSSLEngine(peerHost, peerPort);
+        else
+            engine = sslContext.createSSLEngine();
+        ensureHolder(engine).skipReflection = skipReflection;
+        return engine;
     }
 
-    @Override
-    public void configureEngine(SSLEngine engine, AsyncHttpClientMiddleware.GetSocketData data, String host, int port) {
+    EngineHolder ensureHolder(SSLEngine engine) {
         String name = engine.getClass().getCanonicalName();
         EngineHolder holder = holders.get(name);
         if (holder == null) {
             holder = new EngineHolder(engine.getClass());
             holders.put(name, holder);
         }
+        return holder;
+    }
 
+    @Override
+    public void configureEngine(SSLEngine engine, AsyncHttpClientMiddleware.GetSocketData data, String host, int port) {
+        EngineHolder holder = ensureHolder(engine);
         holder.configureEngine(engine, data, host, port);
     }
 }
