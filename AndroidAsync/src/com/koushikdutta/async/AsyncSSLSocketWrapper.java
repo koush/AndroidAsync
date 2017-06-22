@@ -1,5 +1,6 @@
 package com.koushikdutta.async;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -70,6 +71,8 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                         return new X509Certificate[0];
                     }
 
+                    // this TrustManager only applies a fix, the actual certificate chaine verification is done elsewhere
+                    @SuppressLint("TrustAllX509TrustManager")
                     public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
                     }
 

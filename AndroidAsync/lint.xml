@@ -1,3 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <lint>
+    <!-- Adding assertions into the codebase is intentional, so we can
+         ignore this error -->
+    <issue id="Assert" severity="ignore" />
 </lint>
