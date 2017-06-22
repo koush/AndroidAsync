@@ -68,7 +68,7 @@ public class SSLEngineSNIConfigurator implements AsyncSSLEngineConfigurator {
             engine = sslContext.createSSLEngine(peerHost, peerPort);
         else
             engine = sslContext.createSSLEngine();
-        ensureHolder(engine).skipReflection = skipReflection;
+//        ensureHolder(engine).skipReflection = skipReflection;
         return engine;
     }
 
