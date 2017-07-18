@@ -41,7 +41,7 @@ public class DocumentBody implements AsyncHttpRequestBody<Document> {
             TransformerFactory tf = TransformerFactory.newInstance();
             Transformer transformer = tf.newTransformer();
             bout = new ByteArrayOutputStream();
-            OutputStreamWriter writer = new OutputStreamWriter(bout, Charsets.UTF_8);
+            OutputStreamWriter writer = new OutputStreamWriter(bout, Charsets.DEFAULT);
             StreamResult result = new StreamResult(writer);
             transformer.transform(source, result);
             writer.flush();

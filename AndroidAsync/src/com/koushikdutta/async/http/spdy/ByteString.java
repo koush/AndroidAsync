@@ -83,7 +83,7 @@ final class ByteString implements Serializable {
   /** Returns a new byte string containing the {@code UTF-8} bytes of {@code s}. */
   public static ByteString encodeUtf8(String s) {
     if (s == null) throw new IllegalArgumentException("s == null");
-    ByteString byteString = new ByteString(s.getBytes(Charsets.UTF_8));
+    ByteString byteString = new ByteString(s.getBytes(Charsets.DEFAULT));
     byteString.utf8 = s;
     return byteString;
   }
@@ -92,7 +92,7 @@ final class ByteString implements Serializable {
   public String utf8() {
     String result = utf8;
     // We don't care if we double-allocate in racy code.
-    return result != null ? result : (utf8 = new String(data, Charsets.UTF_8));
+    return result != null ? result : (utf8 = new String(data, Charsets.DEFAULT));
   }
 
   /**

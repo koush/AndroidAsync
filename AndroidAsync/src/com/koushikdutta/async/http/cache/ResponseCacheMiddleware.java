@@ -566,7 +566,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
         public Entry(InputStream in) throws IOException {
             StrictLineReader reader = null;
             try {
-                reader = new StrictLineReader(in, Charsets.US_ASCII);
+                reader = new StrictLineReader(in, Charsets.DEFAULT);
                 uri = reader.readLine();
                 requestMethod = reader.readLine();
                 varyHeaders = new RawHeaders();
@@ -625,7 +625,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
         public void writeTo(EntryEditor editor) throws IOException {
             OutputStream out = editor.newOutputStream(ENTRY_METADATA);
-            Writer writer = new BufferedWriter(new OutputStreamWriter(out, Charsets.UTF_8));
+            Writer writer = new BufferedWriter(new OutputStreamWriter(out, Charsets.DEFAULT));
 
             writer.write(uri + '\n');
             writer.write(requestMethod + '\n');

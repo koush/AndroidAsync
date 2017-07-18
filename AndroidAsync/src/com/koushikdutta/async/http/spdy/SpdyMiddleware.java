@@ -152,7 +152,7 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
         for (Protocol protocol: protocols) {
             if (protocol == Protocol.HTTP_1_0) continue; // No HTTP/1.0 for NPN.
             result.put((byte) protocol.toString().length());
-            result.put(protocol.toString().getBytes(Charsets.UTF_8));
+            result.put(protocol.toString().getBytes(Charsets.DEFAULT));
         }
         result.flip();
         byte[] ret = new ByteBufferList(result).getAllByteArray();

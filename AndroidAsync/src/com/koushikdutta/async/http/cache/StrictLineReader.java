@@ -78,7 +78,7 @@ class StrictLineReader implements Closeable {
      * @throws IllegalArgumentException for negative or zero {@code capacity}.
      */
     public StrictLineReader(InputStream in, int capacity) {
-        this(in, capacity, Charsets.US_ASCII);
+        this(in, capacity, Charsets.DEFAULT);
     }
 
     /**
