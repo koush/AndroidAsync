@@ -369,7 +369,7 @@ public class ByteBufferList {
     // not doing toString as this is really nasty in the debugger...
     public String peekString(Charset charset) {
         if (charset == null)
-            charset = Charsets.US_ASCII;
+            charset = Charsets.UTF_8;
         StringBuilder builder = new StringBuilder();
         for (ByteBuffer bb: mBuffers) {
             byte[] bytes;
