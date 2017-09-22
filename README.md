@@ -224,7 +224,7 @@ AsyncHttpServer httpServer = new AsyncHttpServer();
 httpServer.setErrorCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                callback.updateStatus("Error callback completed");
+                Log.e("WebSocket", "An error occurred", ex);
             }
         });
         httpServer.listen(AsyncServer.getDefault(), port);
@@ -240,7 +240,7 @@ httpServer.setErrorCallback(new CompletedCallback() {
             public void onCompleted(Exception ex) {
                 try {
                     if (ex != null)
-                        Log.e("WebSocket", "Error");
+                        Log.e("WebSocket", "An error occurred", ex);
                 } finally {
                     _sockets.remove(webSocket);
                 }
