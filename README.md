@@ -104,7 +104,6 @@ AsyncHttpClient.getDefaultInstance().getFile(url, filename, new AsyncHttpClient.
 ```
 
 
-
 ### Caching is supported too
 
 ```java
@@ -112,6 +111,27 @@ AsyncHttpClient.getDefaultInstance().getFile(url, filename, new AsyncHttpClient.
 ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(),
                                   getFileStreamPath("asynccache"),
                                   1024 * 1024 * 10);
+```
+
+
+### Need to do multipart/form-data uploads? That works too.
+
+```java
+AsyncHttpPost post = new AsyncHttpPost("http://myservercom/postform.html");
+MultipartFormDataBody body = new MultipartFormDataBody();
+body.addFilePart("my-file", new File("/path/to/file.txt");
+body.addStringPart("foo", "bar");
+post.setBody(body);
+AsyncHttpClient.getDefaultInstance().executeString(post, new AsyncHttpClient.StringCallback(){
+        @Override
+        public void onCompleted(Exception ex, AsyncHttpResponse source, String result) {
+            if (ex != null) {
+                ex.printStackTrace();
+                return;
+            }
+            System.out.println("Server says: " + result);
+        }
+    });
 ```
 
 
@@ -177,27 +197,6 @@ SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2
 ```
 
 
-### Need to do multipart/form-data uploads? That works too.
-
-```java
-AsyncHttpPost post = new AsyncHttpPost("http://myservercom/postform.html");
-MultipartFormDataBody body = new MultipartFormDataBody();
-body.addFilePart("my-file", new File("/path/to/file.txt");
-body.addStringPart("foo", "bar");
-post.setBody(body);
-AsyncHttpClient.getDefaultInstance().executeString(post, new AsyncHttpClient.StringCallback(){
-        @Override
-        public void onCompleted(Exception ex, AsyncHttpResponse source, String result) {
-            if (ex != null) {
-                ex.printStackTrace();
-                return;
-            }
-            System.out.println("Server says: " + result);
-        }
-    });
-```
-
-
 ### AndroidAsync also let's you create simple HTTP servers:
 
 ```java
@@ -221,9 +220,18 @@ server.listen(5000);
 ### And WebSocket Servers:
 
 ```java
-server.websocket("/live", new WebSocketRequestCallback() {
-    @Override
-    public void onConnected(final WebSocket webSocket, AsyncHttpServerRequest request) {
+AsyncHttpServer httpServer = new AsyncHttpServer();
+httpServer.setErrorCallback(new CompletedCallback() {
+            @Override
+            public void onCompleted(Exception ex) {
+                callback.updateStatus("Error callback completed");
+            }
+        });
+        httpServer.listen(AsyncServer.getDefault(), port);
+
+        httpServer.websocket("/live", new AsyncHttpServer.WebSocketRequestCallback() {
+            @Override
+            public void onConnected(final WebSocket webSocket, AsyncHttpServerRequest request) {
         _sockets.add(webSocket);
         
         //Use this to clean up any references to your websocket
