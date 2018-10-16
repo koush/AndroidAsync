@@ -1,10 +1,11 @@
 buildscript {
     repositories {
         jcenter()
+        google()
         mavenCentral()
     }
     dependencies {
-        classpath project.hasProperty('global_gradleAndroidPlugin') ? global_gradleAndroidPlugin : 'com.android.tools.build:gradle:2.2.3'
+        classpath project.hasProperty('global_gradleAndroidPlugin') ? global_gradleAndroidPlugin : 'com.android.tools.build:gradle:3.2.0'
     }
 }
 
@@ -12,9 +13,10 @@ subprojects {
     repositories {
         jcenter()
         mavenCentral()
+        google()
     }
 
-    ext.global_compileSdkVersion = project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 25
-    ext.global_buildToolsVersion = project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '25.0.2'
-    ext.global_gradleAndroidPlugin = project.hasProperty('global_gradleAndroidPlugin') ? global_gradleAndroidPlugin : 'com.android.tools.build:gradle:2.2.3'
+    ext.global_compileSdkVersion = project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 28
+    ext.global_buildToolsVersion = project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '28.0.3'
+    ext.global_gradleAndroidPlugin = project.hasProperty('global_gradleAndroidPlugin') ? global_gradleAndroidPlugin : 'com.android.tools.build:gradle:3.2.0'
 }
