@@ -1,22 +1,34 @@
 package com.koushikdutta.async;
 
 import android.os.Build;
+import android.util.Base64;
+import android.util.Log;
 
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.http.SSLEngineSNIConfigurator;
 import com.koushikdutta.async.util.Allocator;
 import com.koushikdutta.async.wrapper.AsyncSocketWrapper;
 
 import org.apache.http.conn.ssl.StrictHostnameVerifier;
 
+import java.io.ByteArrayInputStream;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -28,6 +40,8 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket {
+    private static final String LOGTAG = "AsyncSSLSocketWrapper";
+
     public interface HandshakeCallback {
         public void onHandshakeCompleted(Exception e, AsyncSSLSocket socket);
     }
@@ -524,4 +538,92 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     public String charset() {
         return null;
     }
+
+
+    public static AsyncServerSocket listenSecure(AsyncServer server, String keyDer, String certDer, final InetAddress host, final int port, final ListenCallback handler) {
+        return listenSecure(server, Base64.decode(keyDer, Base64.DEFAULT), Base64.decode(certDer, Base64.DEFAULT), host, port, handler);
+    }
+
+
+    private static class ObjectHolder<T> {
+        T held;
+    }
+
+    public static AsyncServerSocket listenSecure(final AsyncServer server, final byte[] keyDer, final byte[] certDer, final InetAddress host, final int port, final ListenCallback handler) {
+        final ObjectHolder<AsyncServerSocket> holder = new ObjectHolder<>();
+        server.run(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    PKCS8EncodedKeySpec key = new PKCS8EncodedKeySpec(keyDer);
+                    Certificate cert = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(certDer));
+
+                    KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+                    ks.load(null);
+
+                    PrivateKey pk = KeyFactory.getInstance("RSA").generatePrivate(key);
+                    ks.setKeyEntry("key", pk, null, new Certificate[] { cert });
+
+                    KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
+                    kmf.init(ks, "".toCharArray());
+
+                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    tmf.init(ks);
+
+
+                    SSLContext sslContext = SSLContext.getInstance("TLS");
+                    sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+
+                    holder.held = listenSecure(server, sslContext, host, port, handler);
+                }
+                catch (Exception e) {
+                    handler.onCompleted(e);
+                }
+            }
+        });
+        return holder.held;
+    }
+
+    public static AsyncServerSocket listenSecure(AsyncServer server, final SSLContext sslContext, final InetAddress host, final int port, final ListenCallback handler) {
+        final SSLEngineSNIConfigurator conf = new SSLEngineSNIConfigurator() {
+            @Override
+            public SSLEngine createEngine(SSLContext sslContext, String peerHost, int peerPort) {
+                SSLEngine engine = super.createEngine(sslContext, peerHost, peerPort);
+                String[] ciphers = engine.getEnabledCipherSuites();
+//                for (String cipher: ciphers) {
+//                    Log.i(LOGTAG, cipher);
+//                }
+                engine.setEnabledCipherSuites(new String[] { "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" });
+                return engine;
+            }
+        };
+        return server.listen(host, port, new ListenCallback() {
+            @Override
+            public void onAccepted(final AsyncSocket socket) {
+                AsyncSSLSocketWrapper.handshake(socket, null, port, conf.createEngine(sslContext, null, port), null, null, false,
+                        new AsyncSSLSocketWrapper.HandshakeCallback() {
+                            @Override
+                            public void onHandshakeCompleted(Exception e, AsyncSSLSocket sslSocket) {
+                                if (e != null) {
+                                    Log.e(LOGTAG, "Error while handshaking", e);
+                                    socket.close();
+                                    return;
+                                }
+                                handler.onAccepted(sslSocket);
+                            }
+                        });
+            }
+
+            @Override
+            public void onListening(AsyncServerSocket socket) {
+                handler.onListening(socket);
+            }
+
+            @Override
+            public void onCompleted(Exception ex) {
+                handler.onCompleted(ex);
+            }
+        });
+    }
+
 }
