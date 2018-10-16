@@ -98,20 +98,24 @@ public class ByteBufferList {
     }
 
     public short peekShort() {
-        return read(2).duplicate().getShort();
+        return read(2).getShort(mBuffers.peekFirst().position());
+    }
+
+    public byte peek() {
+        return read(1).get(mBuffers.peekFirst().position());
     }
 
     public int peekInt() {
-        return read(4).duplicate().getInt();
+        return read(4).getInt(mBuffers.peekFirst().position());
     }
 
     public long peekLong() {
-        return read(8).duplicate().getLong();
+        return read(8).getLong(mBuffers.peekFirst().position());
     }
 
     public byte[] peekBytes(int size) {
         byte[] ret = new byte[size];
-        read(size).duplicate().get(ret);
+        read(size).get(ret, mBuffers.peekFirst().position(), ret.length);
         return ret;
     }
 
@@ -538,6 +542,10 @@ public class ByteBufferList {
         for (int i = index; i < arr.length; i++) {
             arr[i] = EMPTY_BYTEBUFFER;
         }
+    }
+
+    public static ByteBuffer deepCopy(ByteBuffer copyOf) {
+        return (ByteBuffer)obtain(copyOf.remaining()).put(copyOf.duplicate()).flip();
     }
 
     public static final ByteBuffer EMPTY_BYTEBUFFER = ByteBuffer.allocate(0);
