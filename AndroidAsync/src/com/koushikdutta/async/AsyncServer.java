@@ -33,7 +33,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
@@ -296,7 +295,7 @@ public class AsyncServer {
         T held;
     }
     public AsyncServerSocket listen(final InetAddress host, final int port, final ListenCallback handler) {
-        final ObjectHolder<AsyncServerSocket> holder = new ObjectHolder<AsyncServerSocket>();
+        final ObjectHolder<AsyncServerSocket> holder = new ObjectHolder<>();
         run(new Runnable() {
             @Override
             public void run() {
@@ -503,21 +502,34 @@ public class AsyncServer {
         return handler;
     }
 
-    public AsyncDatagramSocket openDatagram() throws IOException {
-        return openDatagram(null, false);
+    public AsyncDatagramSocket openDatagram() {
+        return openDatagram(null, 0, false);
     }
 
-    public AsyncDatagramSocket openDatagram(final SocketAddress address, final boolean reuseAddress) throws IOException {
-        final DatagramChannel socket = DatagramChannel.open();
+    public AsyncDatagramSocket openDatagram(final InetAddress host, final int port, final boolean reuseAddress) {
         final AsyncDatagramSocket handler = new AsyncDatagramSocket();
-        handler.attach(socket);
         // ugh.. this should really be post to make it nonblocking...
         // but i want datagrams to be immediately writable.
         // they're not really used anyways.
         run(new Runnable() {
             @Override
             public void run() {
+                final DatagramChannel socket;
                 try {
+                    socket = DatagramChannel.open();
+                }
+                catch (Exception e) {
+                    return;
+                }
+                try {
+                    handler.attach(socket);
+
+                    InetSocketAddress address;
+                    if (host == null)
+                        address = new InetSocketAddress(port);
+                    else
+                        address = new InetSocketAddress(host, port);
+
                     if (reuseAddress)
                         socket.socket().setReuseAddress(reuseAddress);
                     socket.socket().bind(address);
