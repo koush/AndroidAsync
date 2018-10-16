@@ -2,6 +2,8 @@ package com.koushikdutta.async.http;
 
 import android.net.Uri;
 
+import com.koushikdutta.async.util.TaggedList;
+
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,13 +28,33 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
         return ret.get(0);
     }
 
-    public void add(String name, String value) {
+    public String getAllString(String name, String delimiter) {
+        List<String> ret = get(name);
+        if (ret == null || ret.size() == 0)
+            return null;
+        StringBuilder builder = new StringBuilder();
+        boolean first = true;
+        for (String value: ret) {
+            if (!first)
+                builder.append(delimiter);
+
+            builder.append(value);
+            first = false;
+        }
+        return builder.toString();
+    }
+
+    public List<String> ensure(String name) {
         List<String> ret = get(name);
         if (ret == null) {
             ret = newList();
             put(name, ret);
         }
-        ret.add(value);
+        return ret;
+    }
+
+    public void add(String name, String value) {
+        ensure(name).add(value);
     }
 
     public void put(String name, String value) {
@@ -55,12 +77,16 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
     }
 
     public static Multimap parse(String value, String delimiter, boolean unquote, StringDecoder decoder) {
+        return parse(value, delimiter, "=", unquote, decoder);
+    }
+
+    public static Multimap parse(String value, String delimiter, String assigner, boolean unquote, StringDecoder decoder) {
         Multimap map = new Multimap();
         if (value == null)
             return map;
         String[] parts = value.split(delimiter);
         for (String part: parts) {
-            String[] pair = part.split("=", 2);
+            String[] pair = part.split(assigner, 2);
             String key = pair[0].trim();
             String v = null;
             if (pair.length > 1)
