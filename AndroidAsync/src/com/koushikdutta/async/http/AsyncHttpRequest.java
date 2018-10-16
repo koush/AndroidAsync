@@ -29,27 +29,44 @@ public class AsyncHttpRequest {
             @Override
             public String toString() {
                 if (proxyHost != null)
-                    return String.format(Locale.ENGLISH, "%s %s HTTP/1.1", mMethod, AsyncHttpRequest.this.getUri());
-                String path = AsyncHttpRequest.this.getUri().getEncodedPath();
+                    return String.format(Locale.ENGLISH, "%s %s %s", mMethod, AsyncHttpRequest.this.getUri(), requestLineProtocol);
+                String path = getPath();
                 if (path == null || path.length() == 0)
                     path = "/";
                 String query = AsyncHttpRequest.this.getUri().getEncodedQuery();
                 if (query != null && query.length() != 0) {
                     path += "?" + query;
                 }
-                return String.format(Locale.ENGLISH, "%s %s HTTP/1.1", mMethod, path);
+                return String.format(Locale.ENGLISH, "%s %s %s", mMethod, path, requestLineProtocol);
             }
         };
+    }
+
+    public boolean hasBody() {
+        return true;
+    }
+
+    public String getPath() {
+        return AsyncHttpRequest.this.getUri().getEncodedPath();
     }
 
     protected static String getDefaultUserAgent() {
         String agent = System.getProperty("http.agent");
         return agent != null ? agent : ("Java" + System.getProperty("java.version"));
     }
-    
+
+    private String requestLineProtocol = "HTTP/1.1";
     private String mMethod;
     public String getMethod() {
        return mMethod; 
+    }
+
+    public void setRequestLineProtocol(String scheme) {
+        this.requestLineProtocol = scheme;
+    }
+
+    public String getRequestLineProtocol() {
+        return requestLineProtocol;
     }
 
     public AsyncHttpRequest setMethod(String method) {

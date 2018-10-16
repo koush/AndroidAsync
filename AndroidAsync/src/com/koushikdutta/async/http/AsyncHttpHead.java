@@ -10,5 +10,10 @@ public class AsyncHttpHead extends AsyncHttpRequest {
         super(uri, METHOD);
     }
 
+    @Override
+    public boolean hasBody() {
+        return false;
+    }
+
     public static final String METHOD = "HEAD";
 }
