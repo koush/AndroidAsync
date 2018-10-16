@@ -353,6 +353,10 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         }
     }
 
+    protected boolean isKeepAlive(OnResponseCompleteDataOnRequestSentData data) {
+        return HttpUtil.isKeepAlive(data.response.protocol(), data.response.headers()) && HttpUtil.isKeepAlive(Protocol.HTTP_1_1, data.request.getHeaders());
+    }
+
     @Override
     public void onResponseComplete(final OnResponseCompleteDataOnRequestSentData data) {
         if (data.state.get("socket-owner") != this)
@@ -367,8 +371,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
                 data.socket.close();
                 return;
             }
-            if (!HttpUtil.isKeepAlive(data.response.protocol(), data.response.headers())
-                || !HttpUtil.isKeepAlive(Protocol.HTTP_1_1, data.request.getHeaders())) {
+            if (!isKeepAlive(data)) {
                 data.request.logv("closing out socket (not keep alive)");
                 data.socket.setClosedCallback(null);
                 data.socket.close();
