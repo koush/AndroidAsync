@@ -50,7 +50,10 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     private CompletedCallback mReporter = new CompletedCallback() {
         @Override
         public void onCompleted(Exception error) {
-            if (error != null && !mCompleted) {
+            if (headers() == null) {
+                report(new ConnectionClosedException("connection closed before headers received.", error));
+            }
+            else if (error != null && !mCompleted) {
                 report(new ConnectionClosedException("connection closed before response completed.", error));
             }
             else {
