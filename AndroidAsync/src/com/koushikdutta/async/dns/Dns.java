@@ -103,7 +103,7 @@ public class Dns {
             }
             else {
 //                System.out.println("multicast dns...");
-                dgram = AsyncServer.getDefault().openDatagram(new InetSocketAddress(0), true);
+                dgram = AsyncServer.getDefault().openDatagram(null, 0, true);
                 Field field = DatagramSocket.class.getDeclaredField("impl");
                 field.setAccessible(true);
                 Object impl = field.get(dgram.getSocket());
