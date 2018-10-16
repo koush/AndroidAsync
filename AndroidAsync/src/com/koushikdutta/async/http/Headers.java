@@ -18,7 +18,9 @@ public class Headers {
     }
 
     public Headers(Map<String, List<String>> mm) {
-        map.putAll(mm);
+        for (String key: mm.keySet()) {
+            addAll(key, mm.get(key));
+        }
     }
 
     final Multimap map = new Multimap() {
