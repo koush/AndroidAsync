@@ -28,6 +28,12 @@ android {
 
     compileSdkVersion project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 28
     buildToolsVersion project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '28.0.3'
+
+    dependencies {
+        // this is only necessary to get compilation working for self signed certificates. dependency isn't added.
+        compileOnly group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.60'
+        compileOnly group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.60'
+    }
 }
 
 // upload to maven task
