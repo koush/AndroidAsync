@@ -9,16 +9,17 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.HttpUtil;
+import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 
 public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter implements AsyncHttpServerRequest, CompletedCallback {
     private String statusLine;
     private Headers mRawHeaders = new Headers();
     AsyncSocket mSocket;
-    Matcher mMatcher;
 
     public String getStatusLine() {
         return statusLine;
@@ -121,11 +122,6 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         return mSocket.isChunked();
     }
 
-    @Override
-    public Matcher getMatcher() {
-        return mMatcher;
-    }
-
     AsyncHttpRequestBody mBody;
     @Override
     public AsyncHttpRequestBody getBody() {
@@ -152,5 +148,20 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         if (mRawHeaders == null)
             return super.toString();
         return mRawHeaders.toPrefixString(statusLine);
+    }
+
+    @Override
+    public String get(String name) {
+        Multimap query = getQuery();
+        String ret = query.getString(name);
+        if (ret != null)
+            return ret;
+        AsyncHttpRequestBody body = getBody();
+        Object bodyObject = body.get();
+        if (bodyObject instanceof Multimap) {
+            Multimap map = (Multimap)bodyObject;
+            return map.getString(name);
+        }
+        return null;
     }
 }

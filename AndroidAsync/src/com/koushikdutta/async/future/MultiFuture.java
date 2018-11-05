@@ -47,4 +47,12 @@ public class MultiFuture<T> extends SimpleFuture<T> {
         super.setCallback(this.callback);
         return this;
     }
+
+    public void removeCallback(FutureCallback<T> callback) {
+        synchronized (this) {
+            if (callbacks == null)
+                return;
+            callbacks.remove(callback);
+        }
+    }
 }

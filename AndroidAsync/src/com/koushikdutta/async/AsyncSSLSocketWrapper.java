@@ -607,59 +607,35 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 try {
                     File keyPath = context.getFileStreamPath(subjectName + "-key.txt");
                     KeyPair pair;
+                    Certificate cert;
                     try {
                         String[] keyParts = StreamUtility.readFile(keyPath).split("\n");
                         X509EncodedKeySpec pub = new X509EncodedKeySpec(Base64.decode(keyParts[0], 0));
                         PKCS8EncodedKeySpec priv = new PKCS8EncodedKeySpec(Base64.decode(keyParts[1], 0));
 
+                        cert = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(Base64.decode(keyParts[2], 0)));
+
                         KeyFactory fact = KeyFactory.getInstance("RSA");
 
                         pair = new KeyPair(fact.generatePublic(pub), fact.generatePrivate(priv));
+
                     }
                     catch (Exception e) {
                         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
                         keyGen.initialize(2048);
                         pair = keyGen.generateKeyPair();
+
+                        cert = selfSign(pair, subjectName);
+
                         StreamUtility.writeFile(keyPath,
                                 Base64.encodeToString(pair.getPublic().getEncoded(), Base64.NO_WRAP)
                                 + "\n"
-                                + Base64.encodeToString(pair.getPrivate().getEncoded(), Base64.NO_WRAP));
+                                + Base64.encodeToString(pair.getPrivate().getEncoded(), Base64.NO_WRAP)
+                                + "\n"
+                                + Base64.encodeToString(cert.getEncoded(), Base64.NO_WRAP));
                     }
 
-                    holder.held = listenSecure(server, pair, subjectName, host, port, handler);
-                }
-                catch (Exception e) {
-                    handler.onCompleted(e);
-                }
-            }
-        });
-        return holder.held;
-    }
-
-    public static AsyncServerSocket listenSecure(final AsyncServer server, final KeyPair keyPair, final String subjectName, final InetAddress host, final int port, final ListenCallback handler) {
-        final ObjectHolder<AsyncServerSocket> holder = new ObjectHolder<>();
-        server.run(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Certificate cert = selfSign(keyPair, subjectName);
-
-                    KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-                    ks.load(null);
-
-                    ks.setKeyEntry("key", keyPair.getPrivate(), null, new Certificate[] { cert });
-
-                    KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
-                    kmf.init(ks, "".toCharArray());
-
-                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                    tmf.init(ks);
-
-
-                    SSLContext sslContext = SSLContext.getInstance("TLS");
-                    sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-
-                    holder.held = listenSecure(server, sslContext, host, port, handler);
+                    holder.held = listenSecure(server, pair.getPrivate(), cert, host, port, handler);
                 }
                 catch (Exception e) {
                     handler.onCompleted(e);
@@ -687,10 +663,27 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                     PKCS8EncodedKeySpec key = new PKCS8EncodedKeySpec(keyDer);
                     Certificate cert = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(certDer));
 
+                    PrivateKey pk = KeyFactory.getInstance("RSA").generatePrivate(key);
+
+                    holder.held = listenSecure(server, pk, cert, host, port, handler);
+                }
+                catch (Exception e) {
+                    handler.onCompleted(e);
+                }
+            }
+        });
+        return holder.held;
+    }
+
+    public static AsyncServerSocket listenSecure(final AsyncServer server, final PrivateKey pk, final Certificate cert, final InetAddress host, final int port, final ListenCallback handler) {
+        final ObjectHolder<AsyncServerSocket> holder = new ObjectHolder<>();
+        server.run(new Runnable() {
+            @Override
+            public void run() {
+                try {
                     KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
                     ks.load(null);
 
-                    PrivateKey pk = KeyFactory.getInstance("RSA").generatePrivate(key);
                     ks.setKeyEntry("key", pk, null, new Certificate[] { cert });
 
                     KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
@@ -698,7 +691,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
                     TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                     tmf.init(ks);
-
 
                     SSLContext sslContext = SSLContext.getInstance("TLS");
                     sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);

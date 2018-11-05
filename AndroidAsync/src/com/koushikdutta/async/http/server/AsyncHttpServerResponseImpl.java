@@ -198,16 +198,21 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     @Override
-    public void send(String contentType, byte[] bytes) {
+    public void send(final String contentType, final byte[] bytes) {
         assert mContentLength < 0;
-        mContentLength = bytes.length;
-        mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
-        mRawHeaders.set("Content-Type", contentType);
-
-        Util.writeAll(this, bytes, new CompletedCallback() {
+        getServer().post(new Runnable() {
             @Override
-            public void onCompleted(Exception ex) {
-                onEnd();
+            public void run() {
+                mContentLength = bytes.length;
+                mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
+                mRawHeaders.set("Content-Type", contentType);
+
+                Util.writeAll(AsyncHttpServerResponseImpl.this, bytes, new CompletedCallback() {
+                    @Override
+                    public void onCompleted(Exception ex) {
+                        onEnd();
+                    }
+                });
             }
         });
     }
@@ -290,11 +295,16 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 onEnd();
                 return;
             }
-            Util.pump(inputStream, mContentLength, this, new CompletedCallback() {
+            getServer().post(new Runnable() {
                 @Override
-                public void onCompleted(Exception ex) {
-                    StreamUtility.closeQuietly(inputStream);
-                    onEnd();
+                public void run() {
+                    Util.pump(inputStream, mContentLength, AsyncHttpServerResponseImpl.this, new CompletedCallback() {
+                        @Override
+                        public void onCompleted(Exception ex) {
+                            StreamUtility.closeQuietly(inputStream);
+                            onEnd();
+                        }
+                    });
                 }
             });
         }
