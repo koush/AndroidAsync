@@ -14,6 +14,8 @@ import com.koushikdutta.async.http.filter.ContentLengthFilter;
 import com.koushikdutta.async.http.filter.GZIPInputFilter;
 import com.koushikdutta.async.http.filter.InflaterInputFilter;
 
+import java.nio.charset.Charset;
+
 public class HttpUtil {
     public static AsyncHttpRequestBody getBody(DataEmitter emitter, CompletedCallback reporter, Headers headers) {
         String contentType = headers.get("Content-Type");
@@ -59,7 +61,7 @@ public class HttpUtil {
         }
     }
     
-    public static DataEmitter getBodyDecoder(DataEmitter emitter, Protocol protocol, Headers headers, boolean server) {
+    public static DataEmitter getBodyDecoder(DataEmitter emitter, Protocol protocol, final Headers headers, boolean server) {
         long _contentLength;
         try {
             _contentLength = Long.parseLong(headers.get("Content-Length"));
@@ -81,7 +83,19 @@ public class HttpUtil {
                 emitter = ender;
                 return emitter;
             }
-            ContentLengthFilter contentLengthWatcher = new ContentLengthFilter(contentLength);
+            String charset = null;
+            Multimap mm = Multimap.parseSemicolonDelimited(headers.get("Content-Type"));
+            String cs;
+            if (mm != null && null != (cs = mm.getString("charset")) && Charset.isSupported(cs)) {
+                charset =  cs;
+            }
+            final String finalCharset = charset;
+            final ContentLengthFilter contentLengthWatcher = new ContentLengthFilter(contentLength){
+                @Override
+                public String charset() {
+                    return finalCharset;
+                }
+            };
             contentLengthWatcher.setDataEmitter(emitter);
             emitter = contentLengthWatcher;
         }
