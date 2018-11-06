@@ -20,6 +20,7 @@ import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
@@ -94,7 +95,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                     String statusLine = getStatusLine();
                     String[] parts = statusLine.split(" ");
                     fullPath = parts[1];
-                    path = fullPath.split("\\?")[0];
+                    path = URLDecoder.decode(fullPath.split("\\?")[0]);
                     method = parts[0];
                     RouteMatch route = route(method, path);
                     if (route != null) {
