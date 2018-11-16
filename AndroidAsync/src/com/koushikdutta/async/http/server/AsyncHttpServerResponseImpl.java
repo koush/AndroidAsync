@@ -2,11 +2,7 @@ package com.koushikdutta.async.http.server;
 
 import android.text.TextUtils;
 
-import com.koushikdutta.async.AsyncServer;
-import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataSink;
-import com.koushikdutta.async.Util;
+import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.WritableCallback;
@@ -31,6 +27,7 @@ import java.util.Locale;
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     private Headers mRawHeaders = new Headers();
     private long mContentLength = -1;
+    private ByteBufferList mWritePendings;
 
     @Override
     public Headers getHeaders() {
@@ -108,12 +105,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                     return;
                 }
                 if (isChunked) {
-                    ChunkedOutputFilter chunked = new ChunkedOutputFilter(mSocket);
+                    ChunkedOutputFilter chunked = new ChunkedOutputFilter(mSocket, mWritePendings);
                     chunked.setMaxBuffer(0);
                     mSink = chunked;
                 }
                 else {
-                    mSink = mSocket;
+                    mSink = new BufferedDataSink(mSocket, mWritePendings);
                 }
 
                 mSink.setClosedCallback(closedCallback);
@@ -190,6 +187,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void writeHead() {
         initFirstWrite();
+    }
+
+    @Override
+    public void writeHead(ByteBufferList mWritePendings) {
+        this.mWritePendings = mWritePendings;
+        writeHead();
     }
 
     @Override

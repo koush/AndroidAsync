@@ -5,7 +5,12 @@ public class FilteredDataSink extends BufferedDataSink {
         super(sink);
         setMaxBuffer(0);
     }
-    
+
+    public FilteredDataSink(AsyncSocket mSocket, ByteBufferList mWritePendings) {
+        super(mSocket, mWritePendings);
+        setMaxBuffer(0);
+    }
+
     public ByteBufferList filter(ByteBufferList bb) {
         return bb;
     }

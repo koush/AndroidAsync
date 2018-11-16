@@ -21,6 +21,9 @@ import java.util.LinkedList;
 import java.util.UUID;
 
 public class WebSocketImpl implements WebSocket {
+
+    private final ByteBufferList mWritePendings = new ByteBufferList();
+
     @Override
     public void end() {
         mSocket.end();
@@ -136,7 +139,7 @@ public class WebSocketImpl implements WebSocket {
             response.getHeaders().set("Sec-WebSocket-Protocol", protocol);
 //        if (origin != null)
 //            response.getHeaders().getHeaders().set("Access-Control-Allow-Origin", "http://" + origin);
-        response.writeHead();
+        response.writeHead(mWritePendings);
         
         setupParser(false, false);
     }
@@ -159,7 +162,7 @@ public class WebSocketImpl implements WebSocket {
     
     public WebSocketImpl(AsyncSocket socket) {
         mSocket = socket;
-        mSink = new BufferedDataSink(mSocket);
+        mSink = new BufferedDataSink(mSocket, mWritePendings);
     }
     
     public static WebSocket finishHandshake(Headers requestHeaders, AsyncHttpResponse response) {
