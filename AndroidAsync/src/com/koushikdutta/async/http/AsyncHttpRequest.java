@@ -91,8 +91,10 @@ public class AsyncHttpRequest {
         ret.set("User-Agent", getDefaultUserAgent());
         ret.set("Accept-Encoding", "gzip, deflate");
         ret.set("Connection", "keep-alive");
-        ret.set("Accept", "*/*");
+        ret.set("Accept", HEADER_ACCEPT_ALL);
     }
+
+    public static final String HEADER_ACCEPT_ALL = "*/*";
 
     public AsyncHttpRequest(Uri uri, String method, Headers headers) {
         assert uri != null;

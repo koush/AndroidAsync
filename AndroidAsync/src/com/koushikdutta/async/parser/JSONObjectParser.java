@@ -33,4 +33,9 @@ public class JSONObjectParser implements AsyncParser<JSONObject> {
     public Type getType() {
         return JSONObject.class;
     }
+
+    @Override
+    public String getMime() {
+        return "application/json";
+    }
 }

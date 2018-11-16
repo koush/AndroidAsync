@@ -60,4 +60,9 @@ public class ByteBufferListParser implements AsyncParser<ByteBufferList> {
     public Type getType() {
         return ByteBufferList.class;
     }
+
+    @Override
+    public String getMime() {
+        return null;
+    }
 }

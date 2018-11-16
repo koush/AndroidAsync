@@ -42,4 +42,9 @@ public class DocumentParser implements AsyncParser<Document> {
     public Type getType() {
         return Document.class;
     }
+
+    @Override
+    public String getMime() {
+        return "text/xml";
+    }
 }

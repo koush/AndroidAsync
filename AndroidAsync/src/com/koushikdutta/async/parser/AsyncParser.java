@@ -14,4 +14,5 @@ public interface AsyncParser<T> {
     Future<T> parse(DataEmitter emitter);
     void write(DataSink sink, T value, CompletedCallback completed);
     Type getType();
+    String getMime();
 }

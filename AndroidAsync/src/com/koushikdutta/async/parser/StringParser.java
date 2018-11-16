@@ -47,4 +47,9 @@ public class StringParser implements AsyncParser<String> {
     public Type getType() {
         return String.class;
     }
+
+    @Override
+    public String getMime() {
+        return null;
+    }
 }

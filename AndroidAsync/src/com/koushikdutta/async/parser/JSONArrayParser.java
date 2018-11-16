@@ -35,4 +35,9 @@ public class JSONArrayParser implements AsyncParser<JSONArray> {
     public Type getType() {
         return JSONArray.class;
     }
+
+    @Override
+    public String getMime() {
+        return "application/json";
+    }
 }
