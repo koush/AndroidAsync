@@ -6,6 +6,7 @@ import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 
 public interface AsyncHttpServerRequest extends DataEmitter {
@@ -18,4 +19,5 @@ public interface AsyncHttpServerRequest extends DataEmitter {
     String getMethod();
 
     String get(String name);
+    Map<String, Object> getState();
 }

@@ -124,8 +124,10 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                     };
                     
                     boolean handled = onRequest(this, res);
+                    if (handled)
+                        return;
 
-                    if (requestCallback == null && !handled) {
+                    if (requestCallback == null) {
                         res.code(404);
                         res.end();
                         return;

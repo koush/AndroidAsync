@@ -13,6 +13,7 @@ import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 
@@ -20,6 +21,12 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
     private String statusLine;
     private Headers mRawHeaders = new Headers();
     AsyncSocket mSocket;
+    private HashMap<String, Object> state = new HashMap<>();
+
+    @Override
+    public HashMap<String, Object> getState() {
+        return state;
+    }
 
     public String getStatusLine() {
         return statusLine;

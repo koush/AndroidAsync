@@ -51,6 +51,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     }
 
     @Override
+    public AsyncHttpServerRequest getRequest() {
+        return mRequest;
+    }
+
+    @Override
     public void write(ByteBufferList bb) {
         // order is important here...
         assert !mEnded;

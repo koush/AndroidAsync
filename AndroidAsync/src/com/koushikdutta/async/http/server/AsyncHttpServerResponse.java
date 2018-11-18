@@ -12,26 +12,27 @@ import java.io.File;
 import java.io.InputStream;
 
 public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
-    public void end();
-    public void send(String contentType, byte[] bytes);
-    public void send(String contentType, String string);
-    public void send(String string);
-    public void send(JSONObject json);
-    public void sendFile(File file);
-    public void sendStream(InputStream inputStream, long totalLength);
-    public AsyncHttpServerResponse code(int code);
-    public int code();
-    public Headers getHeaders();
-    public void writeHead();
-    public void setContentType(String contentType);
-    public void redirect(String location);
+    void end();
+    void send(String contentType, byte[] bytes);
+    void send(String contentType, String string);
+    void send(String string);
+    void send(JSONObject json);
+    void sendFile(File file);
+    void sendStream(InputStream inputStream, long totalLength);
+    AsyncHttpServerResponse code(int code);
+    int code();
+    Headers getHeaders();
+    void writeHead();
+    void setContentType(String contentType);
+    void redirect(String location);
+    AsyncHttpServerRequest getRequest();
 
     // NOT FINAL
-    public void proxy(AsyncHttpResponse response);
+    void proxy(AsyncHttpResponse response);
 
     /**
      * Alias for end. Used with CompletedEmitters
      */
-    public void onCompleted(Exception ex);
-    public AsyncSocket getSocket();
+    void onCompleted(Exception ex);
+    AsyncSocket getSocket();
 }

@@ -110,7 +110,7 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
         return parse(header, ",", true, null);
     }
 
-    private static final StringDecoder QUERY_DECODER = new StringDecoder() {
+    public static final StringDecoder QUERY_DECODER = new StringDecoder() {
         @Override
         public String decode(String s) {
             return Uri.decode(s);
@@ -121,7 +121,7 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
         return parse(query, "&", false, QUERY_DECODER);
     }
 
-    private static final StringDecoder URL_DECODER = new StringDecoder() {
+    public static final StringDecoder URL_DECODER = new StringDecoder() {
         @Override
         public String decode(String s) {
             return URLDecoder.decode(s);
