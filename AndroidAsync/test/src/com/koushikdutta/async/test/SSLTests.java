@@ -1,6 +1,6 @@
 package com.koushikdutta.async.test;
 
-import android.test.AndroidTestCase;
+import android.support.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.AsyncHttpClient;
@@ -11,6 +11,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
 import org.json.JSONObject;
+import org.junit.runner.RunWith;
 
 import java.security.KeyStore;
 
@@ -18,10 +19,13 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
+import static android.support.test.InstrumentationRegistry.getContext;
+
 /**
  * Created by koush on 6/4/13.
  */
-public class SSLTests extends AndroidTestCase {
+@RunWith(AndroidJUnit4.class)
+public class SSLTests {
     public void testKeys() throws Exception {
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());

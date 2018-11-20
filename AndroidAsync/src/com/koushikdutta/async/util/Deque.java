@@ -4,7 +4,7 @@
  * at http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-package com.koushikdutta.async;
+package com.koushikdutta.async.util;
 
 // BEGIN android-note
 // removed link to collections framework docs

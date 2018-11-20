@@ -1,11 +1,10 @@
 package com.koushikdutta.async.test;
 
 import android.net.Uri;
-import android.test.AndroidTestCase;
+import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.android.gms.security.ProviderInstaller;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.ByteBufferList;
@@ -28,9 +27,10 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.AsyncProxyServer;
 
-import junit.framework.Assert;
-
 import org.json.JSONObject;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.util.concurrent.CancellationException;
@@ -39,9 +39,16 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.net.ssl.SSLContext;
+import static android.support.test.InstrumentationRegistry.getContext;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-public class HttpClientTests extends AndroidTestCase {
+@RunWith(AndroidJUnit4.class)
+public class HttpClientTests {
     AsyncHttpClient client;
     AsyncServer server = new AsyncServer();
     
@@ -51,8 +58,8 @@ public class HttpClientTests extends AndroidTestCase {
     }
 
     @Override
-    protected void tearDown() throws Exception {
-        super.tearDown();
+    protected void finalize() throws Throwable {
+        super.finalize();
         client.getSSLSocketMiddleware().setConnectAllAddresses(false);
         client.getSocketMiddleware().setConnectAllAddresses(false);
         client.getSocketMiddleware().disableProxy();
@@ -104,6 +111,7 @@ public class HttpClientTests extends AndroidTestCase {
     */
 
     private static final long TIMEOUT = 10000L;
+    @Test
     public void testHomepage() throws Exception {
         Future<String> ret = client.executeString(new AsyncHttpGet("http://google.com"), null);
         assertNotNull(ret.get(TIMEOUT, TimeUnit.MILLISECONDS));

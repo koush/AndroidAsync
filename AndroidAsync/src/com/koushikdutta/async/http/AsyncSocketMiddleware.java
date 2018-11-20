@@ -2,7 +2,7 @@ package com.koushikdutta.async.http;
 
 import android.net.Uri;
 
-import com.koushikdutta.async.ArrayDeque;
+import com.koushikdutta.async.util.ArrayDeque;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;

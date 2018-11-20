@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.WeakHashMap;
 import java.util.concurrent.Semaphore;
 
-public class ThreadQueue extends LinkedList<Runnable> {
+class ThreadQueue extends LinkedList<Runnable> {
     final private static WeakHashMap<Thread, ThreadQueue> mThreadQueues = new WeakHashMap<Thread, ThreadQueue>();
 
     static ThreadQueue getOrCreateThreadQueue(Thread thread) {

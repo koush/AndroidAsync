@@ -1,6 +1,7 @@
 package com.koushikdutta.async.test;
 
-import android.test.AndroidTestCase;
+
+import android.support.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.FileDataEmitter;
@@ -11,14 +12,21 @@ import com.koushikdutta.async.util.StreamUtility;
 
 import junit.framework.TestCase;
 
+import org.junit.runner.RunWith;
+
 import java.io.File;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import static android.support.test.InstrumentationRegistry.getContext;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Created by koush on 5/22/13.
  */
-public class FileTests extends AndroidTestCase {
+@RunWith(AndroidJUnit4.class)
+public class FileTests {
     public static final long TIMEOUT = 1000L;
     public void testFileDataEmitter() throws Exception {
         final Semaphore semaphore = new Semaphore(0);

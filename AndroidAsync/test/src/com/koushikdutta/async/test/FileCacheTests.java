@@ -1,21 +1,28 @@
 package com.koushikdutta.async.test;
 
-import android.test.AndroidTestCase;
+import android.support.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.util.FileCache;
 import com.koushikdutta.async.util.StreamUtility;
+
+import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import static android.support.test.InstrumentationRegistry.getContext;
+import static junit.framework.TestCase.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 /**
  * Created by koush on 4/13/14.
  */
-public class FileCacheTests extends AndroidTestCase {
-    @Override
+@RunWith(AndroidJUnit4.class)
+public class FileCacheTests {
     protected void setUp() throws Exception {
-        super.setUp();
         File dir = new File(getContext().getCacheDir(), "filecache");
         File[] files = dir.listFiles();
         if (files == null)
@@ -25,6 +32,8 @@ public class FileCacheTests extends AndroidTestCase {
     }
 
     public void testSimple() throws Exception {
+        setUp();
+
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 100000, false);
         cache.setBlockSize(1);
 
@@ -38,6 +47,8 @@ public class FileCacheTests extends AndroidTestCase {
     }
 
     public void testEviction() throws Exception {
+        setUp();
+
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 25, false);
         cache.setBlockSize(1);
 
@@ -60,6 +71,8 @@ public class FileCacheTests extends AndroidTestCase {
     }
 
     public void testMultipleParts() throws Exception {
+        setUp();
+
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 100000, false);
         cache.setBlockSize(1);
         File[] temps = new File[10];
@@ -80,6 +93,8 @@ public class FileCacheTests extends AndroidTestCase {
     }
 
     public void testMultipartEviction() throws Exception {
+        setUp();
+
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 12, false);
         cache.setBlockSize(1);
         File[] temps = new File[10];
@@ -108,6 +123,8 @@ public class FileCacheTests extends AndroidTestCase {
 
 
     public void testMultipartEvictionAgain() throws Exception {
+        setUp();
+
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 72, false);
         cache.setBlockSize(1);
         File[] temps = new File[10];
@@ -150,6 +167,8 @@ public class FileCacheTests extends AndroidTestCase {
     }
 
     public void testReinit() throws Exception {
+        setUp();
+
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 10, false);
         cache.setBlockSize(1);
         File temp = cache.getTempFile();
@@ -173,6 +192,8 @@ public class FileCacheTests extends AndroidTestCase {
     }
 
     public void testCacheOrder() throws Exception {
+        setUp();
+
         FileCache cache = new FileCache(new File(getContext().getCacheDir(), "filecache"), 10, false);
         cache.setBlockSize(1);
         File temp = cache.getTempFile();

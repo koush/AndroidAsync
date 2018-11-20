@@ -617,11 +617,7 @@ public class AsyncServer {
                     mAffinity = Thread.currentThread();
                 }
                 if (!addMe()) {
-                    try {
-                        mSelector.close();
-                    }
-                    catch (Exception e) {
-                    }
+                    StreamUtility.closeQuietly(mSelector);
                     mSelector = null;
                     mAffinity = null;
                     return;
@@ -671,12 +667,7 @@ public class AsyncServer {
             }
             catch (AsyncSelectorException e) {
                 Log.i(LOGTAG, "Selector exception, shutting down", e);
-                try {
-                    // StreamUtility.closeQuiety is throwing ArrayStoreException?
-                    selector.getSelector().close();
-                }
-                catch (Exception ex) {
-                }
+                StreamUtility.closeQuietly(selector);
             }
             // see if we keep looping, this must be in a synchronized block since the queue is accessed.
             synchronized (server) {

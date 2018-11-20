@@ -1,14 +1,19 @@
 package com.koushikdutta.async.test;
 
-import android.test.AndroidTestCase;
+import android.support.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 /**
  * Created by koush on 3/19/14.
  */
-public class BodyTests extends AndroidTestCase {
+@RunWith(AndroidJUnit4.class)
+public class BodyTests {
+    @Test
     public void testNullValue() throws Exception {
         Multimap mm = new Multimap();
         mm.add("hello", null);

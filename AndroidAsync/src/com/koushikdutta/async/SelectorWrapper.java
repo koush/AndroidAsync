@@ -1,5 +1,6 @@
 package com.koushikdutta.async;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -10,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by koush on 2/13/14.
  */
-public class SelectorWrapper {
+class SelectorWrapper implements Closeable {
     private Selector selector;
     boolean isWaking;
     Semaphore semaphore = new Semaphore(0);
@@ -48,6 +49,7 @@ public class SelectorWrapper {
         return selector.selectedKeys();
     }
 
+    @Override
     public void close() throws IOException {
         selector.close();
     }

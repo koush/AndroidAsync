@@ -1,7 +1,6 @@
 package com.koushikdutta.async.test;
 
-import android.os.Environment;
-import android.test.AndroidTestCase;
+import android.support.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
@@ -21,18 +20,21 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
-import junit.framework.TestCase;
+import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.TimeUnit;
 
-public class MultipartTests extends AndroidTestCase {
+import static android.support.test.InstrumentationRegistry.getContext;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+@RunWith(AndroidJUnit4.class)
+public class MultipartTests {
     AsyncHttpServer httpServer;
 
-    @Override
     protected void setUp() throws Exception {
-        super.setUp();
 
         httpServer = new AsyncHttpServer();
         httpServer.setErrorCallback(new CompletedCallback() {
@@ -73,40 +75,46 @@ public class MultipartTests extends AndroidTestCase {
         });
     }
 
-    @Override
     protected void tearDown() throws Exception {
-        super.tearDown();
-        
+
         httpServer.stop();
         AsyncServer.getDefault().stop();
     }
 
     public void testUpload() throws Exception {
-        File dummy = getContext().getFileStreamPath("dummy.txt");
-        final String FIELD_VAL = "bar";
-        dummy.getParentFile().mkdirs();
-        FileOutputStream fout = new FileOutputStream(dummy);
-        byte[] zeroes = new byte[100000];
-        for (int i = 0; i < 10; i++) {
-            fout.write(zeroes);
-        }
-        fout.close();
-//        StreamUtility.writeFile(dummy, DUMMY_VAL);
-        
-        AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000");
-        MultipartFormDataBody body = new MultipartFormDataBody();
-        body.addStringPart("foo", FIELD_VAL);
-        body.addFilePart("my-file", dummy);
-        body.addStringPart("baz", FIELD_VAL);
-        post.setBody(body);
+        setUp();
 
-        Future<String> ret = AsyncHttpClient.getDefaultInstance().executeString(post, new StringCallback() {
-            @Override
-            public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
+        try {
+            File dummy = getContext().getFileStreamPath("dummy.txt");
+            final String FIELD_VAL = "bar";
+            dummy.getParentFile().mkdirs();
+            FileOutputStream fout = new FileOutputStream(dummy);
+            byte[] zeroes = new byte[100000];
+            for (int i = 0; i < 10; i++) {
+                fout.write(zeroes);
             }
-        });
-        
-        String data = ret.get(10000, TimeUnit.MILLISECONDS);
-        assertEquals(data, FIELD_VAL + (zeroes.length * 10) + FIELD_VAL);
+            fout.close();
+//        StreamUtility.writeFile(dummy, DUMMY_VAL);
+
+            AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000");
+            MultipartFormDataBody body = new MultipartFormDataBody();
+            body.addStringPart("foo", FIELD_VAL);
+            body.addFilePart("my-file", dummy);
+            body.addStringPart("baz", FIELD_VAL);
+            post.setBody(body);
+
+            Future<String> ret = AsyncHttpClient.getDefaultInstance().executeString(post, new StringCallback() {
+                @Override
+                public void onCompleted(Exception e, AsyncHttpResponse source, String result) {
+                }
+            });
+
+            String data = ret.get(10000, TimeUnit.MILLISECONDS);
+            assertEquals(data, FIELD_VAL + (zeroes.length * 10) + FIELD_VAL);
+        }
+        finally {
+            tearDown();
+        }
+
     }
 }

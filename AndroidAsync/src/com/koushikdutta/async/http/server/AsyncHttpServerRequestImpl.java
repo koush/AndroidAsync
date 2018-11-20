@@ -59,33 +59,29 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
     StringCallback mHeaderCallback = new StringCallback() {
         @Override
         public void onStringAvailable(String s) {
-            try {
-                if (statusLine == null) {
-                    statusLine = s;
-                    if (!statusLine.contains("HTTP/")) {
-                        onNotHttp();
-                        mSocket.setDataCallback(null);
-                    }
+            if (statusLine == null) {
+                statusLine = s;
+                if (!statusLine.contains("HTTP/")) {
+                    onNotHttp();
+                    mSocket.setDataCallback(null);
                 }
-                else if (!"\r".equals(s)){
-                    mRawHeaders.addLine(s);
-                }
-                else {
-                    DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, Protocol.HTTP_1_1, mRawHeaders, true);
-//                    emitter.setEndCallback(mReporter);
-                    mBody = HttpUtil.getBody(emitter, mReporter, mRawHeaders);
-                    if (mBody == null) {
-                        mBody = onUnknownBody(mRawHeaders);
-                        if (mBody == null)
-                            mBody = new UnknownRequestBody(mRawHeaders.get("Content-Type"));
-                    }
-                    mBody.parse(emitter, mReporter);
-                    onHeadersReceived();
-                }
+
+                return;
             }
-            catch (Exception ex) {
-                onCompleted(ex);
+            if (!"\r".equals(s)){
+                mRawHeaders.addLine(s);
+                return;
             }
+
+            DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, Protocol.HTTP_1_1, mRawHeaders, true);
+            mBody = HttpUtil.getBody(emitter, mReporter, mRawHeaders);
+            if (mBody == null) {
+                mBody = onUnknownBody(mRawHeaders);
+                if (mBody == null)
+                    mBody = new UnknownRequestBody(mRawHeaders.get("Content-Type"));
+            }
+            mBody.parse(emitter, mReporter);
+            onHeadersReceived();
         }
     };
 

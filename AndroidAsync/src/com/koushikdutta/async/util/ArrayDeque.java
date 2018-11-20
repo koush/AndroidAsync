@@ -3,14 +3,13 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/.
  */
 
-package com.koushikdutta.async;
+package com.koushikdutta.async.util;
 
 // BEGIN android-note
 // removed link to collections framework docs
 // END android-note
 
 import java.util.AbstractCollection;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;

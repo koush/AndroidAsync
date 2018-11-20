@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.os.Build;
 import android.os.Looper;
 
+import com.koushikdutta.async.util.ArrayDeque;
 import com.koushikdutta.async.util.Charsets;
 
 import java.io.IOException;

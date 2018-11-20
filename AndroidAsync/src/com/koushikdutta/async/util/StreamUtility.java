@@ -105,8 +105,11 @@ public class StreamUtility {
             if (closeable != null) {
                 try {
                     closeable.close();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     // http://stackoverflow.com/a/156525/9636
+
+                    // also, catch all exceptions because some implementations throw random crap
+                    // like ArrayStoreException
                 }
             }
         }

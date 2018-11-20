@@ -22,8 +22,10 @@ android {
     }
 
     defaultConfig {
-        targetSdkVersion 24
-        minSdkVersion 9
+        targetSdkVersion 28
+        minSdkVersion 14
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
     compileSdkVersion project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 28
@@ -33,6 +35,13 @@ android {
         // this is only necessary to get compilation working for self signed certificates. dependency isn't added.
         compileOnly group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.60'
         compileOnly group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.60'
+
+
+        testImplementation 'junit:junit:4.12'
+        androidTestImplementation 'com.android.support.test:runner:1.0.2'
+        androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+        // for when i wanna test this against gms conscrypt
+        androidTestImplementation 'com.google.android.gms:play-services-base:10.+'
     }
 }
 

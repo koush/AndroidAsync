@@ -18,7 +18,9 @@ package com.koushikdutta.async.test;
 
 
 import android.content.Context;
-import android.test.AndroidTestCase;
+import android.support.test.runner.AndroidJUnit4;
+
+import org.junit.runner.RunWith;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,10 +35,14 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 
+import static android.support.test.InstrumentationRegistry.getContext;
+import static org.junit.Assert.assertEquals;
+
 /**
  * Created by koush on 7/15/14.
  */
-public class ConscryptTests extends AndroidTestCase {
+@RunWith(AndroidJUnit4.class)
+public class ConscryptTests {
     boolean initialized;
     Field peerHost;
     Field peerPort;

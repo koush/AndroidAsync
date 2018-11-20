@@ -1,7 +1,5 @@
 package com.koushikdutta.async;
 
-import android.util.Log;
-
 import com.koushikdutta.async.callback.DataCallback;
 
 import java.nio.ByteBuffer;
