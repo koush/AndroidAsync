@@ -314,7 +314,7 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         }
     }
 
-    Callback callback = new Callback();
+    private Callback callback = new Callback();
 
     public HttpServerRequestCallback getCallback() {
         return callback;

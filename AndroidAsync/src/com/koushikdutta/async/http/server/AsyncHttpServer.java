@@ -2,6 +2,7 @@ package com.koushikdutta.async.http.server;
 
 import android.annotation.TargetApi;
 import android.os.Build;
+import android.util.Log;
 
 import com.koushikdutta.async.AsyncSSLSocket;
 import com.koushikdutta.async.AsyncSSLSocketWrapper;
@@ -13,6 +14,7 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.callback.ValueCallback;
 import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.Multimap;
@@ -53,7 +55,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
     ListenCallback mListenCallback = new ListenCallback() {
         @Override
         public void onAccepted(final AsyncSocket socket) {
-            AsyncHttpServerRequestImpl req = new AsyncHttpServerRequestImpl() {
+            final AsyncHttpServerRequestImpl req = new AsyncHttpServerRequestImpl() {
                 HttpServerRequestCallback requestCallback;
                 String fullPath;
                 String path;
@@ -61,6 +63,24 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                 boolean requestComplete;
                 AsyncHttpServerResponseImpl res;
                 boolean hasContinued;
+
+                final Runnable onFinally = new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.i("HTTP", "Done");
+                    }
+                };
+
+                final ValueCallback<Exception> onException = new ValueCallback<Exception>() {
+                    @Override
+                    public void onResult(Exception value) {
+                        Log.e("HTTP", "exception", value);
+                    }
+                };
+
+                void onRequest() {
+                    AsyncHttpServer.this.onRequest(requestCallback, this, res);
+                }
 
                 @Override
                 protected AsyncHttpRequestBody onUnknownBody(Headers headers) {
@@ -123,7 +143,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                         }
                     };
                     
-                    boolean handled = onRequest(this, res);
+                    boolean handled = AsyncHttpServer.this.onRequest(this, res);
                     if (handled)
                         return;
 
@@ -133,12 +153,8 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                         return;
                     }
 
-                    if (!getBody().readFullyOnRequest()) {
-                        onRequest(requestCallback, this, res);
-                    }
-                    else if (requestComplete) {
-                        onRequest(requestCallback, this, res);
-                    }
+                    if (!getBody().readFullyOnRequest() || requestComplete)
+                        onRequest();
                 }
 
                 @Override
@@ -157,10 +173,16 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                             mSocket.close();
                         }
                     });
+
+                    if (e != null) {
+                        mSocket.close();
+                        return;
+                    }
+
                     handleOnCompleted();
 
                     if (getBody().readFullyOnRequest()) {
-                        onRequest(requestCallback, this, res);
+                        onRequest();
                     }
                 }
                 

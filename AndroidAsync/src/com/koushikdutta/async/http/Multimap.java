@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http;
 
 import android.net.Uri;
+import android.text.TextUtils;
 
 import com.koushikdutta.async.util.TaggedList;
 
@@ -88,6 +89,9 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
         for (String part: parts) {
             String[] pair = part.split(assigner, 2);
             String key = pair[0].trim();
+            // watch for empty string or trailing delimiter
+            if (TextUtils.isEmpty(key))
+                continue;
             String v = null;
             if (pair.length > 1)
                 v = pair[1];

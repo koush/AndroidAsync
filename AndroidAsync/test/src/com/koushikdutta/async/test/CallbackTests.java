@@ -12,6 +12,13 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.http.AsyncHttpClient;
+import com.koushikdutta.async.http.AsyncHttpGet;
+import com.koushikdutta.async.http.server.AsyncHttpServer;
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
+import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,13 +64,39 @@ public class CallbackTests {
                 socket.setDataCallback(new DataCallback() {
                     @Override
                     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+                        bb.recycle();
                         throw new NullPointerException("this should crash?");
+
                     }
                 });
             }
         });
 
-        Thread.sleep(10000);
+        Thread.sleep(1000000);
+        fail();
+    }
+
+    @Test
+    public void testHttpServerThrow() throws Exception {
+        AsyncHttpServer server = new AsyncHttpServer();
+        int port = server.listen(0).getLocalPort();
+
+        server.get("/", new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                AsyncHttpClient.getDefaultInstance().executeString(new AsyncHttpGet("https://google.com"), null)
+                .setCallback(new FutureCallback<String>() {
+                    @Override
+                    public void onCompleted(Exception e, String result) {
+                        throw new NullPointerException();
+                    }
+                });
+            }
+        });
+
+        String result = AsyncHttpClient.getDefaultInstance().executeString(new AsyncHttpGet("http://localhost:" + port + "/"), null).get();
+
+        Thread.sleep(100000000);
         fail();
     }
 }

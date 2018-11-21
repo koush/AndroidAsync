@@ -4,6 +4,7 @@ import android.os.Handler;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.ValueCallback;
+import com.koushikdutta.async.future.Cancellable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,9 @@ public class ThrottleTimeout<T> {
 
             @Override
             public void removeAllCallbacks(Object cancellable) {
-                server.removeAllCallbacks(cancellable);
+                if (cancellable == null)
+                    return;
+                ((Cancellable)cancellable).cancel();
             }
         };
     }
@@ -61,6 +64,8 @@ public class ThrottleTimeout<T> {
 
             @Override
             public void removeAllCallbacks(Object cancellable) {
+                if (cancellable == null)
+                    return;
                 handler.removeCallbacks((Runnable)cancellable);
             }
         };
