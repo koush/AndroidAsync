@@ -1,7 +1,7 @@
 package com.koushikdutta.async.future;
 
 
-import android.view.ViewDebug;
+import com.koushikdutta.async.callback.ValueCallback;
 
 public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
     /**
@@ -9,26 +9,51 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
      * @param callback
      * @return
      */
-    Future<T> setCallback(FutureCallback<T> callback);
+    void setCallback(FutureCallback<T> callback);
 
     /**
-     * Set a callback to be invoked when this Future completes.
+     * Set a callback to be invoked when this Future completes successfully.
      * @param callback
-     * @param <C>
-     * @return The callback
      */
-    @ViewDebug.ExportedProperty
-    <C extends FutureCallback<T>> C then(C callback);
+    Future<T> success(SuccessCallback<T> callback);
 
     /**
-     * Set a callback to be invoked when this Future completes
+     * Set a callback to be invoked when this Future completes successfully.
      * successfully.
      * @param then
      * @param <R>
      * @return A future that will contain the future result of ThenCallback
      * or the failure from this Future.
      */
-    <R> Future<R> then(ThenCallback<R, T> then);
+    <R> Future<R> then(ThenFutureCallback<R, T> then);
+
+    /**
+     * Set a callback to be invoked when this Future completes successfully.
+     * successfully.
+     * @param then
+     * @param <R>
+     * @return A future that will contain the result of ThenCallback
+     * or the failure from this Future.
+     */
+    <R> Future<R> thenConvert(ThenCallback<R, T> then);
+
+    /**
+     * Set a callback to be invoked when this future completes with a failure.
+     * The failure can be observered and rethrown, or handled by returning
+     * a new value of the same type.
+     * @param fail
+     * @return
+     */
+    Future<T> failConvert(FailCallback<T> fail);
+
+    /**
+     * Set a callback to be invoked when this future completes with a failure.
+     * The failure should be observered and rethrown, or handled by returning
+     * a new future of the same type.
+     * @param fail
+     * @return
+     */
+    Future<T> fail(FailFutureCallback<T> fail);
 
     /**
      * Get the result, if any. Returns null if still in progress.

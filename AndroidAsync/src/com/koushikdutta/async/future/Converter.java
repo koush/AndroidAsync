@@ -51,6 +51,8 @@ public class Converter<R> {
                     converted.setComplete(converter.convert(data, mime));
                 }
             });
+
+            result.data.then((ThenFutureCallback<T, F>) from -> converter.convert(from, mime));
         }
     }
 
@@ -179,32 +181,29 @@ public class Converter<R> {
 
     synchronized private <T> Future<T> to(Object value, Class<T> clazz, String mime) {
         if (clazz.isInstance(value))
-            return new SimpleFuture<>((T)value);
+            return new SimpleFuture<>((T) value);
+        return to(value.getClass(), clazz, mime);
+    }
 
+    synchronized private <T> Future<T> to(Class fromClass, Class<T> clazz, String mime) {
         if (mime == null)
             mime = MIME_ALL;
 
         MimedType<T> target = new MimedType<>(clazz, mime);
         ArrayDeque<PathInfo> bestMatch = new ArrayDeque<>();
         ArrayDeque<PathInfo> currentPath = new ArrayDeque<>();
-        if (search(target, bestMatch, currentPath, new MimedType(value.getClass(), futureMime), new HashSet<MimedType>())) {
+        if (search(target, bestMatch, currentPath, new MimedType(fromClass, futureMime), new HashSet<MimedType>())) {
             PathInfo current = bestMatch.removeFirst();
-            new SimpleFuture<>(new MimedData<>((Future<Object>)future, futureMime)).then(current.transformer);
+
+            new SimpleFuture<>(new MimedData<>((Future<Object>)future, futureMime)).setCallback(current.transformer);
 
             while (!bestMatch.isEmpty()) {
                 PathInfo next = bestMatch.removeFirst();
-                current.transformer.then(next.transformer);
+                current.transformer.setCallback(next.transformer);
                 current = next;
             }
 
-            TransformFuture<T, MimedData<Future<T>>> ret = new TransformFuture<T, MimedData<Future<T>>>() {
-                @Override
-                protected void transform(MimedData<Future<T>> result) throws Exception {
-                    setComplete(result.data);
-                }
-            };
-            ((MultiTransformer<T, Object>)current.transformer).then(ret);
-            return ret;
+            return ((MultiTransformer<T, Object>)current.transformer).then(from -> from.data);
         }
 
         return new SimpleFuture<>(new InvalidObjectException("unable to find converter"));
@@ -271,13 +270,7 @@ public class Converter<R> {
 
     private static final String MIME_ALL = "*/*";
     public <T> Future<T> to(final Class<T> clazz, final String mime) {
-        return ((Future<R>)future).then(new TransformFuture<T, R>() {
-            @Override
-            protected void transform(R result) {
-                Future<T> converted = to(result, clazz, mime);
-                setComplete(converted);
-            }
-        });
+        return future.then(from -> to(from, clazz ,mime));
     }
 
     private TypeConverter<byte[], String> StringToByteArray = new TypeConverter<byte[], String>() {

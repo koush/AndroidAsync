@@ -11,6 +11,7 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.future.ThenFutureCallback;
 import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.util.StreamUtility;
 
@@ -483,13 +484,7 @@ public class AsyncServer {
     }
 
     public Future<InetAddress> getByName(String host) {
-        return getAllByName(host)
-        .then(new TransformFuture<InetAddress, InetAddress[]>() {
-            @Override
-            protected void transform(InetAddress[] result) throws Exception {
-                setComplete(result[0]);
-            }
-        });
+        return getAllByName(host).thenConvert(addresses -> addresses[0]);
     }
 
     private void handleSocket(final AsyncNetworkSocket handler) throws ClosedChannelException {

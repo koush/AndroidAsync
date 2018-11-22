@@ -8,6 +8,21 @@ import java.util.ArrayList;
 public class MultiFuture<T> extends SimpleFuture<T> {
     ArrayList<FutureCallback<T>> callbacks;
 
+    public MultiFuture() {
+    }
+
+    public MultiFuture(T value) {
+        super(value);
+    }
+
+    public MultiFuture(Exception e) {
+        super(e);
+    }
+
+    public MultiFuture(Future<T> future) {
+        super(future);
+    }
+
     final FutureCallback<T> callback = new FutureCallback<T>() {
         @Override
         public void onCompleted(Exception e, T result) {
@@ -26,7 +41,7 @@ public class MultiFuture<T> extends SimpleFuture<T> {
     };
 
     @Override
-    public MultiFuture<T> setCallback(FutureCallback<T> callback) {
+    public void setCallback(FutureCallback<T> callback) {
         synchronized (this) {
             if (callbacks == null)
                 callbacks = new ArrayList<FutureCallback<T>>();
@@ -45,7 +60,6 @@ public class MultiFuture<T> extends SimpleFuture<T> {
         // 1-INVOKE LIST
         // 2-INVOKE NULL
         super.setCallback(this.callback);
-        return this;
     }
 
     public void removeCallback(FutureCallback<T> callback) {

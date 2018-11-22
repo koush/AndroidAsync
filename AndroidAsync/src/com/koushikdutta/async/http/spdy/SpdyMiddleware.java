@@ -13,7 +13,6 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.MultiFuture;
 import com.koushikdutta.async.future.SimpleCancellable;
-import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncSSLEngineConfigurator;
@@ -31,7 +30,6 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Locale;
 
 import javax.net.ssl.SSLContext;
@@ -407,32 +405,26 @@ public class SpdyMiddleware extends AsyncSSLSocketMiddleware {
 
         final AsyncSpdyConnection.SpdySocket spdySocket = (AsyncSpdyConnection.SpdySocket)data.socket;
         spdySocket.headers()
-        .then(new TransformFuture<Headers, List<Header>>() {
-            @Override
-            protected void transform(List<Header> result) throws Exception {
-                Headers headers = new Headers();
-                for (Header header: result) {
-                    String key = header.name.utf8();
-                    String value = header.value.utf8();
-                    headers.add(key, value);
-                }
-                String status = headers.remove(Header.RESPONSE_STATUS.utf8());
-                String[] statusParts = status.split(" ", 2);
-                data.response.code(Integer.parseInt(statusParts[0]));
-                if (statusParts.length == 2)
-                    data.response.message(statusParts[1]);
-                data.response.protocol(headers.remove(Header.VERSION.utf8()));
-                data.response.headers(headers);
-                setComplete(headers);
+        .thenConvert(from -> {
+            Headers headers = new Headers();
+            for (Header header: from) {
+                String key = header.name.utf8();
+                String value = header.value.utf8();
+                headers.add(key, value);
             }
+            String status = headers.remove(Header.RESPONSE_STATUS.utf8());
+            String[] statusParts = status.split(" ", 2);
+            data.response.code(Integer.parseInt(statusParts[0]));
+            if (statusParts.length == 2)
+                data.response.message(statusParts[1]);
+            data.response.protocol(headers.remove(Header.VERSION.utf8()));
+            data.response.headers(headers);
+            return headers;
         })
-        .setCallback(new FutureCallback<Headers>() {
-            @Override
-            public void onCompleted(Exception e, Headers result) {
-                data.receiveHeadersCallback.onCompleted(e);
-                DataEmitter emitter = HttpUtil.getBodyDecoder(spdySocket, spdySocket.getConnection().protocol, result, false);
-                data.response.emitter(emitter);
-            }
+        .setCallback((e, result) -> {
+            data.receiveHeadersCallback.onCompleted(e);
+            DataEmitter emitter = HttpUtil.getBodyDecoder(spdySocket, spdySocket.getConnection().protocol, result, false);
+            data.response.emitter(emitter);
         });
         return true;
     }

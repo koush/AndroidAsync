@@ -25,6 +25,10 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         setComplete(e);
     }
 
+    public SimpleFuture(Future<T> future) {
+        setComplete(future);
+    }
+
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return cancel();
@@ -163,7 +167,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     @Override
-    public SimpleFuture<T> setCallback(FutureCallback<T> callback) {
+    public void setCallback(FutureCallback<T> callback) {
         // callback can only be changed or read/used inside a sync block
         synchronized (this) {
             this.callback = callback;
@@ -173,19 +177,28 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
                 callback = null;
         }
         handleCallbackUnlocked(callback);
-        return this;
     }
 
     @Override
-    public final <C extends FutureCallback<T>> C then(C callback) {
-        if (callback instanceof DependentCancellable)
-            ((DependentCancellable)callback).setParent(this);
-        setCallback(callback);
-        return callback;
+    public Future<T> success(SuccessCallback<T> callback) {
+        final SimpleFuture<T> ret = new SimpleFuture<>();
+        setCallback((e, result) -> {
+            if (e != null) {
+                ret.setComplete(e);
+                return;
+            }
+            try {
+                callback.success(result);
+            }
+            catch (Exception callbackException) {
+                ret.setComplete(callbackException);
+            }
+        });
+        return ret;
     }
 
     @Override
-    public <R> Future<R> then(ThenCallback<R, T> then) {
+    public <R> Future<R> then(ThenFutureCallback<R, T> then) {
         final SimpleFuture<R> ret = new SimpleFuture<>();
         setCallback((e, result) -> {
             if (e != null) {
@@ -199,8 +212,35 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
                 ret.setComplete(callbackException);
             }
         });
-
         return ret;
+    }
+
+    @Override
+    public <R> Future<R> thenConvert(final ThenCallback<R, T> callback) {
+        return then(from -> new SimpleFuture<>(callback.then(from)));
+    }
+
+    @Override
+    public Future<T> fail(FailFutureCallback<T> fail) {
+        SimpleFuture<T> ret = new SimpleFuture<>();
+        setCallback((e, result) -> {
+            if (result != null) {
+                ret.setComplete(result);
+                return;
+            }
+            try {
+                fail.fail(e);
+            }
+            catch (Exception callbackException) {
+                ret.setComplete(callbackException);
+            }
+        });
+        return ret;
+    }
+
+    @Override
+    public Future<T> failConvert(FailCallback<T> fail) {
+        return fail(SimpleFuture::new);
     }
 
     @Override

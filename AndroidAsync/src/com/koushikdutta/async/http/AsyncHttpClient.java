@@ -15,7 +15,6 @@ import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.callback.RequestCallback;
@@ -631,26 +630,18 @@ public class AsyncHttpClient {
     public <T> SimpleFuture<T> execute(AsyncHttpRequest req, final AsyncParser<T> parser, final RequestCallback<T> callback) {
         final FutureAsyncHttpResponse cancel = new FutureAsyncHttpResponse();
         final SimpleFuture<T> ret = new SimpleFuture<T>();
-        execute(req, 0, cancel, new HttpConnectCallback() {
-            @Override
-            public void onConnectCompleted(Exception ex, final AsyncHttpResponse response) {
-                if (ex != null) {
-                    invoke(callback, ret, response, ex, null);
-                    return;
-                }
-                invokeConnect(callback, response);
-
-                Future<T> parsed = parser.parse(response)
-                .setCallback(new FutureCallback<T>() {
-                    @Override
-                    public void onCompleted(Exception e, T result) {
-                        invoke(callback, ret, response, e, result);
-                    }
-                });
-
-                // reparent to the new parser future
-                ret.setParent(parsed);
+        execute(req, 0, cancel, (ex, response) -> {
+            if (ex != null) {
+                invoke(callback, ret, response, ex, null);
+                return;
             }
+            invokeConnect(callback, response);
+
+            Future<T> parsed = parser.parse(response);
+            parsed.setCallback((e, result) -> invoke(callback, ret, response, e, result));
+
+            // reparent to the new parser future
+            ret.setParent(parsed);
         });
         ret.setParent(cancel);
         return ret;

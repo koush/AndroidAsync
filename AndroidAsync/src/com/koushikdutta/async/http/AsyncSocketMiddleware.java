@@ -2,23 +2,22 @@ package com.koushikdutta.async.http;
 
 import android.net.Uri;
 
-import com.koushikdutta.async.util.ArrayDeque;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.ContinuationCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.Continuation;
+import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleCancellable;
-import com.koushikdutta.async.future.TransformFuture;
+import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.util.ArrayDeque;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.Locale;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
     String scheme;
@@ -189,73 +188,48 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
 
         // try to connect to everything...
         data.request.logv("Resolving domain and connecting to all available addresses");
-        return mClient.getServer().getAllByName(uri.getHost())
-        .then(new TransformFuture<AsyncSocket, InetAddress[]>() {
-            Exception lastException;
 
-            @Override
-            protected void error(Exception e) {
-                super.error(e);
-                wrapCallback(data, uri, port, false, data.connectCallback).onConnectCompleted(e, null);
-            }
+        final SimpleFuture<AsyncSocket> returnValue = new SimpleFuture<>();
 
-            @Override
-            protected void transform(final InetAddress[] result) throws Exception {
-                Continuation keepTrying = new Continuation(new CompletedCallback() {
-                    @Override
-                    public void onCompleted(Exception ex) {
-                        // if it completed, that means that the connection failed
-                        if (lastException == null)
-                            lastException = new ConnectionFailedException("Unable to connect to remote address");
-                        if (setComplete(lastException)) {
-                            wrapCallback(data, uri, port, false, data.connectCallback).onConnectCompleted(lastException, null);
-                        }
+        mClient.getServer().getAllByName(uri.getHost())
+        .then(from -> {
+            Future<AsyncSocket> current = new SimpleFuture<>(new Exception("empty ip address list"));
+            ArrayDeque<InetAddress> addresses = new ArrayDeque<>(Arrays.asList(from));
+
+            current = current.fail(e -> {
+                if (addresses.isEmpty())
+                    throw e;
+
+                InetAddress address = addresses.removeFirst();
+                SimpleFuture<AsyncSocket> ret = new SimpleFuture<>();
+
+                mClient.getServer().connectSocket(new InetSocketAddress(address, port),
+                wrapCallback(data, uri, port, false, (ex, socket) -> {
+                    // try the next address or fail altogether
+                    if (ex != null) {
+                        ret.setComplete(ex);
+                        return;
                     }
-                });
 
-                for (final InetAddress address: result) {
-                    final String inetSockAddress = String.format(Locale.ENGLISH, "%s:%s", address, port);
-                    keepTrying.add(new ContinuationCallback() {
-                        @Override
-                        public void onContinue(Continuation continuation, final CompletedCallback next) throws Exception {
-                            data.request.logv("attempting connection to " + inetSockAddress);
-                            mClient.getServer().connectSocket(new InetSocketAddress(address, port),
-                                wrapCallback(data, uri, port, false, new ConnectCallback() {
-                                @Override
-                                public void onConnectCompleted(Exception ex, AsyncSocket socket) {
-                                    if (isDone()) {
-                                        lastException = new Exception("internal error during connect to " + inetSockAddress);
-                                        next.onCompleted(null);
-                                        return;
-                                    }
+                    // attempt to successfully complete this socket, but
+                    // if the socket is no longer needed, just hang onto it...
+                    if (returnValue.isDone() || returnValue.isCancelled() || !ret.setComplete(socket)) {
+                        data.request.logd("Recycling extra socket leftover from cancelled operation");
+                        idleSocket(socket);
+                        recycleSocket(socket, data.request);
+                        return;
+                    }
 
-                                    // try the next address
-                                    if (ex != null) {
-                                        lastException = ex;
-                                        next.onCompleted(null);
-                                        return;
-                                    }
+                    data.connectCallback.onConnectCompleted(null, socket);
+                }));
 
-                                    // if the socket is no longer needed, just hang onto it...
-                                    if (isDone() || isCancelled()) {
-                                        data.request.logd("Recycling extra socket leftover from cancelled operation");
-                                        idleSocket(socket);
-                                        recycleSocket(socket, data.request);
-                                        return;
-                                    }
+                return ret;
+            });
 
-                                    if (setComplete(null, socket)) {
-                                        data.connectCallback.onConnectCompleted(null, socket);
-                                    }
-                                }
-                            }));
-                        }
-                    });
-                }
-
-                keepTrying.start();
-            }
+            return current;
         });
+
+        return returnValue;
     }
 
     private ConnectionInfo getOrCreateConnectionInfo(String lookup) {

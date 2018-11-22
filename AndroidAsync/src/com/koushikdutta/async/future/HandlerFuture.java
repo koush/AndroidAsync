@@ -17,7 +17,7 @@ public class HandlerFuture<T> extends SimpleFuture<T> {
     }
 
     @Override
-    public SimpleFuture<T> setCallback(final FutureCallback<T> callback) {
+    public void setCallback(final FutureCallback<T> callback) {
         FutureCallback<T> wrapped = new FutureCallback<T>() {
             @Override
             public void onCompleted(final Exception e, final T result) {
@@ -34,6 +34,6 @@ public class HandlerFuture<T> extends SimpleFuture<T> {
                 });
             }
         };
-        return super.setCallback(wrapped);
+        super.setCallback(wrapped);
     }
 }

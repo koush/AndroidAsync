@@ -4,10 +4,8 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.TransformFuture;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.lang.reflect.Type;
 
@@ -18,12 +16,7 @@ public class JSONArrayParser implements AsyncParser<JSONArray> {
     @Override
     public Future<JSONArray> parse(DataEmitter emitter) {
         return new StringParser().parse(emitter)
-        .then(new TransformFuture<JSONArray, String>() {
-            @Override
-            protected void transform(String result) throws Exception {
-                setComplete(new JSONArray(result));
-            }
-        });
+        .thenConvert(JSONArray::new);
     }
 
     @Override

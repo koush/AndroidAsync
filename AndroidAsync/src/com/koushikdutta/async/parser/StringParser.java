@@ -5,7 +5,6 @@ import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.TransformFuture;
 
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
@@ -27,14 +26,11 @@ public class StringParser implements AsyncParser<String> {
     public Future<String> parse(DataEmitter emitter) {
         final String charset = emitter.charset();
         return new ByteBufferListParser().parse(emitter)
-        .then(new TransformFuture<String, ByteBufferList>() {
-            @Override
-            protected void transform(ByteBufferList result) throws Exception {
-                Charset charsetToUse = forcedCharset;
-                if (charsetToUse == null && charset != null)
-                    charsetToUse = Charset.forName(charset);
-                setComplete(result.readString(charsetToUse));
-            }
+        .thenConvert(from -> {
+            Charset charsetToUse = forcedCharset;
+            if (charsetToUse == null && charset != null)
+                charsetToUse = Charset.forName(charset);
+            return from.readString(charsetToUse);
         });
     }
 
