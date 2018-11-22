@@ -11,28 +11,44 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 
 public class Converter<R> {
-    final public static <T> Converter<T> convert(Future<T> future, String mime) {
+    public static <T> Converter<T> convert(Future<T> future, String mime) {
         return new Converter<>(future, mime);
     }
 
-    final public static <T> Converter<T> convert(Future<T> future) {
+    public static <T> Converter<T> convert(Future<T> future) {
         return convert(future, null);
     }
 
-    static class MultiTransformer<T, F> extends MultiTransformFuture<T, Future<F>> {
+    static class MimedData<T> {
+        public MimedData(T data, String mime) {
+            this.data = data;
+            this.mime = mime;
+        }
+        T data;
+        String mime;
+    }
+
+    static class MultiTransformer<T, F> extends MultiTransformFuture<MimedData<Future<T>>, MimedData<Future<F>>> {
         TypeConverter<T, F> converter;
-        public MultiTransformer(TypeConverter<T, F> converter) {
+        String converterMime;
+        public MultiTransformer(TypeConverter<T, F> converter, String converterMime) {
             this.converter = converter;
+            this.converterMime = converterMime;
         }
 
         @Override
-        protected void transform(Future<F> result) {
+        protected void transform(MimedData<Future<F>> result) {
             // transform will only ever be called once,
             // so there's no risk of running the converter twice.
-            result.setCallback(new FutureCallback<F>() {
+            final String mime = result.mime;
+
+            final MultiFuture<T> converted = new MultiFuture<>();
+            setComplete(new MimedData<Future<T>>(converted, new MimedType(null, mime).matches(converterMime).mime));
+
+            result.data.setCallback(new FutureCallback<F>() {
                 @Override
-                public void onCompleted(Exception e, F result) {
-                    setComplete(converter.convert(result));
+                public void onCompleted(Exception e, F data) {
+                    converted.setComplete(converter.convert(data, mime));
                 }
             });
         }
@@ -139,7 +155,7 @@ public class Converter<R> {
             fromMime = MIME_ALL;
         if (toMime == null)
             toMime = MIME_ALL;
-        ((Converters<F, T>)outputs).ensure(new MimedType<>(from, fromMime)).put(new MimedType<>(to, toMime), new MultiTransformer<>(typeConverter));
+        ((Converters<F, T>)outputs).ensure(new MimedType<>(from, fromMime)).put(new MimedType<>(to, toMime), new MultiTransformer<>(typeConverter, toMime));
     }
 
     private Converter() {
@@ -169,29 +185,41 @@ public class Converter<R> {
             mime = MIME_ALL;
 
         MimedType<T> target = new MimedType<>(clazz, mime);
-        ArrayDeque<MultiTransformer<Object, Object>> bestMatch = new ArrayDeque<>();
-        ArrayDeque<MultiTransformer<Object, Object>> currentPath = new ArrayDeque<>();
+        ArrayDeque<PathInfo> bestMatch = new ArrayDeque<>();
+        ArrayDeque<PathInfo> currentPath = new ArrayDeque<>();
         if (search(target, bestMatch, currentPath, new MimedType(value.getClass(), futureMime), new HashSet<MimedType>())) {
-            SimpleFuture<T> ret = new SimpleFuture<>();
-            MultiTransformer<Object, Object> current = bestMatch.removeLast();
-            ret.setComplete((MultiTransformer<T, Object>)current);
+            PathInfo current = bestMatch.removeFirst();
+            new SimpleFuture<>(new MimedData<>((Future<Object>)future, futureMime)).then(current.transformer);
+
             while (!bestMatch.isEmpty()) {
-                MultiTransformer<Object, Object> next = bestMatch.removeLast();
-                current.setComplete(next);
+                PathInfo next = bestMatch.removeFirst();
+                current.transformer.then(next.transformer);
                 current = next;
             }
-            current.setComplete(future);
+
+            TransformFuture<T, MimedData<Future<T>>> ret = new TransformFuture<T, MimedData<Future<T>>>() {
+                @Override
+                protected void transform(MimedData<Future<T>> result) throws Exception {
+                    setComplete(result.data);
+                }
+            };
+            ((MultiTransformer<T, Object>)current.transformer).then(ret);
             return ret;
         }
 
         return new SimpleFuture<>(new InvalidObjectException("unable to find converter"));
     }
 
+    static class PathInfo {
+        MultiTransformer<Object, Object> transformer;
+        String mime;
+    }
+
     public <T> Future<T> to(Class<T> clazz) {
         return to(clazz, null);
     }
 
-    private <T> boolean search(MimedType<T> target, ArrayDeque<MultiTransformer<Object, Object>> bestMatch, ArrayDeque<MultiTransformer<Object, Object>> currentPath, MimedType currentSearch, HashSet<MimedType> searched) {
+    private <T> boolean search(MimedType<T> target, ArrayDeque<PathInfo> bestMatch, ArrayDeque<PathInfo> currentPath, MimedType currentSearch, HashSet<MimedType> searched) {
         if (target.matches(currentSearch) != null) {
             bestMatch.clear();
             bestMatch.addAll(currentPath);
@@ -219,7 +247,10 @@ public class Converter<R> {
             // this simulates the mime results of a transform
             MimedType newSearch = candidate.matches(currentSearch.mime);
 
-            currentPath.addLast(converterTransformers.get(candidate));
+            PathInfo path = new PathInfo();
+            path.transformer = converterTransformers.get(candidate);
+            path.mime = newSearch.mime;
+            currentPath.addLast(path);
             try {
                 found |= search(target, bestMatch, currentPath, newSearch, searched);
             }
@@ -249,41 +280,37 @@ public class Converter<R> {
         });
     }
 
-    public interface TypeConverter<T, F> {
-        Future<T> convert(F from);
-    }
-
     private TypeConverter<byte[], String> StringToByteArray = new TypeConverter<byte[], String>() {
         @Override
-        public SimpleFuture<byte[]> convert(String from) {
+        public SimpleFuture<byte[]> convert(String from, String fromMime) {
             return new SimpleFuture<>(from.getBytes());
         }
     };
 
     private TypeConverter<ByteBufferList, byte[]> ByteArrayToByteBufferList = new TypeConverter<ByteBufferList, byte[]>() {
         @Override
-        public SimpleFuture<ByteBufferList> convert(byte[] from) {
+        public SimpleFuture<ByteBufferList> convert(byte[] from, String fromMime) {
             return new SimpleFuture<>(new ByteBufferList(from));
         }
     };
 
     private TypeConverter<ByteBuffer, byte[]> ByteArrayToByteBuffer = new TypeConverter<ByteBuffer, byte[]>() {
         @Override
-        public SimpleFuture<ByteBuffer> convert(byte[] from) {
+        public SimpleFuture<ByteBuffer> convert(byte[] from, String fromMime) {
             return new SimpleFuture<>(ByteBufferList.deepCopy(ByteBuffer.wrap(from)));
         }
     };
 
     private TypeConverter<ByteBufferList, ByteBuffer> ByteBufferToByteBufferList = new TypeConverter<ByteBufferList, ByteBuffer>() {
         @Override
-        public SimpleFuture<ByteBufferList> convert(ByteBuffer from) {
+        public SimpleFuture<ByteBufferList> convert(ByteBuffer from, String fromMime) {
             return new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(from)));
         }
     };
 
     private TypeConverter<JSONObject, String> StringToJSONObject = new TypeConverter<JSONObject, String>() {
         @Override
-        public SimpleFuture<JSONObject> convert(String from) {
+        public SimpleFuture<JSONObject> convert(String from, String fromMime) {
             return new TransformFuture<JSONObject, String>(from) {
                 @Override
                 protected void transform(String result) throws Exception {
@@ -295,7 +322,7 @@ public class Converter<R> {
 
     private TypeConverter<String, JSONObject> JSONObjectToString = new TypeConverter<String, JSONObject>() {
         @Override
-        public SimpleFuture<String> convert(JSONObject from) {
+        public SimpleFuture<String> convert(JSONObject from, String fromMime) {
             return new TransformFuture<String, JSONObject>(from) {
                 @Override
                 protected void transform(JSONObject result) throws Exception {

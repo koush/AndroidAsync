@@ -28,6 +28,11 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
+    compileOptions {
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
+    }
+
     compileSdkVersion project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 28
     buildToolsVersion project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '28.0.3'
 

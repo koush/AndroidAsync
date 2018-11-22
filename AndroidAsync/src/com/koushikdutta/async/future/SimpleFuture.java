@@ -185,6 +185,25 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     @Override
+    public <R> Future<R> then(ThenCallback<R, T> then) {
+        final SimpleFuture<R> ret = new SimpleFuture<>();
+        setCallback((e, result) -> {
+            if (e != null) {
+                ret.setComplete(e);
+                return;
+            }
+            try {
+                ret.setComplete(then.then(result));
+            }
+            catch (Exception callbackException) {
+                ret.setComplete(callbackException);
+            }
+        });
+
+        return ret;
+    }
+
+    @Override
     public SimpleFuture<T> setParent(Cancellable parent) {
         super.setParent(parent);
         return this;

@@ -1,13 +1,15 @@
 package com.koushikdutta.async.future;
 
 
+import android.view.ViewDebug;
+
 public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
     /**
      * Set a callback to be invoked when this Future completes.
      * @param callback
      * @return
      */
-    public Future<T> setCallback(FutureCallback<T> callback);
+    Future<T> setCallback(FutureCallback<T> callback);
 
     /**
      * Set a callback to be invoked when this Future completes.
@@ -15,17 +17,28 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
      * @param <C>
      * @return The callback
      */
-    public <C extends FutureCallback<T>> C then(C callback);
+    @ViewDebug.ExportedProperty
+    <C extends FutureCallback<T>> C then(C callback);
+
+    /**
+     * Set a callback to be invoked when this Future completes
+     * successfully.
+     * @param then
+     * @param <R>
+     * @return A future that will contain the future result of ThenCallback
+     * or the failure from this Future.
+     */
+    <R> Future<R> then(ThenCallback<R, T> then);
 
     /**
      * Get the result, if any. Returns null if still in progress.
      * @return
      */
-    public T tryGet();
+    T tryGet();
 
     /**
      * Get the exception, if any. Returns null if still in progress.
      * @return
      */
-    public Exception tryGetException();
+    Exception tryGetException();
 }
