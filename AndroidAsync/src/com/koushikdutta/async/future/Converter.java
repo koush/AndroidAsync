@@ -273,57 +273,15 @@ public class Converter<R> {
         return future.then(from -> to(from, clazz ,mime));
     }
 
-    private TypeConverter<byte[], String> StringToByteArray = new TypeConverter<byte[], String>() {
-        @Override
-        public SimpleFuture<byte[]> convert(String from, String fromMime) {
-            return new SimpleFuture<>(from.getBytes());
-        }
-    };
+    private TypeConverter<byte[], String> StringToByteArray = (from, fromMime) -> new SimpleFuture<>(from.getBytes());
 
-    private TypeConverter<ByteBufferList, byte[]> ByteArrayToByteBufferList = new TypeConverter<ByteBufferList, byte[]>() {
-        @Override
-        public SimpleFuture<ByteBufferList> convert(byte[] from, String fromMime) {
-            return new SimpleFuture<>(new ByteBufferList(from));
-        }
-    };
+    private TypeConverter<ByteBufferList, byte[]> ByteArrayToByteBufferList = (from, fromMime) -> new SimpleFuture<>(new ByteBufferList(from));
 
-    private TypeConverter<ByteBuffer, byte[]> ByteArrayToByteBuffer = new TypeConverter<ByteBuffer, byte[]>() {
-        @Override
-        public SimpleFuture<ByteBuffer> convert(byte[] from, String fromMime) {
-            return new SimpleFuture<>(ByteBufferList.deepCopy(ByteBuffer.wrap(from)));
-        }
-    };
+    private TypeConverter<ByteBuffer, byte[]> ByteArrayToByteBuffer = (from, fromMime) -> new SimpleFuture<>(ByteBufferList.deepCopy(ByteBuffer.wrap(from)));
 
-    private TypeConverter<ByteBufferList, ByteBuffer> ByteBufferToByteBufferList = new TypeConverter<ByteBufferList, ByteBuffer>() {
-        @Override
-        public SimpleFuture<ByteBufferList> convert(ByteBuffer from, String fromMime) {
-            return new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(from)));
-        }
-    };
+    private TypeConverter<ByteBufferList, ByteBuffer> ByteBufferToByteBufferList = (from, fromMime) -> new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(from)));
 
-    private TypeConverter<JSONObject, String> StringToJSONObject = new TypeConverter<JSONObject, String>() {
-        @Override
-        public SimpleFuture<JSONObject> convert(String from, String fromMime) {
-            return new TransformFuture<JSONObject, String>(from) {
-                @Override
-                protected void transform(String result) throws Exception {
-                    setComplete(new JSONObject(result));
-                }
-            };
-        }
-    };
+    private TypeConverter<JSONObject, String> StringToJSONObject = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::new);
 
-    private TypeConverter<String, JSONObject> JSONObjectToString = new TypeConverter<String, JSONObject>() {
-        @Override
-        public SimpleFuture<String> convert(JSONObject from, String fromMime) {
-            return new TransformFuture<String, JSONObject>(from) {
-                @Override
-                protected void transform(JSONObject result) throws Exception {
-                    setComplete(result.toString());
-                }
-            };
-        }
-    };
-
-
+    private TypeConverter<String, JSONObject> JSONObjectToString = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::toString);
 }

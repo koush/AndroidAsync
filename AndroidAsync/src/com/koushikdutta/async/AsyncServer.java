@@ -11,8 +11,6 @@ import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
-import com.koushikdutta.async.future.ThenFutureCallback;
-import com.koushikdutta.async.future.TransformFuture;
 import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.IOException;
