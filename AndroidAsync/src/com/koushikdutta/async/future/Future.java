@@ -1,8 +1,6 @@
 package com.koushikdutta.async.future;
 
 
-import com.koushikdutta.async.callback.ValueCallback;
-
 public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
     /**
      * Set a callback to be invoked when this Future completes.
