@@ -48,7 +48,7 @@ public class Converter<R> {
 
             // this marks the conversion as "complete". the conversion will start
             // as soon as the value is ready.
-            setComplete(new MimedData<>(converted, new MimedType(null, mime).matches(converterMime).mime));
+            setComplete(new MimedData<>(converted, mimeReplace(mime, converterMime)));
 
             // wait on the incoming value and convert it
             converting.data.thenConvert(data -> converter.convert(data, mime)).
@@ -213,6 +213,16 @@ public class Converter<R> {
         String mime;
     }
 
+    static String mimeReplace(String mime1, String mime2) {
+        String[] parts = mime2.split("/");
+        String[] myParts = mime1.split("/");
+
+        String primary = !"*".equals(parts[0]) ? parts[0] : myParts[0];
+        String secondary = !"*".equals(parts[1]) ? parts[1] : myParts[1];
+
+        return primary + "/" + secondary;
+    }
+
     public <T> Future<T> to(Class<T> clazz) {
         return to(clazz, null);
     }
@@ -243,7 +253,8 @@ public class Converter<R> {
         ConverterTransformers<Object, Object> converterTransformers = outputs.getAll(currentSearch);
         for (MimedType candidate: converterTransformers.keySet()) {
             // this simulates the mime results of a transform
-            MimedType newSearch = candidate.matches(currentSearch.mime);
+//            MimedType newSearch = candidate.matches(currentSearch.mime);
+            MimedType newSearch = new MimedType(candidate.type, mimeReplace(currentSearch.mime, candidate.mime));
 
             PathInfo path = new PathInfo();
             path.transformer = converterTransformers.get(candidate);
