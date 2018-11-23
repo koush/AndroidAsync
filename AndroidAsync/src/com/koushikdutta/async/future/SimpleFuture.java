@@ -8,9 +8,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class SimpleFuture<T> extends SimpleCancellable implements DependentFuture<T> {
-    AsyncSemaphore waiter;
-    Exception exception;
-    T result;
+    private AsyncSemaphore waiter;
+    private Exception exception;
+    private T result;
     boolean silent;
     FutureCallback<T> callback;
 

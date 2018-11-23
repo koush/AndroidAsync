@@ -37,22 +37,27 @@ public class Converter<R> {
         }
 
         @Override
-        protected void transform(MimedData<Future<F>> result) {
-            // transform will only ever be called once,
+        protected void transform(MimedData<Future<F>> converting) {
+            // transform will only ever be called once, and is called immediately,
+            // the transform is on the future itself, and not a pending value.
             // so there's no risk of running the converter twice.
-            final String mime = result.mime;
+            final String mime = converting.mime;
 
+            // this future will receive the eventual actual value.
             final MultiFuture<T> converted = new MultiFuture<>();
-            setComplete(new MimedData<Future<T>>(converted, new MimedType(null, mime).matches(converterMime).mime));
 
-            result.data.setCallback(new FutureCallback<F>() {
-                @Override
-                public void onCompleted(Exception e, F data) {
-                    converted.setComplete(converter.convert(data, mime));
-                }
+            // this marks the conversion as "complete". the conversion will start
+            // as soon as the value is ready.
+            setComplete(new MimedData<>(converted, new MimedType(null, mime).matches(converterMime).mime));
+
+            // wait on the incoming value and convert it
+            converting.data.thenConvert(data -> converter.convert(data, mime)).
+            setCallback((e, result1) -> {
+                if (e != null)
+                    converted.setComplete(e);
+                else
+                    converted.setComplete(result1);
             });
-
-            result.data.then((ThenFutureCallback<T, F>) from -> converter.convert(from, mime));
         }
     }
 
@@ -150,29 +155,15 @@ public class Converter<R> {
         }
     }
 
-    Converters<Object, Object> outputs = new Converters<>();
+    Converters<Object, Object> outputs;
 
-    synchronized protected <F, T> void addTypeConverter(Class<F> from, String fromMime, Class<T> to, String toMime, TypeConverter<T, F> typeConverter) {
-        if (fromMime == null)
-            fromMime = MIME_ALL;
-        if (toMime == null)
-            toMime = MIME_ALL;
-        ((Converters<F, T>)outputs).ensure(new MimedType<>(from, fromMime)).put(new MimedType<>(to, toMime), new MultiTransformer<>(typeConverter, toMime));
-    }
-
-    private Converter() {
-        addTypeConverter(ByteBuffer.class, null, ByteBufferList.class, null, ByteBufferToByteBufferList);
-        addTypeConverter(String.class, null, byte[].class, null, StringToByteArray);
-        addTypeConverter(byte[].class, null, ByteBufferList.class, null, ByteArrayToByteBufferList);
-        addTypeConverter(byte[].class, null, ByteBuffer.class, null, ByteArrayToByteBuffer);
-        addTypeConverter(String.class, "application/json", JSONObject.class, null, StringToJSONObject);
-        addTypeConverter(JSONObject.class, null, String.class, "application/json", JSONObjectToString);
+    protected ConverterMap getConverters() {
+        return Converters;
     }
 
     MultiFuture<R> future = new MultiFuture<>();
     String futureMime;
     protected Converter(Future future, String mime) {
-        this();
         if (mime == null)
             mime = MIME_ALL;
         this.futureMime = mime;
@@ -188,6 +179,14 @@ public class Converter<R> {
     synchronized private <T> Future<T> to(Class fromClass, Class<T> clazz, String mime) {
         if (mime == null)
             mime = MIME_ALL;
+
+        if (outputs == null) {
+            outputs = new Converters<>();
+            ConverterMap converters = getConverters();
+            for (ConverterEntry entry: converters.map.keySet()) {
+                outputs.ensure(entry.from).put(entry.to, new MultiTransformer<>(converters.map.get(entry), entry.to.mime));
+            }
+        }
 
         MimedType<T> target = new MimedType<>(clazz, mime);
         ArrayDeque<PathInfo> bestMatch = new ArrayDeque<>();
@@ -273,15 +272,65 @@ public class Converter<R> {
         return future.then(from -> to(from, clazz ,mime));
     }
 
-    private TypeConverter<byte[], String> StringToByteArray = (from, fromMime) -> new SimpleFuture<>(from.getBytes());
+    static class ConverterEntry<F, T> {
+        ConverterEntry(Class<F> from, String fromMime, Class<T> to, String toMime) {
+            this.from = new MimedType<>(from, fromMime);
+            this.to = new MimedType<>(to, toMime);
+        }
+        MimedType<F> from;
+        MimedType<T> to;
 
-    private TypeConverter<ByteBufferList, byte[]> ByteArrayToByteBufferList = (from, fromMime) -> new SimpleFuture<>(new ByteBufferList(from));
+        @Override
+        public int hashCode() {
+            return from.hashCode() ^ to.hashCode();
+        }
 
-    private TypeConverter<ByteBuffer, byte[]> ByteArrayToByteBuffer = (from, fromMime) -> new SimpleFuture<>(ByteBufferList.deepCopy(ByteBuffer.wrap(from)));
+        @Override
+        public boolean equals(Object obj) {
+            ConverterEntry other = (ConverterEntry)obj;
+            return from.equals(other.from) && to.equals(other.to);
+        }
+    }
 
-    private TypeConverter<ByteBufferList, ByteBuffer> ByteBufferToByteBufferList = (from, fromMime) -> new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(from)));
+    public static class ConverterMap {
+        private LinkedHashMap<ConverterEntry, TypeConverter> map = new LinkedHashMap<>();
+        public ConverterMap() {
+        }
 
-    private TypeConverter<JSONObject, String> StringToJSONObject = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::new);
+        public ConverterMap(ConverterMap other) {
+            map.putAll(other.map);
+        }
 
-    private TypeConverter<String, JSONObject> JSONObjectToString = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::toString);
+        public synchronized <F, T> void addConverter(Class<F> from, String fromMime, Class<T> to, String toMime, TypeConverter<T, F> typeConverter) {
+            if (fromMime == null)
+                fromMime = MIME_ALL;
+            if (toMime == null)
+                toMime = MIME_ALL;
+
+            map.put(new ConverterEntry<>(from, fromMime, to, toMime), typeConverter);
+        }
+    }
+
+    public static ConverterMap Converters = new ConverterMap();
+
+    static {
+        final TypeConverter<byte[], String> StringToByteArray = (from, fromMime) -> new SimpleFuture<>(from.getBytes());
+
+        final TypeConverter<ByteBufferList, byte[]> ByteArrayToByteBufferList = (from, fromMime) -> new SimpleFuture<>(new ByteBufferList(from));
+
+        final TypeConverter<ByteBuffer, byte[]> ByteArrayToByteBuffer = (from, fromMime) -> new SimpleFuture<>(ByteBufferList.deepCopy(ByteBuffer.wrap(from)));
+
+        final TypeConverter<ByteBufferList, ByteBuffer> ByteBufferToByteBufferList = (from, fromMime) -> new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(from)));
+
+        final TypeConverter<JSONObject, String> StringToJSONObject = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::new);
+
+        final TypeConverter<String, JSONObject> JSONObjectToString = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::toString);
+
+        Converters.addConverter(ByteBuffer.class, null, ByteBufferList.class, null, ByteBufferToByteBufferList);
+        Converters.addConverter(String.class, null, byte[].class, null, StringToByteArray);
+        Converters.addConverter(byte[].class, null, ByteBufferList.class, null, ByteArrayToByteBufferList);
+        Converters.addConverter(byte[].class, null, ByteBuffer.class, null, ByteArrayToByteBuffer);
+        Converters.addConverter(String.class, "application/json", JSONObject.class, null, StringToJSONObject);
+        Converters.addConverter(JSONObject.class, null, String.class, "application/json", JSONObjectToString);
+    }
 }
