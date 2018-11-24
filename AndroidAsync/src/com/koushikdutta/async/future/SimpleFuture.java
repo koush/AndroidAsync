@@ -305,7 +305,15 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     @Override
-    public Future<T> fail(FailFutureCallback<T> fail) {
+    public Future<T> fail(FailCallback fail) {
+        return failRecover(e -> {
+            fail.fail(e);
+            return this;
+        });
+    }
+
+    @Override
+    public Future<T> failRecover(FailRecoverCallback<T> fail) {
         SimpleFuture<T> ret = new SimpleFuture<>();
         setCallbackInternal(null, null, (e, result, next) -> {
             if (e == null) {
@@ -326,8 +334,8 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     @Override
-    public Future<T> failConvert(FailCallback<T> fail) {
-        return fail(SimpleFuture::new);
+    public Future<T> failConvert(FailConvertCallback<T> fail) {
+        return failRecover(e -> new SimpleFuture<>(fail.fail(e)));
     }
 
     @Override

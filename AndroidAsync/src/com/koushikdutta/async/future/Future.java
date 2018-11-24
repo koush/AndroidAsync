@@ -35,6 +35,8 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
      */
     <R> Future<R> thenConvert(ThenCallback<R, T> then);
 
+    Future<T> fail(FailCallback fail);
+
     /**
      * Set a callback to be invoked when this future completes with a failure.
      * The failure can be observered and rethrown, or handled by returning
@@ -42,7 +44,7 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
      * @param fail
      * @return
      */
-    Future<T> failConvert(FailCallback<T> fail);
+    Future<T> failConvert(FailConvertCallback<T> fail);
 
     /**
      * Set a callback to be invoked when this future completes with a failure.
@@ -51,7 +53,7 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
      * @param fail
      * @return
      */
-    Future<T> fail(FailFutureCallback<T> fail);
+    Future<T> failRecover(FailRecoverCallback<T> fail);
 
     /**
      * Get the result, if any. Returns null if still in progress.

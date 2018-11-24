@@ -147,9 +147,12 @@ public class Converter<R> {
         }
         public ConverterTransformers<F, T> getAll(MimedType<T> mimedType) {
             ConverterTransformers<F, T> ret = new ConverterTransformers<>();
-            add(ret, get(mimedType));
-            add(ret, get(new MimedType<>(mimedType.type, mimedType.primary() + "/*")));
-            add(ret, get(new MimedType<>(mimedType.type, "*/*")));
+
+            for (MimedType candidate: keySet()) {
+                if (candidate.isTypeOf(mimedType))
+                    add(ret, get(candidate));
+            }
+
             return ret;
         }
     }

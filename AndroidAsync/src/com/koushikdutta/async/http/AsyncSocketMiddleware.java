@@ -196,7 +196,7 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
             Future<AsyncSocket> current = new SimpleFuture<>(new Exception("empty ip address list"));
             ArrayDeque<InetAddress> addresses = new ArrayDeque<>(Arrays.asList(from));
 
-            current = current.fail(e -> {
+            current = current.failRecover(e -> {
                 if (addresses.isEmpty())
                     throw e;
 
