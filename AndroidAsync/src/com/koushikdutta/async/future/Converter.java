@@ -31,9 +31,11 @@ public class Converter<R> {
     static class MultiTransformer<T, F> extends MultiTransformFuture<MimedData<Future<T>>, MimedData<Future<F>>> {
         TypeConverter<T, F> converter;
         String converterMime;
-        public MultiTransformer(TypeConverter<T, F> converter, String converterMime) {
+        int distance;
+        public MultiTransformer(TypeConverter<T, F> converter, String converterMime, int distance) {
             this.converter = converter;
             this.converterMime = converterMime;
+            this.distance = distance;
         }
 
         @Override
@@ -92,12 +94,12 @@ public class Converter<R> {
         }
 
         // check if this mimed type is the same or more specific than this mimed type
-        public MimedType<T> matches(MimedType other) {
-            // check the type
+        public boolean isTypeOf(MimedType other) {
+            // check the type, this type must be less specific than the other type
             if (!this.type.isAssignableFrom(other.type))
-                return null;
+                return false;
 
-            return matches(other.mime);
+            return isTypeOf(other.mime);
         }
 
         public String primary() {
@@ -109,21 +111,18 @@ public class Converter<R> {
         }
 
         // check if this mimed type is convertible to another mimed type
-        public MimedType<T> matches(String mime) {
-            String[] parts = mime.split("/");
+        public boolean isTypeOf(String mime) {
+            String[] otherParts = mime.split("/");
             String[] myParts = this.mime.split("/");
 
-            // mime conversion can only become more specific.
-            if (!"*".equals(parts[0]) && !"*".equals(myParts[0]) && !parts[0].equals(myParts[0]))
-                return null;
+            // ensure the other type is the same OR this type is fine with a wildcard
+            if (!"*".equals(myParts[0]) && !otherParts[0].equals(myParts[0]))
+                return false;
 
-            if (!"*".equals(parts[1]) && !"*".equals(myParts[1]) && !parts[1].equals(myParts[1]))
-                return null;
+            if (!"*".equals(myParts[1]) && !otherParts[1].equals(myParts[1]))
+                return false;
 
-            String primary = !"*".equals(parts[0]) ? parts[0] : myParts[0];
-            String secondary = !"*".equals(parts[1]) ? parts[1] : myParts[1];
-
-            return new MimedType<>(type, primary + "/" + secondary);
+            return true;
         }
 
         @Override
@@ -158,7 +157,7 @@ public class Converter<R> {
     Converters<Object, Object> outputs;
 
     protected ConverterMap getConverters() {
-        return Converters;
+        return new ConverterMap(Converters);
     }
 
     MultiFuture<R> future = new MultiFuture<>();
@@ -184,7 +183,7 @@ public class Converter<R> {
             outputs = new Converters<>();
             ConverterMap converters = getConverters();
             for (ConverterEntry entry: converters.map.keySet()) {
-                outputs.ensure(entry.from).put(entry.to, new MultiTransformer<>(converters.map.get(entry), entry.to.mime));
+                outputs.ensure(entry.from).put(entry.to, new MultiTransformer<>(converters.map.get(entry), entry.to.mime, entry.distance));
             }
         }
 
@@ -211,6 +210,15 @@ public class Converter<R> {
     static class PathInfo {
         MultiTransformer<Object, Object> transformer;
         String mime;
+        MimedType candidate;
+
+        static int distance(ArrayDeque<PathInfo> path) {
+            int distance = 0;
+            for (PathInfo entry: path) {
+                distance += entry.transformer.distance;
+            }
+            return distance;
+        }
     }
 
     static String mimeReplace(String mime1, String mime2) {
@@ -228,25 +236,23 @@ public class Converter<R> {
     }
 
     private <T> boolean search(MimedType<T> target, ArrayDeque<PathInfo> bestMatch, ArrayDeque<PathInfo> currentPath, MimedType currentSearch, HashSet<MimedType> searched) {
-        if (target.matches(currentSearch) != null) {
+        if (target.isTypeOf(currentSearch)) {
             bestMatch.clear();
             bestMatch.addAll(currentPath);
             return true;
         }
 
         // the current path must have potential to be better than the best match
-        // if best match is currently 4, the current path must be 2 to have
-        // the chance of a new search being better.
-        if (!bestMatch.isEmpty() && currentPath.size() > bestMatch.size() - 2)
+        if (!bestMatch.isEmpty() && PathInfo.distance(currentPath) >= PathInfo.distance(bestMatch))
             return false;
 
         // prevent reentrancy
         if (searched.contains(currentSearch))
             return false;
-        if (searched.contains(new MimedType(currentSearch.type, currentSearch.primary() + "/*")))
-            return false;
-        if (searched.contains(new MimedType(currentSearch.type, "*/*")))
-            return false;
+//        if (searched.contains(new MimedType(currentSearch.type, currentSearch.primary() + "/*")))
+//            return false;
+//        if (searched.contains(new MimedType(currentSearch.type, "*/*")))
+//            return false;
 
         boolean found = false;
         searched.add(currentSearch);
@@ -259,6 +265,7 @@ public class Converter<R> {
             PathInfo path = new PathInfo();
             path.transformer = converterTransformers.get(candidate);
             path.mime = newSearch.mime;
+            path.candidate = candidate;
             currentPath.addLast(path);
             try {
                 found |= search(target, bestMatch, currentPath, newSearch, searched);
@@ -284,12 +291,14 @@ public class Converter<R> {
     }
 
     static class ConverterEntry<F, T> {
-        ConverterEntry(Class<F> from, String fromMime, Class<T> to, String toMime) {
+        ConverterEntry(Class<F> from, String fromMime, Class<T> to, String toMime, int distance) {
             this.from = new MimedType<>(from, fromMime);
             this.to = new MimedType<>(to, toMime);
+            this.distance = distance;
         }
         MimedType<F> from;
         MimedType<T> to;
+        int distance;
 
         @Override
         public int hashCode() {
@@ -304,7 +313,7 @@ public class Converter<R> {
     }
 
     public static class ConverterMap {
-        private LinkedHashMap<ConverterEntry, TypeConverter> map = new LinkedHashMap<>();
+        public LinkedHashMap<ConverterEntry, TypeConverter> map = new LinkedHashMap<>();
         public ConverterMap() {
         }
 
@@ -313,16 +322,19 @@ public class Converter<R> {
         }
 
         public synchronized <F, T> void addConverter(Class<F> from, String fromMime, Class<T> to, String toMime, TypeConverter<T, F> typeConverter) {
+            addConverter(from, fromMime, to, toMime, 1, typeConverter);
+        }
+        public synchronized <F, T> void addConverter(Class<F> from, String fromMime, Class<T> to, String toMime, int distance, TypeConverter<T, F> typeConverter) {
             if (fromMime == null)
                 fromMime = MIME_ALL;
             if (toMime == null)
                 toMime = MIME_ALL;
 
-            map.put(new ConverterEntry<>(from, fromMime, to, toMime), typeConverter);
+            map.put(new ConverterEntry<>(from, fromMime, to, toMime, distance), typeConverter);
         }
     }
 
-    public static ConverterMap Converters = new ConverterMap();
+    private static ConverterMap Converters = new ConverterMap();
 
     static {
         final TypeConverter<byte[], String> StringToByteArray = (from, fromMime) -> new SimpleFuture<>(from.getBytes());
