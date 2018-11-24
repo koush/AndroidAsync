@@ -2,6 +2,7 @@ package com.koushikdutta.async.test;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.support.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -9,8 +10,12 @@ import com.koushikdutta.async.callback.ContinuationCallback;
 import com.koushikdutta.async.future.Continuation;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.future.ThenCallback;
 
 import junit.framework.TestCase;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 import java.util.concurrent.CancellationException;
@@ -19,7 +24,41 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+@RunWith(AndroidJUnit4.class)
 public class FutureTests extends TestCase {
+    @Test
+    public void testChain() throws Exception {
+        SimpleFuture<Integer> foo = new SimpleFuture<>();
+
+        foo
+        .thenConvert(new ThenCallback<Integer, Integer>() {
+            @Override
+            public Integer then(Integer from) {
+                return null;
+            }
+        })
+        .thenConvert(new ThenCallback<Integer, Integer>() {
+            @Override
+            public Integer then(Integer from) {
+                return null;
+            }
+        })
+        .thenConvert(new ThenCallback<Integer, Integer>() {
+            @Override
+            public Integer then(Integer from) {
+                return null;
+            }
+        })
+        .thenConvert(new ThenCallback<Integer, Integer>() {
+            @Override
+            public Integer then(Integer from) {
+                return null;
+            }
+        });
+
+        foo.setComplete(3);
+    }
+
     private static class IntegerFuture extends SimpleFuture<Integer> {
         private IntegerFuture() {
         }
@@ -42,6 +81,8 @@ public class FutureTests extends TestCase {
             return ret;
         }
     }
+
+
 
     public void testFutureCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);

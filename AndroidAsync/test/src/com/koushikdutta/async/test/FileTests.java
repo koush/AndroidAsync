@@ -34,7 +34,8 @@ public class FileTests {
         StreamUtility.writeFile(f, "hello world");
         FileDataEmitter fdm = new FileDataEmitter(AsyncServer.getDefault(), f);
         final Md5 md5 = Md5.createInstance();
-        Future<String> stringBody = new StringParser().parse(fdm)
+        Future<String> stringBody = new StringParser().parse(fdm);
+        stringBody
         .setCallback(new FutureCallback<String>() {
             @Override
             public void onCompleted(Exception e, String result) {

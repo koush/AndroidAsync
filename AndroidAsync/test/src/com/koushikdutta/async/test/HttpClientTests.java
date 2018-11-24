@@ -276,8 +276,8 @@ public class HttpClientTests {
             public void onProgress(AsyncHttpResponse response, long downloaded, long total) {
                 semaphore.release();
             }
-        })
-        .setCallback(new FutureCallback<File>() {
+        });
+        fileFuture.setCallback(new FutureCallback<File>() {
             @Override
             public void onCompleted(Exception e, File result) {
                 assertTrue(e instanceof CancellationException);

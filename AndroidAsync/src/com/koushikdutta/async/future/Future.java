@@ -12,33 +12,33 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
     /**
      * Set a callback to be invoked when this Future completes successfully.
      * @param callback
+     * @return A future that will resolve once the success callback completes,
+     * which may contain any errors thrown by the success callback.
      */
     Future<T> success(SuccessCallback<T> callback);
 
     /**
      * Set a callback to be invoked when this Future completes successfully.
-     * successfully.
      * @param then
      * @param <R>
-     * @return A future that will contain the future result of ThenCallback
-     * or the failure from this Future.
+     * @return A future containing all exceptions that happened prior or during
+     * the callback, or the successful result.
      */
     <R> Future<R> then(ThenFutureCallback<R, T> then);
 
     /**
      * Set a callback to be invoked when this Future completes successfully.
-     * successfully.
      * @param then
      * @param <R>
-     * @return A future that will contain the result of ThenCallback
-     * or the failure from this Future.
+     * @return A future containing all exceptions that happened prior or during
+     * the callback, or the successful result.
      */
     <R> Future<R> thenConvert(ThenCallback<R, T> then);
 
     /**
      * Set a callback to be invoked when this future completes with a failure.
      * The failure can be observered and rethrown, or handled by returning
-     * a new value of the same type.
+     * a new fallback value of the same type.
      * @param fail
      * @return
      */

@@ -225,6 +225,7 @@ public class Converter<R> {
         String[] parts = mime2.split("/");
         String[] myParts = mime1.split("/");
 
+        // a wildcard mime converter adopts the mime of the converted type
         String primary = !"*".equals(parts[0]) ? parts[0] : myParts[0];
         String secondary = !"*".equals(parts[1]) ? parts[1] : myParts[1];
 
@@ -249,17 +250,12 @@ public class Converter<R> {
         // prevent reentrancy
         if (searched.contains(currentSearch))
             return false;
-//        if (searched.contains(new MimedType(currentSearch.type, currentSearch.primary() + "/*")))
-//            return false;
-//        if (searched.contains(new MimedType(currentSearch.type, "*/*")))
-//            return false;
 
         boolean found = false;
         searched.add(currentSearch);
         ConverterTransformers<Object, Object> converterTransformers = outputs.getAll(currentSearch);
         for (MimedType candidate: converterTransformers.keySet()) {
             // this simulates the mime results of a transform
-//            MimedType newSearch = candidate.matches(currentSearch.mime);
             MimedType newSearch = new MimedType(candidate.type, mimeReplace(currentSearch.mime, candidate.mime));
 
             PathInfo path = new PathInfo();

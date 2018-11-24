@@ -13,6 +13,11 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     private T result;
     boolean silent;
     FutureCallback<T> callback;
+    FutureCallbackInternal internalCallback;
+
+    private interface FutureCallbackInternal<T> {
+        void onCompleted(Exception e, T result, FutureCallsite next);
+    }
 
     public SimpleFuture() {
     }
@@ -39,13 +44,15 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
             return false;
         // still need to release any pending waiters
         FutureCallback<T> callback;
+        FutureCallbackInternal<T> internalCallback;
         synchronized (this) {
             exception = new CancellationException();
             releaseWaiterLocked();
             callback = handleCompleteLocked();
+            internalCallback = handleInternalCompleteLocked();
             this.silent = silent;
         }
-        handleCallbackUnlocked(callback);
+        handleCallbackUnlocked(null, callback, internalCallback);
         return true;
     }
 
@@ -106,9 +113,63 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         return callback;
     }
 
-    private void handleCallbackUnlocked(FutureCallback<T> callback) {
-        if (callback != null && !silent)
+    private FutureCallbackInternal<T> handleInternalCompleteLocked() {
+        // don't execute the callback inside the sync block... possible hangup
+        // read the callback value, and then call it outside the block.
+        // can't simply call this.callback.onCompleted directly outside the block,
+        // because that may result in a race condition where the callback changes once leaving
+        // the block.
+        FutureCallbackInternal<T> callback = this.internalCallback;
+        // null out members to allow garbage collection
+        this.callback = null;
+        return callback;
+    }
+
+    static class FutureCallsite {
+        Exception e;
+        Object result;
+        FutureCallbackInternal callback;
+
+        void loop() {
+            while (callback != null) {
+                // these values always start non null.
+                FutureCallbackInternal callback = this.callback;
+                Exception e = this.e;
+                Object result = this.result;
+
+                // null them out for reentrancy
+                this.callback = null;
+                this.e = null;
+                this.result = null;
+
+                callback.onCompleted(e, result, this);
+            }
+        }
+    }
+
+    private void handleCallbackUnlocked(FutureCallsite callsite, FutureCallback<T> callback, FutureCallbackInternal<T> internalCallback) {
+        if (silent)
+            return;
+        if (callback != null) {
             callback.onCompleted(exception, result);
+            return;
+        }
+
+        if (internalCallback == null)
+            return;
+
+        boolean needsLoop = false;
+        if (callsite == null) {
+            needsLoop = true;
+            callsite = new FutureCallsite();
+        }
+
+        callsite.callback = internalCallback;
+        callsite.e = exception;
+        callsite.result = result;
+
+        if (needsLoop)
+            callsite.loop();
     }
 
     void releaseWaiterLocked() {
@@ -125,15 +186,20 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     public boolean setComplete(Exception e) {
-        return setComplete(e, null);
+        return setComplete(e, null, null);
     }
 
     public boolean setComplete(T value) {
-        return setComplete(null, value);
+        return setComplete(null, value, null);
     }
 
     public boolean setComplete(Exception e, T value) {
+        return setComplete(e, value, null);
+    }
+
+    private boolean setComplete(Exception e, T value, FutureCallsite callsite) {
         FutureCallback<T> callback;
+        FutureCallbackInternal internalCallback;
         synchronized (this) {
             if (!super.setComplete())
                 return false;
@@ -141,58 +207,72 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
             exception = e;
             releaseWaiterLocked();
             callback = handleCompleteLocked();
+            internalCallback = handleInternalCompleteLocked();
         }
-        handleCallbackUnlocked(callback);
+        handleCallbackUnlocked(callsite, callback, internalCallback);
         return true;
     }
 
-    public FutureCallback<T> getCompletionCallback() {
-        return new FutureCallback<T>() {
-            @Override
-            public void onCompleted(Exception e, T result) {
-                setComplete(e, result);
-            }
-        };
-    }
+    private void setCallbackInternal(FutureCallsite callsite, FutureCallback<T> callback, FutureCallbackInternal<T> internalCallback) {
+        // callback can only be changed or read/used inside a sync block
+        synchronized (this) {
+            // done or cancelled,
+            this.callback = callback;
+            this.internalCallback = internalCallback;
+            if (!isDone() && !isCancelled())
+                return;
 
-    public SimpleFuture<T> setComplete(Future<T> future) {
-        future.setCallback(getCompletionCallback());
-        setParent(future);
-        return this;
-    }
-
-    // TEST USE ONLY!
-    public FutureCallback<T> getCallback() {
-        return callback;
+            callback = handleCompleteLocked();
+            internalCallback = handleInternalCompleteLocked();
+        }
+        handleCallbackUnlocked(callsite, callback, internalCallback);
     }
 
     @Override
     public void setCallback(FutureCallback<T> callback) {
-        // callback can only be changed or read/used inside a sync block
-        synchronized (this) {
-            this.callback = callback;
-            if (isDone() || isCancelled())
-                callback = handleCompleteLocked();
-            else
-                callback = null;
-        }
-        handleCallbackUnlocked(callback);
+        setCallbackInternal(null, callback, null);
     }
+
+    private void setComplete(Future<T> future, FutureCallsite callsite) {
+        if (future instanceof SimpleFuture)
+            ((SimpleFuture<T>)future).setCallbackInternal(callsite, null, this::setComplete);
+        else
+            future.setCallback(this::setComplete);
+        setParent(future);
+    }
+
+    public void setComplete(Future<T> future) {
+        if (future instanceof SimpleFuture)
+            ((SimpleFuture<T>)future).setCallbackInternal(null, null, this::setComplete);
+        else
+            future.setCallback(this::setComplete);
+        setParent(future);
+    }
+
+    /**
+     * THIS METHOD IS FOR TEST USE ONLY
+     * @return
+     */
+    @Deprecated
+    public FutureCallback<T> getCallback() {
+        return callback;
+    }
+
 
     @Override
     public Future<T> success(SuccessCallback<T> callback) {
         final SimpleFuture<T> ret = new SimpleFuture<>();
-        setCallback((e, result) -> {
-            if (e != null) {
-                ret.setComplete(e);
-                return;
+        setCallbackInternal(null, null, (e, result, next) -> {
+            if (e == null) {
+                try {
+                    callback.success(result);
+                }
+                catch (Exception callbackException) {
+                    e = callbackException;
+                    result = null;
+                }
             }
-            try {
-                callback.success(result);
-            }
-            catch (Exception callbackException) {
-                ret.setComplete(callbackException);
-            }
+            ret.setComplete(e, result, next);
         });
         return ret;
     }
@@ -200,17 +280,21 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     @Override
     public <R> Future<R> then(ThenFutureCallback<R, T> then) {
         final SimpleFuture<R> ret = new SimpleFuture<>();
-        setCallback((e, result) -> {
+        setCallbackInternal(null, null, (e, result, next) -> {
             if (e != null) {
-                ret.setComplete(e);
+                ret.setComplete(e, null, next);
                 return;
             }
+            Future<R> out;
             try {
-                ret.setComplete(then.then(result));
+                out = then.then(result);
             }
             catch (Exception callbackException) {
-                ret.setComplete(callbackException);
+                ret.setComplete(callbackException, null, next);
+                return;
             }
+            ret.setComplete(out, next);
+
         });
         return ret;
     }
@@ -223,17 +307,20 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     @Override
     public Future<T> fail(FailFutureCallback<T> fail) {
         SimpleFuture<T> ret = new SimpleFuture<>();
-        setCallback((e, result) -> {
-            if (result != null) {
-                ret.setComplete(result);
+        setCallbackInternal(null, null, (e, result, next) -> {
+            if (e == null) {
+                ret.setComplete(e, result, next);
                 return;
             }
+            Future<T> out;
             try {
-                fail.fail(e);
+                out = fail.fail(e);
             }
             catch (Exception callbackException) {
-                ret.setComplete(callbackException);
+                ret.setComplete(callbackException, null, next);
+                return;
             }
+            ret.setComplete(out, next);
         });
         return ret;
     }
