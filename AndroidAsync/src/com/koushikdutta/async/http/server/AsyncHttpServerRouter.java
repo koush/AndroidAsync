@@ -293,6 +293,11 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         public Matcher getMatcher() {
             return matcher;
         }
+
+        @Override
+        public void setMatcher(Matcher matcher) {
+            this.matcher = matcher;
+        }
     }
 
     class Callback implements HttpServerRequestCallback, RouteMatcher {

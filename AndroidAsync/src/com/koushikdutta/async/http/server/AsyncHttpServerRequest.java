@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 public interface AsyncHttpServerRequest extends DataEmitter {
     Headers getHeaders();
     Matcher getMatcher();
+    void setMatcher(Matcher matcher);
     <T extends AsyncHttpRequestBody> T getBody();
     AsyncSocket getSocket();
     String getPath();

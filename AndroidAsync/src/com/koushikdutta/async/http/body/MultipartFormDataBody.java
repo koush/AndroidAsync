@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http.body;
 
+import android.text.TextUtils;
+
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.DataSink;
@@ -16,13 +18,14 @@ import com.koushikdutta.async.http.server.BoundaryEmitter;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpRequestBody<Multimap> {
     LineEmitter liner;
     Headers formData;
-    ByteBufferList last;
-    String lastName;
+    ByteBufferList lastData;
+    Part lastPart;
 
     public interface MultipartCallback {
         public void onPart(Part part);
@@ -35,16 +38,22 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     }
 
     void handleLast() {
-        if (last == null)
+        if (lastData == null)
             return;
         
         if (formData == null)
             formData = new Headers();
-        
-        formData.add(lastName, last.peekString());
-        
-        lastName = null;
-        last = null;
+
+        String value = lastData.peekString();
+        String name = TextUtils.isEmpty(lastPart.getName()) ? "unnamed" : lastPart.getName();
+        StringPart part = new StringPart(name, value);
+        part.mHeaders = lastPart.mHeaders;
+        addPart(part);
+
+        formData.add(name, value);
+
+        lastPart = null;
+        lastData = null;
     }
     
     public String getField(String name) {
@@ -58,7 +67,7 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         super.onBoundaryEnd();
         handleLast();
     }
-    
+
     @Override
     protected void onBoundaryStart() {
         final Headers headers = new Headers();
@@ -78,17 +87,17 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                     if (mCallback != null)
                         mCallback.onPart(part);
                     if (getDataCallback() == null) {
-                        if (part.isFile()) {
-                            setDataCallback(new NullDataCallback());
-                            return;
-                        }
+//                        if (part.isFile()) {
+//                            setDataCallback(new NullDataCallback());
+//                            return;
+//                        }
 
-                        lastName = part.getName();
-                        last = new ByteBufferList();
+                        lastPart = part;
+                        lastData = new ByteBufferList();
                         setDataCallback(new DataCallback() {
                             @Override
                             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                                bb.get(last);
+                                bb.get(lastData);
                             }
                         });
                     }
@@ -100,17 +109,13 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
 
     public static final String CONTENT_TYPE = "multipart/form-data";
     String contentType = CONTENT_TYPE;
-    public MultipartFormDataBody(String[] values) {
-        for (String value: values) {
-            String[] splits = value.split("=");
-            if (splits.length != 2)
-                continue;
-            if (!"boundary".equals(splits[0]))
-                continue;
-            setBoundary(splits[1]);
-            return;
-        }
-        report(new Exception ("No boundary found for multipart/form-data"));
+    public MultipartFormDataBody(String contentType) {
+        Multimap map = Multimap.parseSemicolonDelimited(contentType);
+        String boundary = map.getString("boundary");
+        if (boundary == null)
+            report(new Exception ("No boundary found for multipart/form-data"));
+        else
+            setBoundary(boundary);
     }
 
     MultipartCallback mCallback;
@@ -215,6 +220,12 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
 
     public void setContentType(String contentType) {
         this.contentType = contentType;
+    }
+
+    public List<Part> getParts() {
+        if (mParts == null)
+            return null;
+        return new ArrayList<>(mParts);
     }
 
     public void addFilePart(String name, File file) {
