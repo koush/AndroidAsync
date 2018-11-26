@@ -233,20 +233,30 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         setCallbackInternal(null, callback, null);
     }
 
-    private void setComplete(Future<T> future, FutureCallsite callsite) {
-        if (future instanceof SimpleFuture)
-            ((SimpleFuture<T>)future).setCallbackInternal(callsite, null, this::setComplete);
-        else
-            future.setCallback(this::setComplete);
+    private Future<T> setComplete(Future<T> future, FutureCallsite callsite) {
         setParent(future);
+
+        SimpleFuture<T> ret = new SimpleFuture<>();
+        if (future instanceof SimpleFuture) {
+            ((SimpleFuture<T>)future).setCallbackInternal(callsite, null,
+                    (e, result, next) ->
+                            ret.setComplete(SimpleFuture.this.setComplete(e, result, next) ? null : new CancellationException(), result, next));
+        }
+        else {
+            future.setCallback((e, result) -> ret.setComplete(SimpleFuture.this.setComplete(e, result, null) ? null : new CancellationException()));
+        }
+        return ret;
     }
 
-    public void setComplete(Future<T> future) {
-        if (future instanceof SimpleFuture)
-            ((SimpleFuture<T>)future).setCallbackInternal(null, null, this::setComplete);
-        else
-            future.setCallback(this::setComplete);
-        setParent(future);
+    /**
+     * Complete a future with another future. Returns a future that reports whether the completion
+     * was successful. If the future was not completed due to cancellation, the callback
+     * will be called with a CancellationException, and the original future result, if one was provided.
+     * @param future
+     * @return
+     */
+    public Future<T> setComplete(Future<T> future) {
+        return setComplete(future, null);
     }
 
     /**
@@ -262,6 +272,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     @Override
     public Future<T> success(SuccessCallback<T> callback) {
         final SimpleFuture<T> ret = new SimpleFuture<>();
+        ret.setParent(this);
         setCallbackInternal(null, null, (e, result, next) -> {
             if (e == null) {
                 try {
@@ -269,7 +280,9 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
                 }
                 catch (Exception callbackException) {
                     e = callbackException;
-                    result = null;
+                    // note that the result is not nulled out. this is useful for managed resources, like sockets.
+                    // for example: a successful socket connection was made, but the request can be cancelled.
+                    // so, returning an error along with a socket object allows for failure cleanup.
                 }
             }
             ret.setComplete(e, result, next);
@@ -280,6 +293,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     @Override
     public <R> Future<R> then(ThenFutureCallback<R, T> then) {
         final SimpleFuture<R> ret = new SimpleFuture<>();
+        ret.setParent(this);
         setCallbackInternal(null, null, (e, result, next) -> {
             if (e != null) {
                 ret.setComplete(e, null, next);
@@ -315,6 +329,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     @Override
     public Future<T> failRecover(FailRecoverCallback<T> fail) {
         SimpleFuture<T> ret = new SimpleFuture<>();
+        ret.setParent(this);
         setCallbackInternal(null, null, (e, result, next) -> {
             if (e == null) {
                 ret.setComplete(e, result, next);
