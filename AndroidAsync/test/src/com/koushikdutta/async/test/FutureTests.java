@@ -84,6 +84,7 @@ public class FutureTests extends TestCase {
 
 
 
+    @Test
     public void testFutureCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final IntegerFuture future = IntegerFuture.create(20, 1000);
@@ -99,6 +100,7 @@ public class FutureTests extends TestCase {
         assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
     }
 
+    @Test
     public void testFutureFinishedCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final IntegerFuture future = IntegerFuture.create(20, 1);
@@ -115,6 +117,7 @@ public class FutureTests extends TestCase {
         assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
     }
 
+    @Test
     public void testFutureCancel() throws Exception {
         // test a future being cancelled while waiting
         final IntegerFuture future = IntegerFuture.create(20, 2000);
@@ -145,13 +148,15 @@ public class FutureTests extends TestCase {
             assertTrue(e.getCause() instanceof CancellationException);
         }
     }
-    
+
+    @Test
     public void testIntegerFuture() throws Exception {
         IntegerFuture i = IntegerFuture.create(10, 500L);
         assertEquals((int)i.get(), 10);
     }
     
     int someValue;
+    @Test
     public void testContinuation() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         someValue = 0;
@@ -204,7 +209,8 @@ public class FutureTests extends TestCase {
         assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
         assertEquals(someValue, 3);
     }
-    
+
+    @Test
     public void testFutureChain() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Continuation c = new Continuation(new CompletedCallback() {
@@ -231,7 +237,8 @@ public class FutureTests extends TestCase {
         assertEquals((int)i1.get(), 2);
         assertEquals((int)i2.get(), 3);
     }
-    
+
+    @Test
     public void testContinuationFail() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Continuation c = new Continuation(new CompletedCallback() {
@@ -257,7 +264,8 @@ public class FutureTests extends TestCase {
         
         assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
     }
-    
+
+    @Test
     public void testContinuationCancel() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Continuation c = new Continuation(new CompletedCallback() {
@@ -300,8 +308,9 @@ public class FutureTests extends TestCase {
         
         assertTrue(semaphore.tryAcquire(3000, TimeUnit.MILLISECONDS));
     }
-    
-    
+
+
+    @Test
     public void testChildContinuationCancel() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Continuation c = new Continuation(new CompletedCallback() {
@@ -390,6 +399,7 @@ public class FutureTests extends TestCase {
         }
     }
 
+    @Test
     public void testReentrancy() throws Exception {
         // verify reentrancy will work
         
@@ -440,6 +450,7 @@ public class FutureTests extends TestCase {
         assertEquals((int)trigger.get(5000, TimeUnit.MILLISECONDS), 2020);
     }
 
+    @Test
     public void testPostCancelCallback() throws Exception {
         SimpleFuture<String> future = new SimpleFuture<String>();
         final Semaphore semaphore = new Semaphore(0);
@@ -455,6 +466,7 @@ public class FutureTests extends TestCase {
         assertNull(future.getCallback());
     }
 
+    @Test
     public void testPreCancelCallback() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         SimpleFuture<String> future = new SimpleFuture<String>();

@@ -9,15 +9,17 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.FailCallback;
 import com.koushikdutta.async.future.Future;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.future.Futures;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.util.ArrayDeque;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.Locale;
 
 public class AsyncSocketMiddleware extends SimpleMiddleware {
     String scheme;
@@ -189,47 +191,40 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         // try to connect to everything...
         data.request.logv("Resolving domain and connecting to all available addresses");
 
-        final SimpleFuture<AsyncSocket> returnValue = new SimpleFuture<>();
+        final SimpleFuture<AsyncSocket> checkedReturnValue = new SimpleFuture<>();
 
-        mClient.getServer().getAllByName(uri.getHost())
-        .then(from -> {
-            Future<AsyncSocket> current = new SimpleFuture<>(new Exception("empty ip address list"));
-            ArrayDeque<InetAddress> addresses = new ArrayDeque<>(Arrays.asList(from));
+        Future<AsyncSocket> socket = mClient.getServer().getAllByName(uri.getHost())
+        .then(addresses -> Futures.loopUntil(addresses, address -> {
+            SimpleFuture<AsyncSocket> loopResult = new SimpleFuture<>();
 
-            current = current.failRecover(e -> {
-                if (addresses.isEmpty())
-                    throw e;
+            final String inetSockAddress = String.format(Locale.ENGLISH, "%s:%s", address, port);
+            data.request.logv("attempting connection to " + inetSockAddress);
 
-                InetAddress address = addresses.removeFirst();
-                SimpleFuture<AsyncSocket> ret = new SimpleFuture<>();
+            mClient.getServer().connectSocket(new InetSocketAddress(address, port), loopResult::setComplete);
+            return loopResult;
+        }))
+        // handle failures here (wrap the callback)
+        .fail(e -> wrapCallback(data, uri, port, false, data.connectCallback).onConnectCompleted(e, null));
 
-                mClient.getServer().connectSocket(new InetSocketAddress(address, port),
-                wrapCallback(data, uri, port, false, (ex, socket) -> {
-                    // try the next address or fail altogether
-                    if (ex != null) {
-                        ret.setComplete(ex);
-                        return;
-                    }
-
-                    // attempt to successfully complete this socket, but
-                    // if the socket is no longer needed, just hang onto it...
-                    if (returnValue.isDone() || returnValue.isCancelled() || !ret.setComplete(socket)) {
-                        data.request.logd("Recycling extra socket leftover from cancelled operation");
-                        idleSocket(socket);
-                        recycleSocket(socket, data.request);
-                        return;
-                    }
-
-                    data.connectCallback.onConnectCompleted(null, socket);
-                }));
-
-                return ret;
-            });
-
-            return current;
+        checkedReturnValue.setComplete(socket)
+        .setCallback((e, successfulSocket) -> {
+            if (successfulSocket == null)
+                return;
+            // SimpleFuture.setComplete(Future) returns a future as to whether
+            // the completion was successful, or the future has been cancelled,
+            // thus the completion failed.
+            // The exception value will only ever be a CancellationException.
+            if (e == null) {
+                // handle successes here (wrap the callback)
+                wrapCallback(data, uri, port, false, data.connectCallback).onConnectCompleted(null, successfulSocket);
+                return;
+            }
+            data.request.logd("Recycling extra socket leftover from cancelled operation");
+            idleSocket(successfulSocket);
+            recycleSocket(successfulSocket, data.request);
         });
 
-        return returnValue;
+        return checkedReturnValue;
     }
 
     private ConnectionInfo getOrCreateConnectionInfo(String lookup) {

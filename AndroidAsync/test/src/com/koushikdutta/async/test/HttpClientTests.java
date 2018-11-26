@@ -49,13 +49,8 @@ import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
 public class HttpClientTests {
-    AsyncHttpClient client;
     AsyncServer server = new AsyncServer();
-    
-    public HttpClientTests() {
-        super();
-        client = new AsyncHttpClient(server);
-    }
+    AsyncHttpClient client  = new AsyncHttpClient(server);
 
     @Override
     protected void finalize() throws Throwable {
@@ -117,6 +112,7 @@ public class HttpClientTests {
         assertNotNull(ret.get(TIMEOUT, TimeUnit.MILLISECONDS));
     }
 
+    @Test
     public void testClockworkMod() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
         final Md5 md5 = Md5.createInstance();
