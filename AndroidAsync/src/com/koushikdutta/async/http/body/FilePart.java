@@ -27,4 +27,9 @@ public class FilePart extends StreamPart {
     protected InputStream getInputStream() throws IOException {
         return new FileInputStream(file);
     }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
 }

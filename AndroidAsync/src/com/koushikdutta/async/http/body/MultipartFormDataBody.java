@@ -247,4 +247,12 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
     public Multimap get() {
         return new Multimap(formData.getMultiMap());
     }
+
+    @Override
+    public String toString() {
+        for (Part part: getParts()) {
+            return part.toString();
+        }
+        return "multipart content is empty";
+    }
 }
