@@ -132,12 +132,12 @@ public class HttpUtil {
         return "keep-alive".equalsIgnoreCase(connection);
     }
 
-    public static int contentLength(Headers headers) {
+    public static long contentLength(Headers headers) {
         String cl = headers.get("Content-Length");
         if (cl == null)
             return -1;
         try {
-            return Integer.parseInt(cl);
+            return Long.parseLong(cl);
         }
         catch (NumberFormatException e) {
             return -1;
