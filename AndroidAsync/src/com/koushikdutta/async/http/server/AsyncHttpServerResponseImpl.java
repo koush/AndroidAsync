@@ -300,6 +300,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
                 onEnd();
                 return;
             }
+            if (mContentLength == 0) {
+                writeHead();
+                StreamUtility.closeQuietly(inputStream);
+                onEnd();
+                return;
+            }
             getServer().post(new Runnable() {
                 @Override
                 public void run() {
