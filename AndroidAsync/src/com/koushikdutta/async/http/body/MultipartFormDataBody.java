@@ -107,7 +107,8 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
         setDataCallback(liner);
     }
 
-    public static final String CONTENT_TYPE = "multipart/form-data";
+    public static final String PRIMARY_TYPE = "multipart/";
+    public static final String CONTENT_TYPE = PRIMARY_TYPE + "form-data";
     String contentType = CONTENT_TYPE;
     public MultipartFormDataBody(String contentType) {
         Multimap map = Multimap.parseSemicolonDelimited(contentType);

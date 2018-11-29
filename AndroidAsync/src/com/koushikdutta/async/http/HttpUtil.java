@@ -1,5 +1,7 @@
 package com.koushikdutta.async.http;
 
+import android.text.TextUtils;
+
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
@@ -32,7 +34,7 @@ public class HttpUtil {
                 if (StringBody.CONTENT_TYPE.equals(ct)) {
                     return new StringBody();
                 }
-                if (MultipartFormDataBody.CONTENT_TYPE.equals(ct)) {
+                if (ct != null && ct.startsWith(MultipartFormDataBody.PRIMARY_TYPE)) {
                     return new MultipartFormDataBody(contentType);
                 }
             }
