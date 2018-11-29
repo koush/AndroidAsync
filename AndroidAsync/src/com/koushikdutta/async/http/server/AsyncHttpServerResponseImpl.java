@@ -18,6 +18,7 @@ import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
 import com.koushikdutta.async.util.StreamUtility;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -252,6 +253,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void send(JSONObject json) {
         send("application/json; charset=utf-8", json.toString());
+    }
+
+    @Override
+    public void send(JSONArray jsonArray) {
+        send("application/json; charset=utf-8", jsonArray.toString());
     }
 
     @Override
