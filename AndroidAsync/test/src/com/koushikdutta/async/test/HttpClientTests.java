@@ -20,7 +20,7 @@ import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.AsyncHttpRequest;
 import com.koushikdutta.async.http.AsyncHttpResponse;
-import com.koushikdutta.async.http.body.JSONObjectBody;
+import com.koushikdutta.async.http.body.JSONTypeBody;
 import com.koushikdutta.async.http.cache.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
@@ -341,7 +341,7 @@ public class HttpClientTests {
         JSONObject post = new JSONObject();
         post.put("ping", "pong");
         AsyncHttpPost p = new AsyncHttpPost("https://koush.clockworkmod.com/test/echo");
-        p.setBody(new JSONObjectBody(post));
+        p.setBody(new JSONTypeBody(post));
         JSONObject ret = AsyncHttpClient.getDefaultInstance().executeJSONObject(p, null).get();
         assertEquals("pong", ret.getString("ping"));
     }

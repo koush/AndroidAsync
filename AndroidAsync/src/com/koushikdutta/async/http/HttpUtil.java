@@ -1,13 +1,11 @@
 package com.koushikdutta.async.http;
 
-import android.text.TextUtils;
-
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
-import com.koushikdutta.async.http.body.JSONObjectBody;
+import com.koushikdutta.async.http.body.JSONTypeBody;
 import com.koushikdutta.async.http.body.MultipartFormDataBody;
 import com.koushikdutta.async.http.body.StringBody;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;
@@ -28,8 +26,8 @@ public class HttpUtil {
                 if (UrlEncodedFormBody.CONTENT_TYPE.equals(ct)) {
                     return new UrlEncodedFormBody();
                 }
-                if (JSONObjectBody.CONTENT_TYPE.equals(ct)) {
-                    return new JSONObjectBody();
+                if (JSONTypeBody.CONTENT_TYPE.equals(ct)) {
+                    return new JSONTypeBody();
                 }
                 if (StringBody.CONTENT_TYPE.equals(ct)) {
                     return new StringBody();

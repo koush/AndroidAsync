@@ -5,7 +5,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.NameValuePair;
-import com.koushikdutta.async.http.body.JSONObjectBody;
+import com.koushikdutta.async.http.body.JSONTypeBody;
 import com.koushikdutta.async.http.body.MultipartFormDataBody;
 import com.koushikdutta.async.http.body.StringBody;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;
@@ -59,8 +59,8 @@ public class HttpServerTests extends TestCase {
                             json.put(pair.getName(), pair.getValue());
                         }
                     }
-                    else if (request.getBody() instanceof JSONObjectBody) {
-                        json = ((JSONObjectBody)request.getBody()).get();
+                    else if (request.getBody() instanceof JSONTypeBody) {
+                        json = ((JSONTypeBody) request.getBody()).getJsonObject();
                     }
                     else if (request.getBody() instanceof StringBody) {
                         json.put("foo", ((StringBody)request.getBody()).get());
@@ -83,7 +83,7 @@ public class HttpServerTests extends TestCase {
     public void testJSONObject() throws Exception {
         JSONObject json = new JSONObject();
         json.put("foo", "bar");
-        JSONObjectBody body = new JSONObjectBody(json);
+        JSONTypeBody body = new JSONTypeBody(json);
         AsyncHttpPost post = new AsyncHttpPost("http://localhost:5000/echo");
         post.setBody(body);
         json = AsyncHttpClient.getDefaultInstance().executeJSONObject(post, null).get();
