@@ -37,17 +37,21 @@ public class JSONTypeBody implements AsyncHttpRequestBody<Object> {
         new StringParser().parse(emitter).setCallback(new FutureCallback<String>() {
             @Override
             public void onCompleted(Exception e, String result) {
+                if (e != null) {
+                    completed.onCompleted(e);
+                    return;
+                }
                 try {
                     if (result.startsWith("[")) {
                         jsonArray = new JSONArray(result);
                     } else {
                         jsonObject = new JSONObject(result);
                     }
+                    mBodyBytes = result.getBytes();
+                    completed.onCompleted(null);
                 } catch (JSONException e1) {
-                    e1.printStackTrace();
+                    completed.onCompleted(e1);
                 }
-                mBodyBytes = result.getBytes();
-                completed.onCompleted(e);
             }
         });
     }
