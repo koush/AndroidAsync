@@ -111,7 +111,10 @@ public class AsyncHttpServerRouter implements RouteMatcher {
     }
 
     public static Asset getAssetStream(final Context context, String asset) {
-        AssetManager am = context.getAssets();
+        return getAssetStream(context.getAssets(), asset);
+    }
+
+    public static Asset getAssetStream(AssetManager am, String asset) {
         try {
             InputStream is = am.open(asset);
             return new Asset(is.available(), is, asset);
@@ -162,12 +165,12 @@ public class AsyncHttpServerRouter implements RouteMatcher {
     }
 
     public void directory(Context context, String regex, final String assetPath) {
-        final Context _context = context.getApplicationContext();
+        AssetManager am = context.getAssets();
         addAction(AsyncHttpGet.METHOD, regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 String path = request.getMatcher().replaceAll("");
-                Asset pair = getAssetStream(_context, assetPath + path);
+                Asset pair = getAssetStream(am, assetPath + path);
                 if (pair == null || pair.inputStream == null) {
                     response.code(404);
                     response.end();
@@ -177,7 +180,7 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                 response.getHeaders().set("Content-Length", String.valueOf(pair.available));
                 response.code(200);
                 response.getHeaders().add("Content-Type", getContentType(pair.path));
-                Util.pump(is, response, new CompletedCallback() {
+                Util.pump(is, pair.available, response, new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
                         response.end();
@@ -190,7 +193,7 @@ public class AsyncHttpServerRouter implements RouteMatcher {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
                 String path = request.getMatcher().replaceAll("");
-                Asset pair = getAssetStream(_context, assetPath + path);
+                Asset pair = getAssetStream(am, assetPath + path);
                 if (pair == null || pair.inputStream == null) {
                     response.code(404);
                     response.end();
@@ -257,14 +260,14 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                 try {
                     FileInputStream is = new FileInputStream(file);
                     response.code(200);
-                    Util.pump(is, response, new CompletedCallback() {
+                    Util.pump(is, is.available(), response, new CompletedCallback() {
                         @Override
                         public void onCompleted(Exception ex) {
                             response.end();
                         }
                     });
                 }
-                catch (FileNotFoundException ex) {
+                catch (IOException ex) {
                     response.code(404);
                     response.end();
                 }

@@ -45,7 +45,7 @@ public class Allocator {
     }
 
     public Allocator setMinAlloc(int minAlloc ) {
-        this.minAlloc = minAlloc;
+        this.minAlloc = Math.max(0, minAlloc);
         return this;
     }
 }

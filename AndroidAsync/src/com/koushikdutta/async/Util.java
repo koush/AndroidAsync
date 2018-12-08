@@ -80,7 +80,7 @@ public class Util {
                 StreamUtility.closeQuietly(is);
             }
             ByteBufferList pending = new ByteBufferList();
-            Allocator allocator = new Allocator();
+            Allocator allocator = new Allocator().setMinAlloc((int)Math.min(2 << 19, max));
 
             @Override
             public void onWriteable() {
