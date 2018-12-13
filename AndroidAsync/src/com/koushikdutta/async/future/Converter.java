@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import java.io.InvalidObjectException;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 
@@ -159,8 +160,8 @@ public class Converter<R> {
 
     Converters<Object, Object> outputs;
 
-    protected ConverterMap getConverters() {
-        return new ConverterMap(Converters);
+    protected ConverterEntries getConverters() {
+        return new ConverterEntries(Converters);
     }
 
     MultiFuture<R> future = new MultiFuture<>();
@@ -184,9 +185,9 @@ public class Converter<R> {
 
         if (outputs == null) {
             outputs = new Converters<>();
-            ConverterMap converters = getConverters();
-            for (ConverterEntry entry: converters.map.keySet()) {
-                outputs.ensure(entry.from).put(entry.to, new MultiTransformer<>(converters.map.get(entry), entry.to.mime, entry.distance));
+            ConverterEntries converters = getConverters();
+            for (ConverterEntry entry: converters.list) {
+                outputs.ensure(entry.from).put(entry.to, new MultiTransformer<>(entry.typeConverter, entry.to.mime, entry.distance));
             }
         }
 
@@ -290,14 +291,16 @@ public class Converter<R> {
     }
 
     static class ConverterEntry<F, T> {
-        ConverterEntry(Class<F> from, String fromMime, Class<T> to, String toMime, int distance) {
+        ConverterEntry(Class<F> from, String fromMime, Class<T> to, String toMime, int distance, TypeConverter<T, F> typeConverter) {
             this.from = new MimedType<>(from, fromMime);
             this.to = new MimedType<>(to, toMime);
             this.distance = distance;
+            this.typeConverter = typeConverter;
         }
         MimedType<F> from;
         MimedType<T> to;
         int distance;
+        TypeConverter<T, F> typeConverter;
 
         @Override
         public int hashCode() {
@@ -311,13 +314,13 @@ public class Converter<R> {
         }
     }
 
-    public static class ConverterMap {
-        public LinkedHashMap<ConverterEntry, TypeConverter> map = new LinkedHashMap<>();
-        public ConverterMap() {
+    public static class ConverterEntries {
+        public ArrayList<ConverterEntry> list = new ArrayList<>();
+        public ConverterEntries() {
         }
 
-        public ConverterMap(ConverterMap other) {
-            map.putAll(other.map);
+        public ConverterEntries(ConverterEntries other) {
+            list.addAll(other.list);
         }
 
         public synchronized <F, T> void addConverter(Class<F> from, String fromMime, Class<T> to, String toMime, TypeConverter<T, F> typeConverter) {
@@ -329,11 +332,11 @@ public class Converter<R> {
             if (toMime == null)
                 toMime = MIME_ALL;
 
-            map.put(new ConverterEntry<>(from, fromMime, to, toMime, distance), typeConverter);
+            list.add(new ConverterEntry<>(from, fromMime, to, toMime, distance, typeConverter));
         }
     }
 
-    private static ConverterMap Converters = new ConverterMap();
+    private static ConverterEntries Converters = new ConverterEntries();
 
     static {
         final TypeConverter<byte[], String> StringToByteArray = (from, fromMime) -> new SimpleFuture<>(from.getBytes());
