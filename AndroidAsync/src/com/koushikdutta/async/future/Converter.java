@@ -334,6 +334,14 @@ public class Converter<R> {
 
             list.add(new ConverterEntry<>(from, fromMime, to, toMime, distance, typeConverter));
         }
+
+        public synchronized boolean removeConverter(TypeConverter typeConverter) {
+            for (ConverterEntry entry: list) {
+                if (entry.typeConverter == typeConverter)
+                    return list.remove(entry);
+            }
+            return false;
+        }
     }
 
     private static ConverterEntries Converters = new ConverterEntries();
