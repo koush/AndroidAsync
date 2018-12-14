@@ -80,11 +80,12 @@ public class UrlEncodedFormBody implements AsyncHttpRequestBody<Multimap> {
                 }
                 try {
                     mParameters = Multimap.parseUrlEncoded(data.readString());
-                    completed.onCompleted(null);
                 }
                 catch (Exception e) {
                     completed.onCompleted(e);
+                    return;
                 }
+                completed.onCompleted(null);
             }
         });
     }
