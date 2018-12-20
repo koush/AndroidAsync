@@ -175,12 +175,7 @@ public class AsyncServer {
     }
 
     public Cancellable post(final CompletedCallback callback, final Exception e) {
-        return post(new Runnable() {
-            @Override
-            public void run() {
-                callback.onCompleted(e);
-            }
-        });
+        return post(() -> callback.onCompleted(e));
     }
 
     public void run(final Runnable runnable) {
@@ -191,12 +186,9 @@ public class AsyncServer {
         }
 
         final Semaphore semaphore = new Semaphore(0);
-        post(new Runnable() {
-            @Override
-            public void run() {
-                runnable.run();
-                semaphore.release();
-            }
+        post(() -> {
+            runnable.run();
+            semaphore.release();
         });
         try {
             semaphore.acquire();
