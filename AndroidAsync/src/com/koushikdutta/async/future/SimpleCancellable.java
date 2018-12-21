@@ -22,8 +22,7 @@ public class SimpleCancellable implements DependentCancellable {
                 return false;
             if (complete) {
                 // don't allow a Cancellable to complete twice...
-                assert false;
-                return true;
+                return false;
             }
             complete = true;
             parent = null;

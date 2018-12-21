@@ -7,6 +7,7 @@ import android.util.Log;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.callback.SocketCreateCallback;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
@@ -363,7 +364,11 @@ public class AsyncServer {
         ConnectCallback callback;
     }
 
-    private ConnectFuture connectResolvedInetSocketAddress(final InetSocketAddress address, final ConnectCallback callback) {
+    public Cancellable connectResolvedInetSocketAddress(final InetSocketAddress address, final ConnectCallback callback) {
+        return connectResolvedInetSocketAddress(address, callback, null);
+    }
+
+    public ConnectFuture connectResolvedInetSocketAddress(final InetSocketAddress address, final ConnectCallback callback, final SocketCreateCallback createCallback) {
         final ConnectFuture cancel = new ConnectFuture();
         assert !address.isUnresolved();
 
@@ -381,6 +386,8 @@ public class AsyncServer {
                     socket.configureBlocking(false);
                     ckey = socket.register(mSelector.getSelector(), SelectionKey.OP_CONNECT);
                     ckey.attach(cancel);
+                    if (createCallback != null)
+                        createCallback.onSocketCreated(socket.socket().getLocalPort());
                     socket.connect(address);
                 }
                 catch (Throwable e) {
@@ -413,7 +420,7 @@ public class AsyncServer {
                     return;
                 }
 
-                ret.setComplete(connectResolvedInetSocketAddress(new InetSocketAddress(result, remote.getPort()), callback));
+                ret.setComplete((ConnectFuture)connectResolvedInetSocketAddress(new InetSocketAddress(result, remote.getPort()), callback));
             }
         });
         return ret;

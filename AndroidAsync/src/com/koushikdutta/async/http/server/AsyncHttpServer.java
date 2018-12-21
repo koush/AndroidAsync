@@ -44,8 +44,16 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
     }
 
     protected void onRequest(HttpServerRequestCallback callback, AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
-        if (callback != null)
-            callback.onRequest(request, response);
+        if (callback != null) {
+            try {
+                callback.onRequest(request, response);
+            }
+            catch (Exception e) {
+                Log.e("AsyncHttpServer", "request callback raised uncaught exception. Catching versus crashing process", e);
+                response.code(500);
+                response.end();
+            }
+        }
     }
 
     protected AsyncHttpRequestBody onUnknownBody(Headers headers) {
