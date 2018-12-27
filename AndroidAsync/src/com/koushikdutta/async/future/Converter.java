@@ -173,13 +173,13 @@ public class Converter<R> {
         this.future.setComplete(future);
     }
 
-    synchronized private <T> Future<T> to(Object value, Class<T> clazz, String mime) {
+    synchronized private final <T> Future<T> to(Object value, Class<T> clazz, String mime) {
         if (clazz.isInstance(value))
             return new SimpleFuture<>((T) value);
         return to(value.getClass(), clazz, mime);
     }
 
-    synchronized private <T> Future<T> to(Class fromClass, Class<T> clazz, String mime) {
+    synchronized private final <T> Future<T> to(Class fromClass, Class<T> clazz, String mime) {
         if (mime == null)
             mime = MIME_ALL;
 
@@ -236,7 +236,7 @@ public class Converter<R> {
         return primary + "/" + secondary;
     }
 
-    public <T> Future<T> to(Class<T> clazz) {
+    public final <T> Future<T> to(Class<T> clazz) {
         return to(clazz, null);
     }
 
@@ -286,7 +286,7 @@ public class Converter<R> {
     }
 
     private static final String MIME_ALL = "*/*";
-    public <T> Future<T> to(final Class<T> clazz, final String mime) {
+    public <T> Future<T> to(Class<T> clazz, String mime) {
         return future.then(from -> to(from, clazz ,mime));
     }
 
@@ -344,7 +344,7 @@ public class Converter<R> {
         }
     }
 
-    private static ConverterEntries Converters = new ConverterEntries();
+    public static ConverterEntries Converters = new ConverterEntries();
 
     static {
         final TypeConverter<byte[], String> StringToByteArray = (from, fromMime) -> new SimpleFuture<>(from.getBytes());
