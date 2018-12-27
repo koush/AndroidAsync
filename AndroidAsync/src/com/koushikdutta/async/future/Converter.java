@@ -344,7 +344,7 @@ public class Converter<R> {
         }
     }
 
-    public static ConverterEntries Converters = new ConverterEntries();
+    public final static ConverterEntries Converters = new ConverterEntries();
 
     static {
         final TypeConverter<byte[], String> StringToByteArray = (from, fromMime) -> new SimpleFuture<>(from.getBytes());
