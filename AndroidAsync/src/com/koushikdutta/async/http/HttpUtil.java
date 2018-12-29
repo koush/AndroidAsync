@@ -62,12 +62,13 @@ public class HttpUtil {
     }
     
     public static DataEmitter getBodyDecoder(DataEmitter emitter, Protocol protocol, Headers headers, boolean server) {
-        long _contentLength;
+        long _contentLength = -1;
         try {
-            _contentLength = Long.parseLong(headers.get("Content-Length"));
+            String header = headers.get("Content-Length");
+            if (header != null)
+                _contentLength = Long.parseLong(header);
         }
-        catch (Exception ex) {
-            _contentLength = -1;
+        catch (NumberFormatException ex) {
         }
         final long contentLength = _contentLength;
         if (-1 != contentLength) {
