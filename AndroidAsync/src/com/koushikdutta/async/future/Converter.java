@@ -1,5 +1,7 @@
 package com.koushikdutta.async.future;
 
+import android.text.TextUtils;
+
 import com.koushikdutta.async.ByteBufferList;
 
 import org.json.JSONObject;
@@ -167,7 +169,7 @@ public class Converter<R> {
     MultiFuture<R> future = new MultiFuture<>();
     String futureMime;
     protected Converter(Future future, String mime) {
-        if (mime == null)
+        if (TextUtils.isEmpty(mime))
             mime = MIME_ALL;
         this.futureMime = mime;
         this.future.setComplete(future);
@@ -180,7 +182,7 @@ public class Converter<R> {
     }
 
     synchronized private final <T> Future<T> to(Class fromClass, Class<T> clazz, String mime) {
-        if (mime == null)
+        if (TextUtils.isEmpty(mime))
             mime = MIME_ALL;
 
         if (outputs == null) {
@@ -327,9 +329,9 @@ public class Converter<R> {
             addConverter(from, fromMime, to, toMime, 1, typeConverter);
         }
         public synchronized <F, T> void addConverter(Class<F> from, String fromMime, Class<T> to, String toMime, int distance, TypeConverter<T, F> typeConverter) {
-            if (fromMime == null)
+            if (TextUtils.isEmpty(fromMime))
                 fromMime = MIME_ALL;
-            if (toMime == null)
+            if (TextUtils.isEmpty(toMime))
                 toMime = MIME_ALL;
 
             list.add(new ConverterEntry<>(from, fromMime, to, toMime, distance, typeConverter));
