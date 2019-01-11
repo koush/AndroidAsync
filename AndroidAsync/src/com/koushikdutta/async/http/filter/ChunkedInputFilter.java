@@ -10,18 +10,20 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
     private int mChunkLengthRemaining = 0;
     private State mState = State.CHUNK_LEN;
     
-    private static enum State {
+    private enum State {
         CHUNK_LEN,
         CHUNK_LEN_CR,
         CHUNK_LEN_CRLF,
         CHUNK,
         CHUNK_CR,
         CHUNK_CRLF,
-        COMPLETE
+        COMPLETE,
+        ERROR,
     }
     
     private boolean checkByte(char b, char value) {
         if (b != value) {
+            mState = State.ERROR;
             report(new ChunkedDataException(value + " was expected, got " + (char)b));
             return false;
         }
@@ -46,6 +48,11 @@ public class ChunkedInputFilter extends FilteredDataEmitter {
     ByteBufferList pending = new ByteBufferList();
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
+        if (mState == State.ERROR) {
+            bb.recycle();
+            return;
+        }
+
         try {
             while (bb.remaining() > 0) {
                 switch (mState) {
