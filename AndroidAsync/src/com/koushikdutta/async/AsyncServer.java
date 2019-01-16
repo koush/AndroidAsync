@@ -8,6 +8,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.callback.SocketCreateCallback;
+import com.koushikdutta.async.callback.ValueFunction;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
@@ -517,6 +518,47 @@ public class AsyncServer {
 
     public AsyncDatagramSocket openDatagram() {
         return openDatagram(null, 0, false);
+    }
+
+    public Cancellable createDatagram(String address, int port, boolean reuseAddress, FutureCallback<AsyncDatagramSocket> callback) {
+        return createDatagram(() -> InetAddress.getByName(address), port, reuseAddress, callback);
+    }
+
+    public Cancellable createDatagram(InetAddress address, int port, boolean reuseAddress, FutureCallback<AsyncDatagramSocket> callback) {
+        return createDatagram(() -> address, port, reuseAddress, callback);
+    }
+
+    private Cancellable createDatagram(ValueFunction<InetAddress> inetAddressValueFunction, final int port, final boolean reuseAddress, FutureCallback<AsyncDatagramSocket> callback) {
+        SimpleFuture<AsyncDatagramSocket> ret = new SimpleFuture<>();
+        ret.setCallback(callback);
+        post(() -> {
+            DatagramChannel socket = null;
+            try {
+                socket = DatagramChannel.open();
+
+                final AsyncDatagramSocket handler = new AsyncDatagramSocket();
+                handler.attach(socket);
+
+                InetSocketAddress address;
+                if (inetAddressValueFunction == null)
+                    address = new InetSocketAddress(port);
+                else
+                    address = new InetSocketAddress(inetAddressValueFunction.getValue(), port);
+
+                if (reuseAddress)
+                    socket.socket().setReuseAddress(reuseAddress);
+                socket.socket().bind(address);
+                handleSocket(handler);
+                if (!ret.setComplete(handler))
+                    socket.close();
+            }
+            catch (Exception e) {
+                StreamUtility.closeQuietly(socket);
+                ret.setComplete(e);
+            }
+        });
+
+        return ret;
     }
 
     public AsyncDatagramSocket openDatagram(final InetAddress host, final int port, final boolean reuseAddress) {

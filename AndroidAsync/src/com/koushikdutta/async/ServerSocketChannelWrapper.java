@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
@@ -16,6 +17,11 @@ class ServerSocketChannelWrapper extends ChannelWrapper {
 
     @Override
     public void shutdownInput() {
+    }
+
+    @Override
+    public InetAddress getLocalAddress() {
+        return mChannel.socket().getInetAddress();
     }
 
     @Override

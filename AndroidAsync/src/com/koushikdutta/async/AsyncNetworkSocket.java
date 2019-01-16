@@ -8,7 +8,9 @@ import com.koushikdutta.async.callback.WritableCallback;
 import com.koushikdutta.async.util.Allocator;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.DatagramChannel;
@@ -189,7 +191,7 @@ public class AsyncNetworkSocket implements AsyncSocket {
         reportClose(null);
     }
 
-    public void closeInternal() {
+    private void closeInternal() {
         mKey.cancel();
         try {
             mChannel.close();
@@ -336,7 +338,11 @@ public class AsyncNetworkSocket implements AsyncSocket {
     public InetSocketAddress getRemoteAddress() {
         return socketAddress;
     }
-    
+
+    public InetAddress getLocalAddress() {
+        return mChannel.getLocalAddress();
+    }
+
     public int getLocalPort() {
         return mChannel.getLocalPort();
     }

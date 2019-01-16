@@ -18,7 +18,7 @@ public class ByteBufferListInputStream extends InputStream {
     public int read() throws IOException {
         if (bb.remaining() <= 0)
             return -1;
-        return bb.get();
+        return (int)bb.get() & 0x000000ff;
     }
 
     @Override

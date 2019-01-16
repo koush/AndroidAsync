@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -10,7 +11,12 @@ import java.nio.channels.Selector;
 
 class DatagramChannelWrapper extends ChannelWrapper {
     DatagramChannel mChannel;
-    
+
+    @Override
+    public InetAddress getLocalAddress() {
+        return mChannel.socket().getLocalAddress();
+    }
+
     @Override
     public int getLocalPort() {
         return mChannel.socket().getLocalPort();

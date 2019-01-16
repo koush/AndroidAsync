@@ -1,6 +1,7 @@
 package com.koushikdutta.async;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
@@ -46,5 +47,6 @@ abstract class ChannelWrapper implements ReadableByteChannel, ScatteringByteChan
     }
     
     public abstract int getLocalPort();
+    public abstract InetAddress getLocalAddress();
     public abstract Object getSocket();
 }
