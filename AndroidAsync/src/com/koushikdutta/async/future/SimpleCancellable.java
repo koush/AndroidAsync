@@ -55,12 +55,13 @@ public class SimpleCancellable implements DependentCancellable {
 
     private Cancellable parent;
     @Override
-    public SimpleCancellable setParent(Cancellable parent) {
+    public boolean setParent(Cancellable parent) {
         synchronized (this) {
-            if (!isDone())
-                this.parent = parent;
+            if (isDone())
+                return false;
+            this.parent = parent;
+            return true;
         }
-        return this;
     }
 
     @Override

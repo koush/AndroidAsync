@@ -354,9 +354,8 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     }
 
     @Override
-    public SimpleFuture<T> setParent(Cancellable parent) {
-        super.setParent(parent);
-        return this;
+    public boolean setParent(Cancellable parent) {
+        return super.setParent(parent);
     }
 
     /**
