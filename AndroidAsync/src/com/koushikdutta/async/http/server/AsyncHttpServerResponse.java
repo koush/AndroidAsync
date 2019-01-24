@@ -1,6 +1,7 @@
 package com.koushikdutta.async.http.server;
 
 import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpResponse;
@@ -15,6 +16,7 @@ import java.io.InputStream;
 public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     void end();
     void send(String contentType, byte[] bytes);
+    void send(String contentType, ByteBufferList bb);
     void send(String contentType, String string);
     void send(String string);
     void send(JSONObject json);
@@ -28,6 +30,8 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     void setContentType(String contentType);
     void redirect(String location);
     AsyncHttpServerRequest getRequest();
+    String getHttpVersion();
+    void setHttpVersion(String httpVersion);
 
     // NOT FINAL
     void proxy(AsyncHttpResponse response);
@@ -37,4 +41,5 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
      */
     void onCompleted(Exception ex);
     AsyncSocket getSocket();
+    void setSocket(AsyncSocket socket);
 }

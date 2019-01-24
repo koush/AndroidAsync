@@ -18,7 +18,6 @@ import com.koushikdutta.async.callback.ValueCallback;
 import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.Multimap;
-import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
@@ -56,14 +55,23 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
         }
     }
 
+    protected boolean isKeepAlive(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+        return HttpUtil.isKeepAlive(response.getHttpVersion(), request.getHeaders());
+    }
+
     protected AsyncHttpRequestBody onUnknownBody(Headers headers) {
         return new UnknownRequestBody(headers.get("Content-Type"));
+    }
+
+    protected boolean isSwitchingProtocols(AsyncHttpServerResponse res) {
+        return res.code() == 101;
     }
 
     ListenCallback mListenCallback = new ListenCallback() {
         @Override
         public void onAccepted(final AsyncSocket socket) {
             final AsyncHttpServerRequestImpl req = new AsyncHttpServerRequestImpl() {
+                AsyncHttpServerRequestImpl self = this;
                 HttpServerRequestCallback requestCallback;
                 String fullPath;
                 String path;
@@ -168,7 +176,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                 @Override
                 public void onCompleted(Exception e) {
                     // if the protocol was switched off http, ignore this request/response.
-                    if (res.code() == 101)
+                    if (isSwitchingProtocols(res))
                         return;
                     requestComplete = true;
                     super.onCompleted(e);
@@ -196,7 +204,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                 
                 private void handleOnCompleted() {
                     if (requestComplete && responseComplete) {
-                        if (HttpUtil.isKeepAlive(Protocol.HTTP_1_1, getHeaders())) {
+                        if (isKeepAlive(self, res)) {
                             onAccepted(socket);
                         }
                         else {

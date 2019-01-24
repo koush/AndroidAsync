@@ -42,6 +42,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         return mSocket;
     }
 
+    @Override
+    public void setSocket(AsyncSocket socket) {
+        mSocket = socket;
+    }
+
     AsyncSocket mSocket;
     AsyncHttpServerRequestImpl mRequest;
     AsyncHttpServerResponseImpl(AsyncSocket socket, AsyncHttpServerRequestImpl req) {
@@ -103,7 +108,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
             isChunked = false;
         }
 
-        String statusLine = String.format(Locale.ENGLISH, "HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
+        String statusLine = String.format(Locale.ENGLISH, "%s %s %s", httpVersion, code, AsyncHttpServer.getResponseCodeDescription(code));
         String rh = mRawHeaders.toPrefixString(statusLine);
 
         Util.writeAll(mSocket, rh.getBytes(), new CompletedCallback() {
@@ -205,21 +210,23 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
 
     @Override
     public void send(final String contentType, final byte[] bytes) {
-        assert mContentLength < 0;
-        getServer().post(new Runnable() {
-            @Override
-            public void run() {
-                mContentLength = bytes.length;
-                mRawHeaders.set("Content-Length", Integer.toString(bytes.length));
+        send(contentType, new ByteBufferList(bytes));
+    }
+
+    @Override
+    public void send(String contentType, ByteBufferList bb) {
+        getServer().post(() -> {
+            mContentLength = bb.remaining();
+            mRawHeaders.set("Content-Length", Long.toString(mContentLength));
+            if (contentType != null)
                 mRawHeaders.set("Content-Type", contentType);
 
-                Util.writeAll(AsyncHttpServerResponseImpl.this, bytes, new CompletedCallback() {
-                    @Override
-                    public void onCompleted(Exception ex) {
-                        onEnd();
-                    }
-                });
-            }
+            Util.writeAll(AsyncHttpServerResponseImpl.this, bb, new CompletedCallback() {
+                @Override
+                public void onCompleted(Exception ex) {
+                    onEnd();
+                }
+            });
         });
     }
 
@@ -383,6 +390,17 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
         end();
     }
 
+    String httpVersion = "HTTP/1.1";
+    @Override
+    public String getHttpVersion() {
+        return httpVersion;
+    }
+
+    @Override
+    public void setHttpVersion(String httpVersion) {
+        this.httpVersion = httpVersion;
+    }
+
     @Override
     public void onCompleted(Exception ex) {
         end();
@@ -420,7 +438,7 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     public String toString() {
         if (mRawHeaders == null)
             return super.toString();
-        String statusLine = String.format(Locale.ENGLISH, "HTTP/1.1 %s %s", code, AsyncHttpServer.getResponseCodeDescription(code));
+        String statusLine = String.format(Locale.ENGLISH, "%s %s %s", httpVersion, code, AsyncHttpServer.getResponseCodeDescription(code));
         return mRawHeaders.toPrefixString(statusLine);
     }
 }
