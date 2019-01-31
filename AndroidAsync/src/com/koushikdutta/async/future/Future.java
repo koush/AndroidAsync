@@ -38,6 +38,7 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
     /**
      * Set a callback to be invoked when this future completes with a failure.
      * The failure can be observered and rethrown, otherwise it is considered handled.
+     * The exception will be nulled for subsequent callbacks in the chain.
      * @param fail
      * @return
      */

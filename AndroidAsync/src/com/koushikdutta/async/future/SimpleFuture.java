@@ -12,8 +12,8 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     private Exception exception;
     private T result;
     boolean silent;
-    FutureCallback<T> callback;
-    FutureCallbackInternal internalCallback;
+    private FutureCallback<T> callback;
+    private FutureCallbackInternal internalCallback;
 
     private interface FutureCallbackInternal<T> {
         void onCompleted(Exception e, T result, FutureCallsite next);
@@ -322,7 +322,7 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     public Future<T> fail(FailCallback fail) {
         return failRecover(e -> {
             fail.fail(e);
-            return this;
+            return new SimpleFuture<>((T)null);
         });
     }
 
