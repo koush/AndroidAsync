@@ -7,9 +7,12 @@ import android.util.Log;
 import android.util.Pair;
 
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.ListenCallback;
 import com.koushikdutta.async.callback.WritableCallback;
+import com.koushikdutta.async.future.Cancellable;
+import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.http.SSLEngineSNIConfigurator;
 import com.koushikdutta.async.util.Allocator;
 import com.koushikdutta.async.util.StreamUtility;
@@ -61,6 +64,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -73,6 +77,9 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     }
 
     static SSLContext defaultSSLContext;
+    static SSLContext trustAllSSLContext;
+    static TrustManager[] trustAllManagers;
+    static HostnameVerifier trustAllVerifier;
 
     AsyncSocket mSocket;
     BufferedDataSink mSink;
@@ -127,6 +134,27 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 ex2.printStackTrace();
             }
         }
+
+
+        try {
+            trustAllSSLContext = SSLContext.getInstance("TLS");
+            trustAllManagers = new TrustManager[] { new X509TrustManager() {
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+
+                public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                }
+
+                public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                }
+            } };
+            trustAllSSLContext.init(null, trustAllManagers, null);
+            trustAllVerifier = (hostname, session) -> true;
+        }
+        catch (Exception ex2) {
+            ex2.printStackTrace();
+        }
     }
 
     public static SSLContext getDefaultSSLContext() {
@@ -155,6 +183,40 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         } catch (SSLException e) {
             wrapper.report(e);
         }
+    }
+
+    public static Cancellable connectSocket(AsyncServer server, String host, int port, ConnectCallback callback) {
+        return connectSocket(server, host, port, false, callback);
+    }
+    public static Cancellable connectSocket(AsyncServer server, String host, int port, boolean trustAllCerts, ConnectCallback callback) {
+        SimpleCancellable cancellable = new SimpleCancellable();
+        Cancellable connect = server.connectSocket(host, port, (ex, netSocket) -> {
+            if (ex != null) {
+                if (cancellable.setComplete())
+                    callback.onConnectCompleted(ex, null);
+                return;
+            }
+
+            handshake(netSocket, host, port,
+                    (trustAllCerts ? trustAllSSLContext : defaultSSLContext).createSSLEngine(host, port),
+                    trustAllCerts ? trustAllManagers : null,
+                    trustAllCerts ? trustAllVerifier : null,
+                    true, (e, socket) -> {
+                if (!cancellable.setComplete()) {
+                    if (socket != null)
+                        socket.close();
+                    return;
+                }
+
+                if (e != null)
+                    callback.onConnectCompleted(e, null);
+                else
+                    callback.onConnectCompleted(null, socket);
+            });
+        });
+
+        cancellable.setParent(connect);
+        return cancellable;
     }
 
     boolean mEnded;
