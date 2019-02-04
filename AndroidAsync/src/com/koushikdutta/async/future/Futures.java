@@ -2,12 +2,19 @@ package com.koushikdutta.async.future;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 public class Futures {
-    public static <T> Future<ArrayList<T>> waitAll(final Future<T>... futures) {
+    public static <T> Future<List<T>> waitAll(final List<Future<T>> futures) {
         final ArrayList<T> results = new ArrayList<>();
-        final SimpleFuture<ArrayList<T>> ret = new SimpleFuture<>();
+        final SimpleFuture<List<T>> ret = new SimpleFuture<>();
+
+        if (futures.isEmpty()) {
+            ret.setComplete(results);
+            return ret;
+        }
 
         FutureCallback<T> cb = new FutureCallback<T>() {
             int count = 0;
@@ -16,16 +23,20 @@ public class Futures {
             public void onCompleted(Exception e, T result) {
                 results.add(result);
                 count++;
-                if (count < futures.length)
-                    futures[count].setCallback(this);
+                if (count < futures.size())
+                    futures.get(count).setCallback(this);
                 else
                     ret.setComplete(results);
             }
         };
 
-        futures[0].setCallback(cb);
+        futures.get(0).setCallback(cb);
 
         return ret;
+    }
+
+    public static <T> Future<List<T>> waitAll(final Future<T>... futures) {
+        return waitAll(Arrays.asList(futures));
     }
 
 
