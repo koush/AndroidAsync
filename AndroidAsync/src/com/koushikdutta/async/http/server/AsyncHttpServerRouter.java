@@ -232,8 +232,6 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                 response.end();
                 return;
             }
-            response.getHeaders().set("Content-Length", String.valueOf(pair.available));
-            response.getHeaders().add("Content-Type", getContentType(pair.path));
 
             if (isClientCached(context, request, response, pair.path)) {
                 StreamUtility.closeQuietly(pair.inputStream);
@@ -242,6 +240,9 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                 response.end();
                 return;
             }
+
+            response.getHeaders().set("Content-Length", String.valueOf(pair.available));
+            response.getHeaders().add("Content-Type", getContentType(pair.path));
 
             response.code(200);
             Util.pump(pair.inputStream, pair.available, response, ex -> {
@@ -258,13 +259,16 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                 return;
             }
             StreamUtility.closeQuietly(pair.inputStream);
-            response.getHeaders().set("Content-Length", String.valueOf(pair.available));
-            response.getHeaders().add("Content-Type", getContentType(pair.path));
 
-            if (isClientCached(context, request, response, pair.path))
+            if (isClientCached(context, request, response, pair.path)) {
                 response.code(304);
+            }
             else
+            {
+                response.getHeaders().set("Content-Length", String.valueOf(pair.available));
+                response.getHeaders().add("Content-Type", getContentType(pair.path));
                 response.code(200);
+            }
 
             response.writeHead();
             response.end();
