@@ -3,27 +3,29 @@ package com.koushikdutta.async.http.server;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
-import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Hashtable;
+import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class AsyncHttpServerRouter implements RouteMatcher {
 
@@ -164,49 +166,109 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         return null;
     }
 
+    static String NotFound = "";
+    static Hashtable<String, String> ETags = new Hashtable<>();
+    static Manifest AppManifest;
+    static Exception ManifestFailure;
+    static synchronized void ensureManifest(Context context) {
+        try {
+            if (AppManifest != null || ManifestFailure != null)
+                return;
+
+            ZipFile zip = new ZipFile(context.getPackageResourcePath());
+            ZipEntry entry = zip.getEntry("META-INF/MANIFEST.MF");
+            AppManifest = new Manifest(zip.getInputStream(entry));
+        }
+        catch (Exception e) {
+            ManifestFailure = e;
+        }
+    }
+
+    static boolean isClientCached(Context context, AsyncHttpServerRequest request, AsyncHttpServerResponse response, String assetFileName) {
+        ensureManifest(context);
+        if (AppManifest == null)
+            return false;
+
+
+        try {
+            String etag;
+            if (!ETags.containsKey(assetFileName)) {
+                String digest = AppManifest.getEntries().get("assets/" + assetFileName).getValue("SHA-256-Digest");
+
+                if (TextUtils.isEmpty(digest))
+                    etag = NotFound;
+                else
+                    etag = String.format("\"%s\"", digest);
+
+                ETags.put(assetFileName, etag);
+            }
+            else {
+                etag = ETags.get(assetFileName);
+            }
+
+            if (etag == NotFound)
+                return false;
+
+            response.getHeaders().set("ETag", etag);
+
+            String ifNoneMatch = request.getHeaders().get("If-None-Match");
+
+            return TextUtils.equals(ifNoneMatch, etag);
+        }
+        catch (Exception e) {
+            Log.w(AsyncHttpServerRouter.class.getSimpleName(), "Error getting ETag for apk asset", e);
+            ETags.put(assetFileName, NotFound);
+            return false;
+        }
+    }
+
     public void directory(Context context, String regex, final String assetPath) {
         AssetManager am = context.getAssets();
-        addAction(AsyncHttpGet.METHOD, regex, new HttpServerRequestCallback() {
-            @Override
-            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                String path = request.getMatcher().replaceAll("");
-                Asset pair = getAssetStream(am, assetPath + path);
-                if (pair == null || pair.inputStream == null) {
-                    response.code(404);
-                    response.end();
-                    return;
-                }
-                final InputStream is = pair.inputStream;
-                response.getHeaders().set("Content-Length", String.valueOf(pair.available));
-                response.code(200);
-                response.getHeaders().add("Content-Type", getContentType(pair.path));
-                Util.pump(is, pair.available, response, new CompletedCallback() {
-                    @Override
-                    public void onCompleted(Exception ex) {
-                        response.end();
-                        StreamUtility.closeQuietly(is);
-                    }
-                });
+        addAction(AsyncHttpGet.METHOD, regex, (request, response) -> {
+            String path = request.getMatcher().replaceAll("");
+            Asset pair = getAssetStream(am, assetPath + path);
+            if (pair == null || pair.inputStream == null) {
+                response.code(404);
+                response.end();
+                return;
             }
-        });
-        addAction(AsyncHttpHead.METHOD, regex, new HttpServerRequestCallback() {
-            @Override
-            public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                String path = request.getMatcher().replaceAll("");
-                Asset pair = getAssetStream(am, assetPath + path);
-                if (pair == null || pair.inputStream == null) {
-                    response.code(404);
-                    response.end();
-                    return;
-                }
-                final InputStream is = pair.inputStream;
-                StreamUtility.closeQuietly(is);
-                response.getHeaders().set("Content-Length", String.valueOf(pair.available));
-                response.code(200);
-                response.getHeaders().add("Content-Type", getContentType(pair.path));
+            final InputStream is = pair.inputStream;
+            response.getHeaders().set("Content-Length", String.valueOf(pair.available));
+            response.getHeaders().add("Content-Type", getContentType(pair.path));
+
+            if (isClientCached(context, request, response, pair.path)) {
+                response.code(304);
                 response.writeHead();
                 response.end();
+                return;
             }
+
+            response.code(200);
+            Util.pump(is, pair.available, response, ex -> {
+                response.end();
+                StreamUtility.closeQuietly(is);
+            });
+        });
+        addAction(AsyncHttpHead.METHOD, regex, (request, response) -> {
+            String path = request.getMatcher().replaceAll("");
+            Asset pair = getAssetStream(am, assetPath + path);
+            if (pair == null || pair.inputStream == null) {
+                response.code(404);
+                response.end();
+                return;
+            }
+            final InputStream is = pair.inputStream;
+            StreamUtility.closeQuietly(is);
+            response.getHeaders().set("Content-Length", String.valueOf(pair.available));
+            response.getHeaders().add("Content-Type", getContentType(pair.path));
+
+            if (isClientCached(context, request, response, pair.path))
+                response.code(304);
+            else
+                response.code(200);
+
+            response.writeHead();
+            response.end();
         });
     }
 

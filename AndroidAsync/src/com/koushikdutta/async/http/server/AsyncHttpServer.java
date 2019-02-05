@@ -301,6 +301,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
         mCodes.put(101, "Switching Protocols");
         mCodes.put(301, "Moved Permanently");
         mCodes.put(302, "Found");
+        mCodes.put(304, "Not Modified");
         mCodes.put(404, "Not Found");
     }
     
