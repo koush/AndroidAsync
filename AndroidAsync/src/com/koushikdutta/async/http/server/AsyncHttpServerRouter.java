@@ -236,7 +236,6 @@ public class AsyncHttpServerRouter implements RouteMatcher {
             if (isClientCached(context, request, response, pair.path)) {
                 StreamUtility.closeQuietly(pair.inputStream);
                 response.code(304);
-                response.writeHead();
                 response.end();
                 return;
             }
@@ -270,7 +269,6 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                 response.code(200);
             }
 
-            response.writeHead();
             response.end();
         });
     }
