@@ -232,21 +232,22 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                 response.end();
                 return;
             }
-            final InputStream is = pair.inputStream;
-            response.getHeaders().set("Content-Length", String.valueOf(pair.available));
-            response.getHeaders().add("Content-Type", getContentType(pair.path));
 
             if (isClientCached(context, request, response, pair.path)) {
+                StreamUtility.closeQuietly(pair.inputStream);
                 response.code(304);
                 response.writeHead();
                 response.end();
                 return;
             }
 
+            response.getHeaders().set("Content-Length", String.valueOf(pair.available));
+            response.getHeaders().add("Content-Type", getContentType(pair.path));
+
             response.code(200);
-            Util.pump(is, pair.available, response, ex -> {
+            Util.pump(pair.inputStream, pair.available, response, ex -> {
                 response.end();
-                StreamUtility.closeQuietly(is);
+                StreamUtility.closeQuietly(pair.inputStream);
             });
         });
         addAction(AsyncHttpHead.METHOD, regex, (request, response) -> {
@@ -257,15 +258,17 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                 response.end();
                 return;
             }
-            final InputStream is = pair.inputStream;
-            StreamUtility.closeQuietly(is);
-            response.getHeaders().set("Content-Length", String.valueOf(pair.available));
-            response.getHeaders().add("Content-Type", getContentType(pair.path));
+            StreamUtility.closeQuietly(pair.inputStream);
 
-            if (isClientCached(context, request, response, pair.path))
+            if (isClientCached(context, request, response, pair.path)) {
                 response.code(304);
+            }
             else
+            {
+                response.getHeaders().set("Content-Length", String.valueOf(pair.available));
+                response.getHeaders().add("Content-Type", getContentType(pair.path));
                 response.code(200);
+            }
 
             response.writeHead();
             response.end();
