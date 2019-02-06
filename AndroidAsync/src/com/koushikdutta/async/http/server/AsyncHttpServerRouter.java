@@ -7,6 +7,8 @@ import android.util.Log;
 
 import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
+import com.koushikdutta.async.future.Future;
+import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
@@ -166,58 +168,48 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         return null;
     }
 
-    static String NotFound = "";
-    static Hashtable<String, String> ETags = new Hashtable<>();
-    static Manifest AppManifest;
-    static Exception ManifestFailure;
-    static synchronized void ensureManifest(Context context) {
-        try {
-            if (AppManifest != null || ManifestFailure != null)
-                return;
+    static Hashtable<String, Future<Manifest>> AppManifests = new Hashtable<>();
+    static synchronized Manifest ensureManifest(Context context) {
+        Future<Manifest> future = AppManifests.get(context.getPackageName());
+        if (future != null)
+            return future.tryGet();
 
-            ZipFile zip = new ZipFile(context.getPackageResourcePath());
+        ZipFile zip = null;
+        SimpleFuture<Manifest> result = new SimpleFuture<>();
+        try {
+            zip = new ZipFile(context.getPackageResourcePath());
             ZipEntry entry = zip.getEntry("META-INF/MANIFEST.MF");
-            AppManifest = new Manifest(zip.getInputStream(entry));
+            Manifest manifest = new Manifest(zip.getInputStream(entry));
+            result.setComplete(manifest);
+            return manifest;
         }
         catch (Exception e) {
-            ManifestFailure = e;
+            result.setComplete(e);
+            return null;
+        }
+        finally {
+            StreamUtility.closeQuietly(zip);
+            AppManifests.put(context.getPackageName(), result);
         }
     }
 
     static boolean isClientCached(Context context, AsyncHttpServerRequest request, AsyncHttpServerResponse response, String assetFileName) {
-        ensureManifest(context);
-        if (AppManifest == null)
+        Manifest manifest = ensureManifest(context);
+        if (manifest == null)
             return false;
 
-
         try {
-            String etag;
-            if (!ETags.containsKey(assetFileName)) {
-                String digest = AppManifest.getEntries().get("assets/" + assetFileName).getValue("SHA-256-Digest");
-
-                if (TextUtils.isEmpty(digest))
-                    etag = NotFound;
-                else
-                    etag = String.format("\"%s\"", digest);
-
-                ETags.put(assetFileName, etag);
-            }
-            else {
-                etag = ETags.get(assetFileName);
-            }
-
-            if (etag == NotFound)
+            String digest = manifest.getEntries().get("assets/" + assetFileName).getValue("SHA-256-Digest");
+            if (TextUtils.isEmpty(digest))
                 return false;
 
+            String etag = String.format("\"%s\"", digest);
             response.getHeaders().set("ETag", etag);
-
             String ifNoneMatch = request.getHeaders().get("If-None-Match");
-
             return TextUtils.equals(ifNoneMatch, etag);
         }
         catch (Exception e) {
             Log.w(AsyncHttpServerRouter.class.getSimpleName(), "Error getting ETag for apk asset", e);
-            ETags.put(assetFileName, NotFound);
             return false;
         }
     }
