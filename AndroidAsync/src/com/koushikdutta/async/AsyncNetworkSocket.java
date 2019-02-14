@@ -18,6 +18,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class AsyncNetworkSocket implements AsyncSocket {
+    String charset = null;
+
     AsyncNetworkSocket() {
     }
 
@@ -351,8 +353,12 @@ public class AsyncNetworkSocket implements AsyncSocket {
         return getChannel().getSocket();
     }
 
+    public void setCharset(String charset) {
+        this.charset = charset;
+    }
+
     @Override
     public String charset() {
-        return null;
+        return charset;
     }
 }

@@ -1,5 +1,6 @@
 package com.koushikdutta.async.http.server;
 
+import com.koushikdutta.async.AsyncNetworkSocket;
 import com.koushikdutta.async.AsyncSocket;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
@@ -13,6 +14,7 @@ import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -72,6 +74,8 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                 mRawHeaders.addLine(s);
                 return;
             }
+
+            ((AsyncNetworkSocket) mSocket).setCharset(charset());
 
             DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, Protocol.HTTP_1_1, mRawHeaders, true);
             mBody = HttpUtil.getBody(emitter, mReporter, mRawHeaders);
@@ -164,6 +168,16 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
         if (bodyObject instanceof Multimap) {
             Multimap map = (Multimap)bodyObject;
             return map.getString(name);
+        }
+        return null;
+    }
+
+    @Override
+    public String charset() {
+        Multimap mm = Multimap.parseSemicolonDelimited(mRawHeaders.get("Content-Type"));
+        String cs;
+        if (mm != null && null != (cs = mm.getString("charset")) && Charset.isSupported(cs)) {
+            return cs;
         }
         return null;
     }
