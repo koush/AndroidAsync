@@ -225,6 +225,11 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                         return new Multimap();
                     return Multimap.parseQuery(parts[1]);
                 }
+
+                @Override
+                public String getUrl() {
+                    return fullPath;
+                }
             };
             req.setSocket(socket);
             socket.resume();

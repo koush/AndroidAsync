@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.Locale;
 
 public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
@@ -211,6 +212,11 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void send(final String contentType, final byte[] bytes) {
         send(contentType, new ByteBufferList(bytes));
+    }
+
+    @Override
+    public void send(String contentType, ByteBuffer bb) {
+        send(contentType, new ByteBufferList(bb));
     }
 
     @Override

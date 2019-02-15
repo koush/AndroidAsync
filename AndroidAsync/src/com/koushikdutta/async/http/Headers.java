@@ -87,6 +87,13 @@ public class Headers {
         return this;
     }
 
+    public Headers addAllMap(Map<String, String> m) {
+        for (String key: m.keySet()) {
+            add(key, m.get(key));
+        }
+        return this;
+    }
+
     public Headers addAll(Headers headers) {
         // safe to addall since this is another Headers object
         map.putAll(headers.map);

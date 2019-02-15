@@ -7,9 +7,11 @@ import com.koushikdutta.async.util.TaggedList;
 
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by koush on 5/27/13.
@@ -146,5 +148,13 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
             }
         }
         return ret.iterator();
+    }
+
+    public Map<String, String> toSingleMap() {
+        HashMap<String, String> ret = new HashMap<>();
+        for (String key: keySet()) {
+            ret.put(key, getString(key));
+        }
+        return ret;
     }
 }

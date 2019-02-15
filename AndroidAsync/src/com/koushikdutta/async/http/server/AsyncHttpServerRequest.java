@@ -18,6 +18,7 @@ public interface AsyncHttpServerRequest extends DataEmitter {
     String getPath();
     Multimap getQuery();
     String getMethod();
+    String getUrl();
 
     String get(String name);
     Map<String, Object> getState();

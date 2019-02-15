@@ -12,11 +12,13 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 
 public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     void end();
     void send(String contentType, byte[] bytes);
     void send(String contentType, ByteBufferList bb);
+    void send(String contentType, ByteBuffer bb);
     void send(String contentType, String string);
     void send(String string);
     void send(JSONObject json);
