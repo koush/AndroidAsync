@@ -361,11 +361,14 @@ public class Converter<R> {
 
         final TypeConverter<String, JSONObject> JSONObjectToString = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::toString);
 
+        final TypeConverter<String, byte[]> ByteArrayToString = (from, fromMime) -> new SimpleFuture<>(new String(from));
+
         Converters.addConverter(ByteBuffer.class, null, ByteBufferList.class, null, ByteBufferToByteBufferList);
         Converters.addConverter(String.class, null, byte[].class, null, StringToByteArray);
         Converters.addConverter(byte[].class, null, ByteBufferList.class, null, ByteArrayToByteBufferList);
         Converters.addConverter(byte[].class, null, ByteBuffer.class, null, ByteArrayToByteBuffer);
         Converters.addConverter(String.class, "application/json", JSONObject.class, null, StringToJSONObject);
         Converters.addConverter(JSONObject.class, null, String.class, "application/json", JSONObjectToString);
+        Converters.addConverter(byte[].class, "text/plain", String.class, "text/plain", ByteArrayToString);
     }
 }
