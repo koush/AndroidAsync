@@ -9,10 +9,13 @@ import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
+import com.koushikdutta.async.future.ThenCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
+import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.WebSocketImpl;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.File;
@@ -35,6 +38,7 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         String method;
         Pattern regex;
         HttpServerRequestCallback callback;
+        AsyncHttpRequestBodyProvider bodyCallback;
     }
 
     final ArrayList<RouteInfo> routes = new ArrayList<>();
@@ -49,16 +53,22 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         }
     }
 
-    public void addAction(String action, String regex, HttpServerRequestCallback callback) {
+    public void addAction(String action, String regex, HttpServerRequestCallback callback, AsyncHttpRequestBodyProvider bodyCallback) {
         RouteInfo p = new RouteInfo();
         p.regex = Pattern.compile("^" + regex);
         p.callback = callback;
         p.method = action;
+        p.bodyCallback = bodyCallback;
 
         synchronized (routes) {
             routes.add(p);
         }
     }
+
+    public void addAction(String action, String regex, HttpServerRequestCallback callback) {
+        addAction(action, regex, callback, null);
+    }
+
     public void websocket(String regex, final AsyncHttpServer.WebSocketRequestCallback callback) {
         websocket(regex, null, callback);
     }
@@ -335,13 +345,14 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         public final String path;
         public final Matcher matcher;
         public final HttpServerRequestCallback callback;
+        public final AsyncHttpRequestBodyProvider bodyCallback;
 
-
-        private RouteMatch(String method, String path, Matcher matcher, HttpServerRequestCallback callback) {
+        private RouteMatch(String method, String path, Matcher matcher, HttpServerRequestCallback callback, AsyncHttpRequestBodyProvider bodyCallback) {
             this.method = method;
             this.path = path;
             this.matcher = matcher;
             this.callback = callback;
+            this.bodyCallback = bodyCallback;
         }
     }
 
@@ -396,7 +407,7 @@ public class AsyncHttpServerRouter implements RouteMatcher {
                         String subPath = m.group(1);
                         return ((RouteMatcher)p.callback).route(method, subPath);
                     }
-                    return new RouteMatch(method, path, m, p.callback);
+                    return new RouteMatch(method, path, m, p.callback, p.bodyCallback);
                 }
             }
         }

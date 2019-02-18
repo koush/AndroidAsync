@@ -99,6 +99,25 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                 }
 
                 @Override
+                protected AsyncHttpRequestBody onBody(Headers headers) {
+                    String statusLine = getStatusLine();
+                    String[] parts = statusLine.split(" ");
+                    fullPath = parts[1];
+                    path = URLDecoder.decode(fullPath.split("\\?")[0]);
+                    method = parts[0];
+                    RouteMatch route = route(method, path);
+                    if (route == null)
+                        return null;
+
+                    matcher = route.matcher;
+                    requestCallback = route.callback;
+
+                    if (route.bodyCallback == null)
+                        return null;
+                    return route.bodyCallback.getBody(headers);
+                }
+
+                @Override
                 protected AsyncHttpRequestBody onUnknownBody(Headers headers) {
                     return AsyncHttpServer.this.onUnknownBody(headers);
                 }
@@ -128,16 +147,6 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                     }
 //                    System.out.println(headers.toHeaderString());
                     
-                    String statusLine = getStatusLine();
-                    String[] parts = statusLine.split(" ");
-                    fullPath = parts[1];
-                    path = URLDecoder.decode(fullPath.split("\\?")[0]);
-                    method = parts[0];
-                    RouteMatch route = route(method, path);
-                    if (route != null) {
-                        matcher = route.matcher;
-                        requestCallback = route.callback;
-                    }
                     res = new AsyncHttpServerResponseImpl(socket, this) {
                         @Override
                         protected void report(Exception e) {
@@ -158,7 +167,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                             handleOnCompleted();
                         }
                     };
-                    
+
                     boolean handled = AsyncHttpServer.this.onRequest(this, res);
                     if (handled)
                         return;

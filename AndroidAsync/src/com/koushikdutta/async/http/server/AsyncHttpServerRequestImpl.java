@@ -55,6 +55,10 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
     protected AsyncHttpRequestBody onUnknownBody(Headers headers) {
         return null;
     }
+    protected AsyncHttpRequestBody onBody(Headers headers) {
+        return null;
+    }
+
     
     StringCallback mHeaderCallback = new StringCallback() {
         @Override
@@ -74,11 +78,14 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
             }
 
             DataEmitter emitter = HttpUtil.getBodyDecoder(mSocket, Protocol.HTTP_1_1, mRawHeaders, true);
-            mBody = HttpUtil.getBody(emitter, mReporter, mRawHeaders);
+            mBody = onBody(mRawHeaders);
             if (mBody == null) {
-                mBody = onUnknownBody(mRawHeaders);
-                if (mBody == null)
-                    mBody = new UnknownRequestBody(mRawHeaders.get("Content-Type"));
+                mBody = HttpUtil.getBody(emitter, mReporter, mRawHeaders);
+                if (mBody == null) {
+                    mBody = onUnknownBody(mRawHeaders);
+                    if (mBody == null)
+                        mBody = new UnknownRequestBody(mRawHeaders.get("Content-Type"));
+                }
             }
             mBody.parse(emitter, mReporter);
             onHeadersReceived();
