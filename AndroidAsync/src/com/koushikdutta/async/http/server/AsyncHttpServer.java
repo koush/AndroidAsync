@@ -79,6 +79,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                 boolean requestComplete;
                 AsyncHttpServerResponseImpl res;
                 boolean hasContinued;
+                boolean handled;
 
                 final Runnable onFinally = new Runnable() {
                     @Override
@@ -168,7 +169,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                         }
                     };
 
-                    boolean handled = AsyncHttpServer.this.onRequest(this, res);
+                    handled = AsyncHttpServer.this.onRequest(this, res);
                     if (handled)
                         return;
 
@@ -206,7 +207,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
 
                     handleOnCompleted();
 
-                    if (getBody().readFullyOnRequest()) {
+                    if (getBody().readFullyOnRequest() && !handled) {
                         onRequest();
                     }
                 }
