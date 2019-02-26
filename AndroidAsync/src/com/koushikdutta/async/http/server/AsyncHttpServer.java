@@ -317,7 +317,9 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
         mCodes.put(301, "Moved Permanently");
         mCodes.put(302, "Found");
         mCodes.put(304, "Not Modified");
+        mCodes.put(400, "Bad Request");
         mCodes.put(404, "Not Found");
+        mCodes.put(500, "Internal Server Error");
     }
     
     public static String getResponseCodeDescription(int code) {

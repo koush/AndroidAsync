@@ -14,6 +14,7 @@ import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
 import com.koushikdutta.async.http.Headers;
+import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocketImpl;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.util.StreamUtility;
@@ -73,34 +74,38 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         websocket(regex, null, callback);
     }
 
-    public void websocket(String regex, final String protocol, final AsyncHttpServer.WebSocketRequestCallback callback) {
-        get(regex, new HttpServerRequestCallback() {
-            @Override
-            public void onRequest(final AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
-                boolean hasUpgrade = false;
-                String connection = request.getHeaders().get("Connection");
-                if (connection != null) {
-                    String[] connections = connection.split(",");
-                    for (String c: connections) {
-                        if ("Upgrade".equalsIgnoreCase(c.trim())) {
-                            hasUpgrade = true;
-                            break;
-                        }
-                    }
+    protected WebSocket checkWebSocketUpgrade(final String protocol, AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+        boolean hasUpgrade = false;
+        String connection = request.getHeaders().get("Connection");
+        if (connection != null) {
+            String[] connections = connection.split(",");
+            for (String c: connections) {
+                if ("Upgrade".equalsIgnoreCase(c.trim())) {
+                    hasUpgrade = true;
+                    break;
                 }
-                if (!"websocket".equalsIgnoreCase(request.getHeaders().get("Upgrade")) || !hasUpgrade) {
-                    response.code(404);
-                    response.end();
-                    return;
-                }
-                String peerProtocol = request.getHeaders().get("Sec-WebSocket-Protocol");
-                if (!TextUtils.equals(protocol, peerProtocol)) {
-                    response.code(404);
-                    response.end();
-                    return;
-                }
-                callback.onConnected(new WebSocketImpl(request, response), request);
             }
+        }
+        if (!"websocket".equalsIgnoreCase(request.getHeaders().get("Upgrade")) || !hasUpgrade) {
+            return null;
+        }
+        String peerProtocol = request.getHeaders().get("Sec-WebSocket-Protocol");
+        if (!TextUtils.equals(protocol, peerProtocol)) {
+            return null;
+        }
+        return new WebSocketImpl(request, response);
+    }
+
+    public void websocket(String regex, final String protocol, final AsyncHttpServer.WebSocketRequestCallback callback) {
+        get(regex, (request, response) -> {
+            WebSocket webSocket = checkWebSocketUpgrade(protocol, request, response);
+            if (webSocket == null) {
+                response.code(404);
+                response.end();
+                return;
+            }
+
+            callback.onConnected(webSocket, request);
         });
     }
 
