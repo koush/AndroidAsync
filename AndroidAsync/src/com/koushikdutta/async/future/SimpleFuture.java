@@ -268,6 +268,26 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
         return callback;
     }
 
+    @Override
+    public Future<T> done(DoneCallback<T> done) {
+        final SimpleFuture<T> ret = new SimpleFuture<>();
+        ret.setParent(this);
+        setCallbackInternal(null, null, (e, result, next) -> {
+            if (e == null) {
+                try {
+                    done.done(e, result);
+                }
+                catch (Exception callbackException) {
+                    e = callbackException;
+                    // note that the result is not nulled out. this is useful for managed resources, like sockets.
+                    // for example: a successful socket connection was made, but the request can be cancelled.
+                    // so, returning an error along with a socket object allows for failure cleanup.
+                }
+            }
+            ret.setComplete(e, result, next);
+        });
+        return ret;
+    }
 
     @Override
     public Future<T> success(SuccessCallback<T> callback) {

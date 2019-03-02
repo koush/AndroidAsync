@@ -1,6 +1,8 @@
 package com.koushikdutta.async.future;
 
 
+import com.koushikdutta.async.callback.CompletedCallback;
+
 public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
     /**
      * Set a callback to be invoked when this Future completes.
@@ -8,6 +10,16 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
      * @return
      */
     void setCallback(FutureCallback<T> callback);
+
+    /**
+     * Set a callback to be invoked when the Future completes
+     * with an error or a result.
+     * The existing error or result will be passed down the chain, or a new error
+     * may be thrown.
+     * @param done
+     * @return
+     */
+    Future<T> done(DoneCallback<T> done);
 
     /**
      * Set a callback to be invoked when this Future completes successfully.
