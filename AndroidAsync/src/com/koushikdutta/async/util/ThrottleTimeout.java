@@ -17,6 +17,20 @@ public class ThrottleTimeout<T> {
     ValueCallback<List<T>> callback;
     long delay;
     ArrayList<T> values = new ArrayList<>();
+    ThrottleMode throttleMode = ThrottleMode.Collect;
+
+    public enum ThrottleMode {
+        /**
+         * The timeout will keep resetting until it expires, at which point all
+         * the collected values will be invoked on the callback.
+         */
+        Collect,
+        /**
+         * The callback will be invoked immediately with the first, but future values will be
+         * metered until it expires.
+         */
+        Meter,
+    }
 
     private interface Handlerish {
         void post(Runnable r);
@@ -71,23 +85,43 @@ public class ThrottleTimeout<T> {
         };
     }
 
+    private void runCallback() {
+        cancellable = null;
+        ArrayList<T> v = new ArrayList<>(values);
+        values.clear();
+        callback.onResult(v);
+    }
+
     Object cancellable;
     public synchronized void postThrottled(final T value) {
-        handlerish.post(new Runnable() {
-            @Override
-            public void run() {
-                values.add(value);
+        handlerish.post(() -> {
+            values.add(value);
 
+            if (throttleMode == ThrottleMode.Collect) {
+                // cancel the existing, schedule a new one, and wait.
                 handlerish.removeAllCallbacks(cancellable);
-                cancellable = handlerish.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        ArrayList<T> v = new ArrayList<T>(values);
-                        values.clear();
-                        callback.onResult(v);
-                    }
-                }, delay);
+                cancellable = handlerish.postDelayed(this::runCallback, delay);
+            }
+            else {
+                // nothing is pending, so this can be fired off immediately
+                if (cancellable == null) {
+                    runCallback();
+                }
+                else {
+                    handlerish.removeAllCallbacks(cancellable);
+                }
+
+                // meter future invocations
+                cancellable = handlerish.postDelayed(this::runCallback, delay);
             }
         });
+    }
+
+    public void setThrottleMode(ThrottleMode throttleMode) {
+        this.throttleMode = throttleMode;
+    }
+
+    public void setDelay(long delay) {
+        this.delay = delay;
     }
 }
