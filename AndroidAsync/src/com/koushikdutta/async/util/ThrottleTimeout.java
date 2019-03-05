@@ -40,6 +40,10 @@ public class ThrottleTimeout<T> extends TimeoutBase {
         this.callback = callback;
     }
 
+    public void setCallback(ValueCallback<List<T>> callback) {
+        this.callback = callback;
+    }
+
     private void runCallback() {
         cancellable = null;
         ArrayList<T> v = new ArrayList<>(values);
@@ -61,13 +65,10 @@ public class ThrottleTimeout<T> extends TimeoutBase {
                 // nothing is pending, so this can be fired off immediately
                 if (cancellable == null) {
                     runCallback();
-                }
-                else {
-                    handlerish.removeAllCallbacks(cancellable);
-                }
 
-                // meter future invocations
-                cancellable = handlerish.postDelayed(this::runCallback, delay);
+                    // meter future invocations
+                    cancellable = handlerish.postDelayed(this::runCallback, delay);
+                }
             }
         });
     }
