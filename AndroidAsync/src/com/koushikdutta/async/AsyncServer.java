@@ -2,6 +2,7 @@ package com.koushikdutta.async;
 
 import android.os.Build;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.koushikdutta.async.callback.CompletedCallback;
@@ -12,6 +13,7 @@ import com.koushikdutta.async.callback.ValueFunction;
 import com.koushikdutta.async.future.Cancellable;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.util.StreamUtility;
 
@@ -132,10 +134,21 @@ public class AsyncServer {
         });
     }
 
+    boolean killed;
+    public void kill() {
+        synchronized (this) {
+            killed = true;
+        }
+        stop(false);
+    }
+
     int postCounter = 0;
     public Cancellable postDelayed(Runnable runnable, long delay) {
         Scheduled s;
         synchronized (this) {
+            if (killed)
+                return SimpleCancellable.CANCELLED;
+
             // Calculate when to run this queue item:
             // If there is a delay (non-zero), add it to the current time
             // When delay is zero, ensure that this follows all other
@@ -146,7 +159,7 @@ public class AsyncServer {
             // behind all other immediately run queue items.
             long time;
             if (delay > 0)
-                time = System.currentTimeMillis() + delay;
+                time = SystemClock.elapsedRealtime() + delay;
             else if (delay == 0)
                 time = postCounter++;
             else if (mQueue.size() > 0)
@@ -187,11 +200,16 @@ public class AsyncServer {
             return;
         }
 
-        final Semaphore semaphore = new Semaphore(0);
-        post(() -> {
-            runnable.run();
-            semaphore.release();
-        });
+        final Semaphore semaphore;
+        synchronized (this) {
+            if (killed)
+                return;
+            semaphore = new Semaphore(0);
+            post(() -> {
+                runnable.run();
+                semaphore.release();
+            });
+        }
         try {
             semaphore.acquire();
         }
@@ -256,6 +274,10 @@ public class AsyncServer {
 
 
     public void stop() {
+        stop(true);
+    }
+
+    public void stop(boolean wait) {
 //        Log.i(LOGTAG, "****AsyncServer is shutting down.****");
         final SelectorWrapper currentSelector;
         final Semaphore semaphore;
@@ -280,12 +302,12 @@ public class AsyncServer {
             // force any existing connections to die
             shutdownKeys(currentSelector);
 
-            mQueue = new PriorityQueue<Scheduled>(1, Scheduler.INSTANCE);
+            mQueue = new PriorityQueue<>(1, Scheduler.INSTANCE);
             mSelector = null;
             mAffinity = null;
         }
         try {
-            if (!isAffinityThread)
+            if (!isAffinityThread && wait)
                 semaphore.acquire();
         }
         catch (Exception e) {
@@ -744,7 +766,7 @@ public class AsyncServer {
             Scheduled run = null;
 
             synchronized (server) {
-                long now = System.currentTimeMillis();
+                long now = SystemClock.elapsedRealtime();
 
                 if (queue.size() > 0) {
                     Scheduled s = queue.remove();

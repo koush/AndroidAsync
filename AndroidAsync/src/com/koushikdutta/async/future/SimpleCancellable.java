@@ -77,6 +77,12 @@ public class SimpleCancellable implements DependentCancellable {
         }
     };
 
+    public static final Cancellable CANCELLED = new SimpleCancellable() {
+        {
+            cancel();
+        }
+    };
+
     public Cancellable reset() {
         cancel();
         complete = false;

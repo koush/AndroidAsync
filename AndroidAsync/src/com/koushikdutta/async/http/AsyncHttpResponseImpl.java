@@ -12,7 +12,7 @@ import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
 import java.nio.charset.Charset;
 
-abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements AsyncSocket, AsyncHttpResponse, AsyncHttpClientMiddleware.ResponseHead {
+abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements DataEmitter, AsyncHttpResponse, AsyncHttpClientMiddleware.ResponseHead {
     public AsyncSocket socket() {
         return mSocket;
     }
@@ -33,7 +33,7 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
     protected void onHeadersSent() {
         AsyncHttpRequestBody requestBody = mRequest.getBody();
         if (requestBody != null) {
-            requestBody.write(mRequest, AsyncHttpResponseImpl.this, new CompletedCallback() {
+            requestBody.write(mRequest, mSink, new CompletedCallback() {
                 @Override
                 public void onCompleted(Exception ex) {
                     onRequestCompleted(ex);
@@ -192,43 +192,6 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Asyn
         return this;
     }
 
-    @Override
-    public void write(ByteBufferList bb) {
-        assertContent();
-        mSink.write(bb);
-    }
-
-    @Override
-    public void end() {
-        throw new AssertionError("end called?");
-    }
-
-    @Override
-    public void setWriteableCallback(WritableCallback handler) {
-        mSink.setWriteableCallback(handler);
-    }
-
-    @Override
-    public WritableCallback getWriteableCallback() {
-        return mSink.getWriteableCallback();
-    }
-
-
-    @Override
-    public boolean isOpen() {
-        return mSink.isOpen();
-    }
-
-    @Override
-    public void setClosedCallback(CompletedCallback handler) {
-        mSink.setClosedCallback(handler);
-    }
-
-    @Override
-    public CompletedCallback getClosedCallback() {
-        return mSink.getClosedCallback();
-    }
-    
     @Override
     public AsyncServer getServer() {
         return mSocket.getServer();
