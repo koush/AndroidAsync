@@ -4,7 +4,7 @@ AndroidAsync is a low level network protocol library. If you are looking for an 
 http request library, check out [Ion](https://github.com/koush/ion) (it is built on top of AndroidAsync). The typical Android
 app developer would probably be more interested in Ion.
 
-But if you're looking for a raw Socket, HTTP client/server, WebSocket, and Socket.IO library for Android, AndroidAsync
+But if you're looking for a raw Socket, HTTP(s) client/server, and WebSocket library for Android, AndroidAsync
 is it.
 
 #### Features
