@@ -1,7 +1,5 @@
 package com.koushikdutta.async.http;
 
-import android.text.TextUtils;
-
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.FilteredDataEmitter;
@@ -93,14 +91,12 @@ public class HttpUtil {
             chunker.setDataEmitter(emitter);
             emitter = chunker;
         }
-        else {
-            if ((server || protocol == Protocol.HTTP_1_1) && !"close".equalsIgnoreCase(headers.get("Connection"))) {
-                // if this is the server, and the client has not indicated a request body, the client is done
-                EndEmitter ender = EndEmitter.create(emitter.getServer(), null);
-                ender.setDataEmitter(emitter);
-                emitter = ender;
-                return emitter;
-            }
+        else if (server) {
+            // if this is the server, and the client has not indicated a request body, the client is done
+            EndEmitter ender = EndEmitter.create(emitter.getServer(), null);
+            ender.setDataEmitter(emitter);
+            emitter = ender;
+            return emitter;
         }
 
         if ("gzip".equals(headers.get("Content-Encoding"))) {
