@@ -114,6 +114,9 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
                         if (!data.request.hasBody()) {
                             emitter = HttpUtil.EndEmitter.create(socket.getServer(), null);
                         }
+                        else if (responseIsEmpty(data.response.code())) {
+                            emitter = HttpUtil.EndEmitter.create(socket.getServer(), null);
+                        }
                         else {
                             emitter = HttpUtil.getBodyDecoder(socket, Protocol.get(protocol), mRawHeaders, false);
                         }
@@ -130,6 +133,10 @@ public class HttpTransportMiddleware extends SimpleMiddleware {
         data.socket.setDataCallback(liner);
         liner.setLineCallback(headerCallback);
         return true;
+    }
+
+    static boolean responseIsEmpty(int code) {
+        return (code >= 100 && code <= 199) || code == 204 || code == 304;
     }
 
     @Override

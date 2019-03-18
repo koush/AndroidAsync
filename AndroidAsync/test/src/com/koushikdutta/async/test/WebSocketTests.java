@@ -13,6 +13,8 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 
 import junit.framework.TestCase;
 
+import org.junit.Test;
+
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -46,7 +48,8 @@ public class WebSocketTests extends TestCase {
         });
     }
     
-    private static final long TIMEOUT = 10000L; 
+    private static final long TIMEOUT = 60000L;
+    @Test
     public void testWebSocket() throws Exception {
         final Semaphore semaphore = new Semaphore(0);
 

@@ -1,5 +1,7 @@
 package com.koushikdutta.async.test;
 
+import android.content.res.AssetManager;
+import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
@@ -10,6 +12,7 @@ import com.koushikdutta.async.FilteredDataEmitter;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.AsyncHttpGet;
+import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.HttpDate;
 import com.koushikdutta.async.http.cache.ResponseCacheMiddleware;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
@@ -17,6 +20,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
+import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
@@ -65,6 +69,31 @@ public class CacheTests {
         finally {
             AsyncServer.getDefault().stop();
             client.getMiddleware().remove(cache);
+        }
+    }
+
+    final static String dataNameAndHash = "6691924d7d24237d3b3679310157d640";
+    @Test
+    public void test304() throws Exception {
+        try {
+            AsyncHttpServer httpServer = new AsyncHttpServer();
+            AsyncServerSocket socket = httpServer.listen(AsyncServer.getDefault(), 0);
+            int port = socket.getLocalPort();
+
+            AssetManager am = InstrumentationRegistry.getTargetContext().getAssets();
+            httpServer.directory(InstrumentationRegistry.getTargetContext(), "/.*?", "");
+
+            AsyncHttpClient client = new AsyncHttpClient(AsyncServer.getDefault());
+            ByteBufferList bb = client.executeByteBufferList(new AsyncHttpGet("http://localhost:" + port + "/" + dataNameAndHash), new AsyncHttpClient.DownloadCallback() {
+                @Override
+                public void onCompleted(Exception e, AsyncHttpResponse source, ByteBufferList result) {
+                    System.out.println(source.headers());
+                }
+            })
+                    .get();
+        }
+        finally {
+            AsyncServer.getDefault().stop();
         }
     }
 
