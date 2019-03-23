@@ -349,23 +349,25 @@ public class Converter<R> {
     public final static ConverterEntries Converters = new ConverterEntries();
 
     static {
+        // ensure byte buffer operations are idempotent. do deep copies.
+        final TypeConverter<ByteBufferList, byte[]> ByteArrayToByteBufferList = (from, fromMime) ->
+                new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(ByteBuffer.wrap(from))));
+        final TypeConverter<String, ByteBufferList> ByteBufferListToByteArray = (from, fromMime) ->
+                new SimpleFuture<>(from.peekString());
+        final TypeConverter<ByteBuffer, byte[]> ByteArrayToByteBuffer = (from, fromMime) ->
+                new SimpleFuture<>(ByteBufferList.deepCopy(ByteBuffer.wrap(from)));
+        final TypeConverter<ByteBufferList, ByteBuffer> ByteBufferToByteBufferList = (from, fromMime) ->
+                new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(from)));
+
         final TypeConverter<byte[], String> StringToByteArray = (from, fromMime) -> new SimpleFuture<>(from.getBytes());
-
-        final TypeConverter<ByteBufferList, byte[]> ByteArrayToByteBufferList = (from, fromMime) -> new SimpleFuture<>(new ByteBufferList(from));
-
-        final TypeConverter<ByteBuffer, byte[]> ByteArrayToByteBuffer = (from, fromMime) -> new SimpleFuture<>(ByteBufferList.deepCopy(ByteBuffer.wrap(from)));
-
-        final TypeConverter<ByteBufferList, ByteBuffer> ByteBufferToByteBufferList = (from, fromMime) -> new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(from)));
-
         final TypeConverter<JSONObject, String> StringToJSONObject = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::new);
-
         final TypeConverter<String, JSONObject> JSONObjectToString = (from, fromMime) -> new SimpleFuture<>(from).thenConvert(JSONObject::toString);
-
         final TypeConverter<String, byte[]> ByteArrayToString = (from, fromMime) -> new SimpleFuture<>(new String(from));
 
         Converters.addConverter(ByteBuffer.class, null, ByteBufferList.class, null, ByteBufferToByteBufferList);
         Converters.addConverter(String.class, null, byte[].class, null, StringToByteArray);
         Converters.addConverter(byte[].class, null, ByteBufferList.class, null, ByteArrayToByteBufferList);
+        Converters.addConverter(ByteBufferList.class, null, String.class, null, ByteBufferListToByteArray);
         Converters.addConverter(byte[].class, null, ByteBuffer.class, null, ByteArrayToByteBuffer);
         Converters.addConverter(String.class, "application/json", JSONObject.class, null, StringToJSONObject);
         Converters.addConverter(JSONObject.class, null, String.class, "application/json", JSONObjectToString);
