@@ -16,6 +16,7 @@ import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.HttpUtil;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.filter.ChunkedOutputFilter;
+import com.koushikdutta.async.parser.AsyncParser;
 import com.koushikdutta.async.util.StreamUtility;
 
 import org.json.JSONArray;
@@ -212,6 +213,12 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void send(final String contentType, final byte[] bytes) {
         send(contentType, new ByteBufferList(bytes));
+    }
+
+    @Override
+    public <T> void sendBody(AsyncParser<T> body, T value) {
+        mRawHeaders.set("Content-Type", body.getMime());
+        body.write(this, value, ex -> onEnd());
     }
 
     @Override

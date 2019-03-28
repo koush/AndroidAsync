@@ -698,19 +698,16 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     public static AsyncSSLServerSocket listenSecure(final Context context, final AsyncServer server, final String subjectName, final InetAddress host, final int port, final ListenCallback handler) {
         final ObjectHolder<AsyncSSLServerSocket> holder = new ObjectHolder<>();
-        server.run(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Pair<KeyPair, Certificate> keyCert = selfSignCertificate(context, subjectName);
-                    KeyPair pair = keyCert.first;
-                    Certificate cert = keyCert.second;
+        server.run(() -> {
+            try {
+                Pair<KeyPair, Certificate> keyCert = selfSignCertificate(context, subjectName);
+                KeyPair pair = keyCert.first;
+                Certificate cert = keyCert.second;
 
-                    holder.held = listenSecure(server, pair.getPrivate(), cert, host, port, handler);
-                }
-                catch (Exception e) {
-                    handler.onCompleted(e);
-                }
+                holder.held = listenSecure(server, pair.getPrivate(), cert, host, port, handler);
+            }
+            catch (Exception e) {
+                handler.onCompleted(e);
             }
         });
         return holder.held;
@@ -727,20 +724,17 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     public static AsyncSSLServerSocket listenSecure(final AsyncServer server, final byte[] keyDer, final byte[] certDer, final InetAddress host, final int port, final ListenCallback handler) {
         final ObjectHolder<AsyncSSLServerSocket> holder = new ObjectHolder<>();
-        server.run(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    PKCS8EncodedKeySpec key = new PKCS8EncodedKeySpec(keyDer);
-                    Certificate cert = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(certDer));
+        server.run(() -> {
+            try {
+                PKCS8EncodedKeySpec key = new PKCS8EncodedKeySpec(keyDer);
+                Certificate cert = CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(certDer));
 
-                    PrivateKey pk = KeyFactory.getInstance("RSA").generatePrivate(key);
+                PrivateKey pk = KeyFactory.getInstance("RSA").generatePrivate(key);
 
-                    holder.held = listenSecure(server, pk, cert, host, port, handler);
-                }
-                catch (Exception e) {
-                    handler.onCompleted(e);
-                }
+                holder.held = listenSecure(server, pk, cert, host, port, handler);
+            }
+            catch (Exception e) {
+                handler.onCompleted(e);
             }
         });
         return holder.held;
@@ -748,50 +742,47 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
 
     public static AsyncSSLServerSocket listenSecure(final AsyncServer server, final PrivateKey pk, final Certificate cert, final InetAddress host, final int port, final ListenCallback handler) {
         final ObjectHolder<AsyncSSLServerSocket> holder = new ObjectHolder<>();
-        server.run(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-                    ks.load(null);
+        server.run(() -> {
+            try {
+                KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+                ks.load(null);
 
-                    ks.setKeyEntry("key", pk, null, new Certificate[] { cert });
+                ks.setKeyEntry("key", pk, null, new Certificate[] { cert });
 
-                    KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
-                    kmf.init(ks, "".toCharArray());
+                KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
+                kmf.init(ks, "".toCharArray());
 
-                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                    tmf.init(ks);
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                tmf.init(ks);
 
-                    SSLContext sslContext = SSLContext.getInstance("TLS");
-                    sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
-                    final AsyncServerSocket socket = listenSecure(server, sslContext, host, port, handler);
-                    holder.held = new AsyncSSLServerSocket() {
-                        @Override
-                        public PrivateKey getPrivateKey() {
-                            return pk;
-                        }
+                final AsyncServerSocket socket = listenSecure(server, sslContext, host, port, handler);
+                holder.held = new AsyncSSLServerSocket() {
+                    @Override
+                    public PrivateKey getPrivateKey() {
+                        return pk;
+                    }
 
-                        @Override
-                        public Certificate getCertificate() {
-                            return cert;
-                        }
+                    @Override
+                    public Certificate getCertificate() {
+                        return cert;
+                    }
 
-                        @Override
-                        public void stop() {
-                            socket.stop();
-                        }
+                    @Override
+                    public void stop() {
+                        socket.stop();
+                    }
 
-                        @Override
-                        public int getLocalPort() {
-                            return socket.getLocalPort();
-                        }
-                    };
-                }
-                catch (Exception e) {
-                    handler.onCompleted(e);
-                }
+                    @Override
+                    public int getLocalPort() {
+                        return socket.getLocalPort();
+                    }
+                };
+            }
+            catch (Exception e) {
+                handler.onCompleted(e);
             }
         });
         return holder.held;
@@ -802,10 +793,12 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             @Override
             public SSLEngine createEngine(SSLContext sslContext, String peerHost, int peerPort) {
                 SSLEngine engine = super.createEngine(sslContext, peerHost, peerPort);
-                String[] ciphers = engine.getEnabledCipherSuites();
+//                String[] ciphers = engine.getEnabledCipherSuites();
 //                for (String cipher: ciphers) {
 //                    Log.i(LOGTAG, cipher);
 //                }
+
+                // todo: what's this for? some vestigal vysor code i think. required by audio mirroring?
                 engine.setEnabledCipherSuites(new String[] { "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" });
                 return engine;
             }
@@ -814,16 +807,19 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             @Override
             public void onAccepted(final AsyncSocket socket) {
                 AsyncSSLSocketWrapper.handshake(socket, null, port, conf.createEngine(sslContext, null, port), null, null, false,
-                        new AsyncSSLSocketWrapper.HandshakeCallback() {
-                            @Override
-                            public void onHandshakeCompleted(Exception e, AsyncSSLSocket sslSocket) {
-                                if (e != null) {
-                                    Log.e(LOGTAG, "Error while handshaking", e);
-                                    socket.close();
-                                    return;
-                                }
-                                handler.onAccepted(sslSocket);
+                        (e, sslSocket) -> {
+                            if (e != null) {
+                                // chrome seems to do some sort of SSL probe and cancels handshakes. not sure why.
+                                // i suspect it is to pick an optimal strong cipher.
+                                // seeing a lot of the following in the log (but no actual connection errors)
+                                // javax.net.ssl.SSLHandshakeException: error:10000416:SSL routines:OPENSSL_internal:SSLV3_ALERT_CERTIFICATE_UNKNOWN
+                                // seen on Shield TV running API 26
+                                // todo fix: conscrypt ssl context?
+//                                Log.e(LOGTAG, "Error while handshaking", e);
+                                socket.close();
+                                return;
                             }
+                            handler.onAccepted(sslSocket);
                         });
             }
 
@@ -838,5 +834,4 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
             }
         });
     }
-
 }

@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -716,7 +717,8 @@ public class AsyncServer {
                 runLoop(server, selector, queue);
             }
             catch (AsyncSelectorException e) {
-                Log.i(LOGTAG, "Selector exception, shutting down", e);
+                if (!(e.getCause() instanceof ClosedSelectorException))
+                    Log.i(LOGTAG, "Selector exception, shutting down", e);
                 StreamUtility.closeQuietly(selector);
             }
             // see if we keep looping, this must be in a synchronized block since the queue is accessed.

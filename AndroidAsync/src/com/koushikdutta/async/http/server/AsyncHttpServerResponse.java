@@ -6,6 +6,8 @@ import com.koushikdutta.async.DataSink;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.AsyncHttpResponse;
 import com.koushikdutta.async.http.Headers;
+import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
+import com.koushikdutta.async.parser.AsyncParser;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -25,6 +27,7 @@ public interface AsyncHttpServerResponse extends DataSink, CompletedCallback {
     void send(JSONArray jsonArray);
     void sendFile(File file);
     void sendStream(InputStream inputStream, long totalLength);
+    <T> void sendBody(AsyncParser<T> body, T value);
     AsyncHttpServerResponse code(int code);
     int code();
     Headers getHeaders();
