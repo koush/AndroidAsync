@@ -322,7 +322,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 AsyncSSLSocketWrapper.this.onDataAvailable();
             }
             catch (SSLException ex) {
-                ex.printStackTrace();
+//                ex.printStackTrace();
                 report(ex);
             }
             finally {
@@ -716,7 +716,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
     public static AsyncSSLServerSocket listenSecure(AsyncServer server, String keyDer, String certDer, final InetAddress host, final int port, final ListenCallback handler) {
         return listenSecure(server, Base64.decode(keyDer, Base64.DEFAULT), Base64.decode(certDer, Base64.DEFAULT), host, port, handler);
     }
-
 
     private static class ObjectHolder<T> {
         T held;
