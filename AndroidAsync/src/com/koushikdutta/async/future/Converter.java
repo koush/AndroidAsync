@@ -289,7 +289,7 @@ public class Converter<R> {
 
     private static final String MIME_ALL = "*/*";
     public <T> Future<T> to(Class<T> clazz, String mime) {
-        return future.then(from -> to(from, clazz ,mime));
+        return future.then(from -> to(from, clazz, mime));
     }
 
     static class ConverterEntry<F, T> {
@@ -352,7 +352,11 @@ public class Converter<R> {
         // ensure byte buffer operations are idempotent. do deep copies.
         final TypeConverter<ByteBufferList, byte[]> ByteArrayToByteBufferList = (from, fromMime) ->
                 new SimpleFuture<>(new ByteBufferList(ByteBufferList.deepCopy(ByteBuffer.wrap(from))));
-        final TypeConverter<String, ByteBufferList> ByteBufferListToByteArray = (from, fromMime) ->
+        final TypeConverter<byte[], ByteBufferList> ByteBufferListToByteArray = (from, fromMime) ->
+                new SimpleFuture<>(from.getAllByteArray());
+        final TypeConverter<ByteBuffer, ByteBufferList> ByteBufferListToByteBuffer = (from, fromMime) ->
+                new SimpleFuture<>(from.getAll());
+        final TypeConverter<String, ByteBufferList> ByteBufferListToString = (from, fromMime) ->
                 new SimpleFuture<>(from.peekString());
         final TypeConverter<ByteBuffer, byte[]> ByteArrayToByteBuffer = (from, fromMime) ->
                 new SimpleFuture<>(ByteBufferList.deepCopy(ByteBuffer.wrap(from)));
@@ -365,12 +369,14 @@ public class Converter<R> {
         final TypeConverter<String, byte[]> ByteArrayToString = (from, fromMime) -> new SimpleFuture<>(new String(from));
 
         Converters.addConverter(ByteBuffer.class, null, ByteBufferList.class, null, ByteBufferToByteBufferList);
-        Converters.addConverter(String.class, null, byte[].class, null, StringToByteArray);
+        Converters.addConverter(String.class, null, byte[].class, "text/plain", StringToByteArray);
         Converters.addConverter(byte[].class, null, ByteBufferList.class, null, ByteArrayToByteBufferList);
-        Converters.addConverter(ByteBufferList.class, null, String.class, null, ByteBufferListToByteArray);
+        Converters.addConverter(ByteBufferList.class, null, byte[].class, null, ByteBufferListToByteArray);
+        Converters.addConverter(ByteBufferList.class, null, ByteBuffer.class, null, ByteBufferListToByteBuffer);
+        Converters.addConverter(ByteBufferList.class, "text/plain", String.class, null, ByteBufferListToString);
         Converters.addConverter(byte[].class, null, ByteBuffer.class, null, ByteArrayToByteBuffer);
         Converters.addConverter(String.class, "application/json", JSONObject.class, null, StringToJSONObject);
         Converters.addConverter(JSONObject.class, null, String.class, "application/json", JSONObjectToString);
-        Converters.addConverter(byte[].class, "text/plain", String.class, "text/plain", ByteArrayToString);
+        Converters.addConverter(byte[].class, "text/plain", String.class, null, ByteArrayToString);
     }
 }
