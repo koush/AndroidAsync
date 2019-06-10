@@ -535,6 +535,8 @@ public class ByteBufferList {
     }
 
     public static ByteBuffer deepCopy(ByteBuffer copyOf) {
+        if (copyOf == null)
+            return null;
         return (ByteBuffer)obtain(copyOf.remaining()).put(copyOf.duplicate()).flip();
     }
 
