@@ -29,6 +29,8 @@ public interface WebSocket extends AsyncSocket {
     public PongCallback getPongCallback();
 
     public boolean isBuffering();
+
+    public void setMaxBuffer(int maxBuffer);
     
     public AsyncSocket getSocket();
 }

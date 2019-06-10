@@ -297,6 +297,10 @@ public class WebSocketImpl implements WebSocket {
     public boolean isBuffering() {
         return mSink.remaining() > 0;
     }
+    @Override
+    public void setMaxBuffer(int maxBuffer){
+        mSink.setMaxBuffer(maxBuffer);
+    }
 
     @Override
     public void write(ByteBufferList bb) {
