@@ -42,6 +42,10 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
         return false;
     }
 
+    protected void onResponseCompleted(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+
+    }
+
     protected void onRequest(HttpServerRequestCallback callback, AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
         if (callback != null) {
             try {
@@ -161,9 +165,12 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
 
                         @Override
                         protected void onEnd() {
+                            responseComplete = true;
                             super.onEnd();
                             mSocket.setEndCallback(null);
-                            responseComplete = true;
+
+                            onResponseCompleted(getRequest(), res);
+
                             // reuse the socket for a subsequent request.
                             handleOnCompleted();
                         }
@@ -185,9 +192,6 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
 
                 @Override
                 public void onCompleted(Exception e) {
-                    // if the protocol was switched off http, ignore this request/response.
-                    if (isSwitchingProtocols(res))
-                        return;
                     requestComplete = true;
                     super.onCompleted(e);
                     // no http pipelining, gc trashing if the socket dies
@@ -213,7 +217,12 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                 }
                 
                 private void handleOnCompleted() {
-                    if (requestComplete && responseComplete) {
+                    // response may complete before request. the request may have a body, and
+                    // the response may be sent before it is fully sent.
+
+                    // if the protocol was switched off http, abandon the socket,
+                    // otherwise attempt to recycle it.
+                    if (requestComplete && responseComplete && !isSwitchingProtocols(res)) {
                         if (isKeepAlive(self, res)) {
                             onAccepted(socket);
                         }
