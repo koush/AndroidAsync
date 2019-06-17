@@ -647,36 +647,37 @@ public class AsyncHttpClient {
         return ret;
     }
 
-    public static interface WebSocketConnectCallback {
-        public void onCompleted(Exception ex, WebSocket webSocket);
+    public interface WebSocketConnectCallback {
+        void onCompleted(Exception ex, WebSocket webSocket);
     }
 
     public Future<WebSocket> websocket(final AsyncHttpRequest req, String protocol, final WebSocketConnectCallback callback) {
-        WebSocketImpl.addWebSocketUpgradeHeaders(req, protocol);
-        final SimpleFuture<WebSocket> ret = new SimpleFuture<WebSocket>();
-        Cancellable connect = execute(req, new HttpConnectCallback() {
-            @Override
-            public void onConnectCompleted(Exception ex, AsyncHttpResponse response) {
-                if (ex != null) {
-                    if (ret.setComplete(ex)) {
-                        if (callback != null)
-                            callback.onCompleted(ex, null);
-                    }
-                    return;
+        return websocket(req, protocol != null ? new String[] { protocol } : null, callback);
+    }
+
+    public Future<WebSocket> websocket(final AsyncHttpRequest req, String[] protocols, final WebSocketConnectCallback callback) {
+        WebSocketImpl.addWebSocketUpgradeHeaders(req, protocols);
+        final SimpleFuture<WebSocket> ret = new SimpleFuture<>();
+        Cancellable connect = execute(req, (ex, response) -> {
+            if (ex != null) {
+                if (ret.setComplete(ex)) {
+                    if (callback != null)
+                        callback.onCompleted(ex, null);
                 }
-                WebSocket ws = WebSocketImpl.finishHandshake(req.getHeaders(), response);
-                if (ws == null) {
-                    ex = new WebSocketHandshakeException("Unable to complete websocket handshake");
-                    if (!ret.setComplete(ex))
-                        return;
-                }
-                else {
-                    if (!ret.setComplete(ws))
-                        return;
-                }
-                if (callback != null)
-                    callback.onCompleted(ex, ws);
+                return;
             }
+            WebSocket ws = WebSocketImpl.finishHandshake(req.getHeaders(), response);
+            if (ws == null) {
+                ex = new WebSocketHandshakeException("Unable to complete websocket handshake");
+                if (!ret.setComplete(ex))
+                    return;
+            }
+            else {
+                if (!ret.setComplete(ws))
+                    return;
+            }
+            if (callback != null)
+                callback.onCompleted(ex, ws);
         });
 
         ret.setParent(connect);
@@ -687,6 +688,12 @@ public class AsyncHttpClient {
 //        assert callback != null;
         final AsyncHttpGet get = new AsyncHttpGet(uri.replace("ws://", "http://").replace("wss://", "https://"));
         return websocket(get, protocol, callback);
+    }
+
+    public Future<WebSocket> websocket(String uri, String[] protocols, final WebSocketConnectCallback callback) {
+//        assert callback != null;
+        final AsyncHttpGet get = new AsyncHttpGet(uri.replace("ws://", "http://").replace("wss://", "https://"));
+        return websocket(get, protocols, callback);
     }
 
     public AsyncServer getServer() {

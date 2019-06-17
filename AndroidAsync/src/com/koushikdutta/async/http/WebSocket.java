@@ -2,33 +2,33 @@ package com.koushikdutta.async.http;
 
 import com.koushikdutta.async.AsyncSocket;
 
-
 public interface WebSocket extends AsyncSocket {
-    static public interface StringCallback {
-        public void onStringAvailable(String s);
+    interface StringCallback {
+        void onStringAvailable(String s);
     }
-    static public interface PingCallback {
-        public void onPingReceived(String s);
+    interface PingCallback {
+        void onPingReceived(String s);
     }
-    static public interface PongCallback {
-        public void onPongReceived(String s);
+    interface PongCallback {
+        void onPongReceived(String s);
     }
 
-    public void send(byte[] bytes);
-    public void send(String string);
-    public void send(byte [] bytes, int offset, int len);
-    public void ping(String message);
-    public void pong(String message);
+    void send(byte[] bytes);
+    void send(String string);
+    void send(byte [] bytes, int offset, int len);
+    void ping(String message);
+    void pong(String message);
     
-    public void setStringCallback(StringCallback callback);
-    public StringCallback getStringCallback();
+    void setStringCallback(StringCallback callback);
+    StringCallback getStringCallback();
 
-    public void setPingCallback(PingCallback callback);
+    void setPingCallback(PingCallback callback);
     
-    public void setPongCallback(PongCallback callback);
-    public PongCallback getPongCallback();
+    void setPongCallback(PongCallback callback);
+    PongCallback getPongCallback();
 
-    public boolean isBuffering();
+    boolean isBuffering();
+    String getProtocol();
     
-    public AsyncSocket getSocket();
+    AsyncSocket getSocket();
 }
