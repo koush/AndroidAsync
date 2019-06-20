@@ -13,6 +13,7 @@ import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.Protocol;
 import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -67,7 +68,8 @@ public abstract class AsyncHttpServerRequestImpl extends FilteredDataEmitter imp
                 statusLine = s;
                 if (!statusLine.contains("HTTP/")) {
                     onNotHttp();
-                    mSocket.setDataCallback(null);
+                    mSocket.setDataCallback(new NullDataCallback());
+                    report(new IOException("data/header received was not not http"));
                 }
 
                 return;
