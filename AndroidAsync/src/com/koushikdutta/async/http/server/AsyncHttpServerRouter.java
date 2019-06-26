@@ -9,14 +9,11 @@ import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
-import com.koushikdutta.async.future.ThenCallback;
 import com.koushikdutta.async.http.AsyncHttpGet;
 import com.koushikdutta.async.http.AsyncHttpHead;
 import com.koushikdutta.async.http.AsyncHttpPost;
-import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.WebSocketImpl;
-import com.koushikdutta.async.http.body.AsyncHttpRequestBody;
 import com.koushikdutta.async.util.StreamUtility;
 
 import java.io.File;
@@ -74,7 +71,7 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         websocket(regex, null, callback);
     }
 
-    protected WebSocket checkWebSocketUpgrade(final String protocol, AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
+    static public WebSocket checkWebSocketUpgrade(final String protocol, AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {
         boolean hasUpgrade = false;
         String connection = request.getHeaders().get("Connection");
         if (connection != null) {
@@ -158,18 +155,17 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         mContentTypes.put("json", "application/json");
         mContentTypes.put("png", "image/png");
         mContentTypes.put("jpg", "image/jpeg");
+        mContentTypes.put("jpeg", "image/jpeg");
         mContentTypes.put("html", "text/html");
         mContentTypes.put("css", "text/css");
         mContentTypes.put("mp4", "video/mp4");
         mContentTypes.put("mov", "video/quicktime");
         mContentTypes.put("wmv", "video/x-ms-wmv");
+        mContentTypes.put("txt", "text/plain");
     }
 
     public static String getContentType(String path) {
-        String type = tryGetContentType(path);
-        if (type != null)
-            return type;
-        return "text/plain";
+        return tryGetContentType(path);
     }
 
     public static String tryGetContentType(String path) {
