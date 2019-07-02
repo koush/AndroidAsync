@@ -9,9 +9,7 @@ import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.future.Cancellable;
-import com.koushikdutta.async.future.FailCallback;
 import com.koushikdutta.async.future.Future;
-import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.future.Futures;
 import com.koushikdutta.async.future.SimpleCancellable;
 import com.koushikdutta.async.future.SimpleFuture;
@@ -322,12 +320,12 @@ public class AsyncSocketMiddleware extends SimpleMiddleware {
         }
     }
 
-    protected boolean isKeepAlive(OnResponseCompleteDataOnRequestSentData data) {
+    protected boolean isKeepAlive(OnResponseCompleteData data) {
         return HttpUtil.isKeepAlive(data.response.protocol(), data.response.headers()) && HttpUtil.isKeepAlive(Protocol.HTTP_1_1, data.request.getHeaders());
     }
 
     @Override
-    public void onResponseComplete(final OnResponseCompleteDataOnRequestSentData data) {
+    public void onResponseComplete(final OnResponseCompleteData data) {
         if (data.state.get("socket-owner") != this)
             return;
 

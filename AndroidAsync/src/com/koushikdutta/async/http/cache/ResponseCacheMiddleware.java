@@ -222,7 +222,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
     // step 2) if this is a conditional cache request, serve it from the cache if necessary
     // otherwise, see if it is cacheable
     @Override
-    public void onBodyDecoder(OnBodyDataOnRequestSentData data) {
+    public void onBodyDecoder(OnBodyDecoderData data) {
         CachedSocket cached = com.koushikdutta.async.Util.getWrappedSocket(data.socket, CachedSocket.class);
         if (cached != null) {
             data.response.headers().set(SERVED_FROM, CACHE);
@@ -301,7 +301,7 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
 
     // step 3: close up shop
     @Override
-    public void onResponseComplete(OnResponseCompleteDataOnRequestSentData data) {
+    public void onResponseComplete(OnResponseCompleteData data) {
         CacheData cacheData = data.state.get("cache-data");
         if (cacheData != null && cacheData.snapshot != null)
             StreamUtility.closeQuietly(cacheData.snapshot);

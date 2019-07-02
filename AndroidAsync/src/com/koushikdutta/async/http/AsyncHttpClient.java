@@ -211,7 +211,7 @@ public class AsyncHttpClient {
             return;
         }
         final Uri uri = request.getUri();
-        final AsyncHttpClientMiddleware.OnResponseCompleteDataOnRequestSentData data = new AsyncHttpClientMiddleware.OnResponseCompleteDataOnRequestSentData();
+        final AsyncHttpClientMiddleware.OnResponseCompleteData data = new AsyncHttpClientMiddleware.OnResponseCompleteData();
         request.executionTime = System.currentTimeMillis();
         data.request = request;
 
@@ -310,7 +310,7 @@ public class AsyncHttpClient {
 
     private void executeSocket(final AsyncHttpRequest request, final int redirectCount,
                                final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback,
-                               final AsyncHttpClientMiddleware.OnResponseCompleteDataOnRequestSentData data) {
+                               final AsyncHttpClientMiddleware.OnResponseCompleteData data) {
         // 4) wait for request to be sent fully
         // and
         // 6) wait for headers
@@ -345,6 +345,25 @@ public class AsyncHttpClient {
 
                 super.setDataEmitter(data.bodyEmitter);
 
+                for (AsyncHttpClientMiddleware middleware: mMiddleware) {
+                    AsyncHttpRequest newReq = middleware.onResponseReady(data);
+                    if (newReq != null) {
+                        newReq.executionTime = request.executionTime;
+                        newReq.logLevel = request.logLevel;
+                        newReq.LOGTAG = request.LOGTAG;
+                        newReq.proxyHost = request.proxyHost;
+                        newReq.proxyPort = request.proxyPort;
+                        setupAndroidProxy(newReq);
+
+                        request.logi("Response intercepted by middleware");
+                        newReq.logi("Request initiated by middleware intercept by middleware");
+                        // post to allow reuse of socket.
+                        mServer.post(() -> execute(newReq, redirectCount, cancel, callback));
+                        setDataCallback(new NullDataCallback());
+                        return;
+                    }
+                }
+
                 Headers headers = mHeaders;
                 int responseCode = code();
                 if ((responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == 307) && request.getFollowRedirect()) {
@@ -372,7 +391,7 @@ public class AsyncHttpClient {
                     copyHeader(request, newReq, "Range");
                     request.logi("Redirecting");
                     newReq.logi("Redirected");
-                    execute(newReq, redirectCount + 1, cancel, callback);
+                    mServer.post(() -> execute(newReq, redirectCount + 1, cancel, callback));
 
                     setDataCallback(new NullDataCallback());
                     return;

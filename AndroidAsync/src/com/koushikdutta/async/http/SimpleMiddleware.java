@@ -22,14 +22,19 @@ public class SimpleMiddleware implements AsyncHttpClientMiddleware {
     }
 
     @Override
-    public void onHeadersReceived(OnHeadersReceivedDataOnRequestSentData data) {
+    public void onHeadersReceived(OnHeadersReceivedData data) {
     }
 
     @Override
-    public void onBodyDecoder(OnBodyDataOnRequestSentData data) {
+    public void onBodyDecoder(OnBodyDecoderData data) {
     }
 
     @Override
-    public void onResponseComplete(OnResponseCompleteDataOnRequestSentData data) {
+    public AsyncHttpRequest onResponseReady(OnResponseReadyData data) {
+        return null;
+    }
+
+    @Override
+    public void onResponseComplete(OnResponseCompleteData data) {
     }
 }

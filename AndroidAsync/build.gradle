@@ -25,7 +25,7 @@ android {
         targetSdkVersion 28
         minSdkVersion 14
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
@@ -46,7 +46,7 @@ android {
         androidTestImplementation 'com.android.support.test:runner:1.0.2'
         androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
         // for when i wanna test this against gms conscrypt
-        androidTestImplementation 'com.google.android.gms:play-services-base:16.1.0'
+        androidTestImplementation 'com.google.android.gms:play-services-base:17.0.0'
     }
 }
 
