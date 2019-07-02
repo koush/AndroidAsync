@@ -2,7 +2,7 @@ package com.koushikdutta.async.test;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.callback.CompletedCallback;

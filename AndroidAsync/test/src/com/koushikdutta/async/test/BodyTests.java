@@ -1,6 +1,6 @@
 package com.koushikdutta.async.test;
 
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;

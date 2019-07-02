@@ -1,7 +1,7 @@
 package com.koushikdutta.async.test;
 
 
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.runner.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.FileDataEmitter;
@@ -10,15 +10,13 @@ import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.async.parser.StringParser;
 import com.koushikdutta.async.util.StreamUtility;
 
-import junit.framework.TestCase;
-
 import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import static android.support.test.InstrumentationRegistry.getContext;
+import static androidx.test.InstrumentationRegistry.getContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
