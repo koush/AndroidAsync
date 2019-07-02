@@ -3,8 +3,6 @@ package com.koushikdutta.async;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.WritableCallback;
 
-import java.nio.ByteBuffer;
-
 public class BufferedDataSink implements DataSink {
     DataSink mDataSink;
     public BufferedDataSink(DataSink datasink) {
@@ -14,7 +12,7 @@ public class BufferedDataSink implements DataSink {
     public boolean isBuffering() {
         return mPendingWrites.hasRemaining() || forceBuffering;
     }
-    
+
     public DataSink getDataSink() {
         return mDataSink;
     }
@@ -28,12 +26,7 @@ public class BufferedDataSink implements DataSink {
 
     public void setDataSink(DataSink datasink) {
         mDataSink = datasink;
-        mDataSink.setWriteableCallback(new WritableCallback() {
-            @Override
-            public void onWriteable() {
-                writePending();
-            }
-        });
+        mDataSink.setWriteableCallback(this::writePending);
     }
 
     private void writePending() {
@@ -41,45 +34,42 @@ public class BufferedDataSink implements DataSink {
             return;
 
 //        Log.i("NIO", "Writing to buffer...");
-        if (mPendingWrites.hasRemaining()) {
+        boolean empty;
+        synchronized (mPendingWrites) {
             mDataSink.write(mPendingWrites);
-            if (mPendingWrites.remaining() == 0) {
-                if (endPending)
-                    mDataSink.end();
-            }
+            empty = mPendingWrites.isEmpty();
         }
-        if (!mPendingWrites.hasRemaining() && mWritable != null)
+        if (empty) {
+            if (endPending)
+                mDataSink.end();
+        }
+        if (empty && mWritable != null)
             mWritable.onWriteable();
     }
     
-    ByteBufferList mPendingWrites = new ByteBufferList();
+    final ByteBufferList mPendingWrites = new ByteBufferList();
 
     @Override
     public void write(ByteBufferList bb) {
         write(bb, false);
     }
-    
+
     protected void write(final ByteBufferList bb, final boolean ignoreBuffer) {
         if (getServer().getAffinity() != Thread.currentThread()) {
-            getServer().run(new Runnable() {
-                @Override
-                public void run() {
-                    write(bb, ignoreBuffer);
-                }
-            });
+            synchronized (mPendingWrites) {
+                if (mPendingWrites.remaining() >= mMaxBuffer && !ignoreBuffer)
+                    return;
+                bb.get(mPendingWrites);
+            }
+            getServer().post(this::writePending);
             return;
         }
 
         if (!isBuffering())
             mDataSink.write(bb);
 
-        if (bb.remaining() > 0) {
-            int toRead = Math.min(bb.remaining(), mMaxBuffer);
-            if (ignoreBuffer)
-                toRead = bb.remaining();
-            if (toRead > 0) {
-                bb.get(mPendingWrites, toRead);
-            }
+        synchronized (mPendingWrites) {
+            bb.get(mPendingWrites);
         }
     }
 
@@ -102,7 +92,7 @@ public class BufferedDataSink implements DataSink {
     public int getMaxBuffer() {
         return mMaxBuffer;
     }
-    
+
     public void setMaxBuffer(int maxBuffer) {
         assert maxBuffer >= 0;
         mMaxBuffer = maxBuffer;
@@ -117,18 +107,15 @@ public class BufferedDataSink implements DataSink {
     @Override
     public void end() {
         if (getServer().getAffinity() != Thread.currentThread()) {
-            getServer().run(new Runnable() {
-                @Override
-                public void run() {
-                    end();
-                }
-            });
+            getServer().post(this::end);
             return;
         }
 
-        if (mPendingWrites.hasRemaining()) {
-            endPending = true;
-            return;
+        synchronized (mPendingWrites) {
+            if (mPendingWrites.hasRemaining()) {
+                endPending = true;
+                return;
+            }
         }
         mDataSink.end();
     }
