@@ -13,6 +13,12 @@ public class BufferedDataSink implements DataSink {
         return mPendingWrites.hasRemaining() || forceBuffering;
     }
 
+    public boolean isWritable() {
+        synchronized (mPendingWrites) {
+            return mPendingWrites.remaining() < mMaxBuffer;
+        }
+    }
+
     public DataSink getDataSink() {
         return mDataSink;
     }
@@ -49,21 +55,25 @@ public class BufferedDataSink implements DataSink {
     
     final ByteBufferList mPendingWrites = new ByteBufferList();
 
-    @Override
-    public void write(ByteBufferList bb) {
-        write(bb, false);
+    // before the data is queued, let inheritors know. allows for filters, without
+    // issues with having to filter before writing which may fail in the buffer.
+    protected void onDataAccepted(ByteBufferList bb) {
     }
 
-    protected void write(final ByteBufferList bb, final boolean ignoreBuffer) {
+    @Override
+    public void write(final ByteBufferList bb) {
         if (getServer().getAffinity() != Thread.currentThread()) {
             synchronized (mPendingWrites) {
-                if (mPendingWrites.remaining() >= mMaxBuffer && !ignoreBuffer)
+                if (mPendingWrites.remaining() >= mMaxBuffer)
                     return;
+                onDataAccepted(bb);
                 bb.get(mPendingWrites);
             }
             getServer().post(this::writePending);
             return;
         }
+
+        onDataAccepted(bb);
 
         if (!isBuffering())
             mDataSink.write(bb);

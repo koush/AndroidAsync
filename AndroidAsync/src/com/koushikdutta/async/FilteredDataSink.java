@@ -11,15 +11,12 @@ public class FilteredDataSink extends BufferedDataSink {
     }
 
     @Override
-    public final void write(ByteBufferList bb) {
-        // don't filter and write if currently buffering, unless we know
-        // that the buffer can fit the entirety of the filtered result
-        if (isBuffering() && getMaxBuffer() != Integer.MAX_VALUE)
-            return;
+    protected void onDataAccepted(ByteBufferList bb) {
         ByteBufferList filtered = filter(bb);
-        assert bb == null || filtered == bb || bb.isEmpty();
-        super.write(filtered, true);
-        if (bb != null)
+        // filtering may return the same byte buffer, so watch for that.
+        if (filtered != bb) {
             bb.recycle();
+            filtered.get(bb);
+        }
     }
 }
