@@ -206,7 +206,10 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
 
     @Override
     public void setCallback(FutureCallback<T> callback) {
-        setCallbackInternal(null, (e, result, next) -> callback.onCompleted(e, result));
+        if (callback == null)
+            setCallbackInternal(null, null);
+        else
+            setCallbackInternal(null, (e, result, next) -> callback.onCompleted(e, result));
     }
 
     private Future<T> setComplete(Future<T> future, FutureCallsite callsite) {
