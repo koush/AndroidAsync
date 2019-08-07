@@ -98,6 +98,9 @@ public class HttpUtil {
             emitter = ender;
             return emitter;
         }
+        else {
+            throw new AssertionError();
+        }
 
         if ("gzip".equals(headers.get("Content-Encoding"))) {
             GZIPInputFilter gunzipper = new GZIPInputFilter();
