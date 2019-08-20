@@ -1,8 +1,7 @@
 package com.koushikdutta.async.future;
 
 
-import android.os.Handler;
-import android.os.Looper;
+import java.util.concurrent.Executor;
 
 public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
     /**
@@ -87,14 +86,14 @@ public interface Future<T> extends Cancellable, java.util.concurrent.Future<T> {
      */
     Exception tryGetException();
 
-    Handler mainHandler = new Handler(Looper.getMainLooper());
     /**
-     * Get the result on the main thread.
+     * Get the result on the executor thread.
+     * @param executor
      * @return
      */
-    default Future<T> mainThread() {
+    default Future<T> executorThread(Executor executor) {
         SimpleFuture<T> ret = new SimpleFuture<>();
-        mainHandler.post(() -> ret.setComplete(Future.this));
+        executor.execute(() -> ret.setComplete(Future.this));
         return ret;
     }
 }
