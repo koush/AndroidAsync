@@ -670,7 +670,9 @@ public class AsyncServer {
                             threadServer.set(AsyncServer.this);
                             AsyncServer.run(AsyncServer.this, selector, queue);
                         }
-                        finally {
+                        catch (Exception e) {
+                            //for recvfrom failed: ETIMEDOUT (Connection timed out)
+                        } finally {
                             threadServer.remove();
                         }
                     }
