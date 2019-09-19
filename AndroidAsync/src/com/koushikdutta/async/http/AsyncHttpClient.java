@@ -688,6 +688,7 @@ public class AsyncHttpClient {
             WebSocket ws = WebSocketImpl.finishHandshake(req.getHeaders(), response);
             if (ws == null) {
                 ex = new WebSocketHandshakeException("Unable to complete websocket handshake");
+                response.close();
                 if (!ret.setComplete(ex))
                     return;
             }

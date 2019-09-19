@@ -51,7 +51,7 @@ public class Util {
             if (SUPRESS_DEBUG_EXCEPTIONS)
                 return;
             assert false;
-            throw new RuntimeException("Not all data was consumed by Util.emitAllData");
+            throw new AssertionError("Not all data was consumed by Util.emitAllData");
         }
     }
 
