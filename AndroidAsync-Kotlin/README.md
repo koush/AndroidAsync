@@ -1,10 +1,12 @@
 # Support for Kotlin Coroutines in AndroidAsync and Ion
 
+Adds coroutines support to AndroidAsync and Ion.
+
 Maven:
 ```xml
 <dependency>
     <groupId>com.koushikdutta.async</groupId>
-    <artifactId>androidasync</artifactId>
+    <artifactId>androidasync-kotlin</artifactId>
     <version>(insert latest version)</version>
 </dependency>
 ```
@@ -12,11 +14,9 @@ Maven:
 Gradle:
 ```groovy
 dependencies {
-    compile 'com.koushikdutta.async:androidasync:2.+'
+    compile 'com.koushikdutta.async:androidasync-kotlin:<insert latest version>'
 }
 ```
-
-Adds coroutines support to AndroidAsync and Ion.
 
 Since AndroidAsync and Ion operations all returned futures, you can simply call await() on them within a Kotlin suspend function.
 
