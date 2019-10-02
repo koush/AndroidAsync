@@ -51,6 +51,6 @@ android {
 }
 
 // upload to maven task
-if (false && System.getenv().I_AM_KOUSH == 'true') {
+if (System.getenv().I_AM_KOUSH == 'true') {
   apply from: 'https://raw.githubusercontent.com/koush/mvn-repo/master/maven.gradle'
 }
