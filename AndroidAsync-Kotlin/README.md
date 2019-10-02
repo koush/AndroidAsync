@@ -1,4 +1,19 @@
-# Kotlin Coroutines
+# Support for Kotlin Coroutines in AndroidAsync and Ion
+
+```xml
+<dependency>
+    <groupId>com.koushikdutta.async</groupId>
+    <artifactId>androidasync</artifactId>
+    <version>(insert latest version)</version>
+</dependency>
+```
+
+Gradle:
+```groovy
+dependencies {
+    compile 'com.koushikdutta.async:androidasync:2.+'
+}
+```
 
 Adds coroutines support to AndroidAsync and Ion.
 
