@@ -1,5 +1,6 @@
 # Support for Kotlin Coroutines in AndroidAsync and Ion
 
+Maven:
 ```xml
 <dependency>
     <groupId>com.koushikdutta.async</groupId>
