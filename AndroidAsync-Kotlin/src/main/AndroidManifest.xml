@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.koushikdutta.async.kotlin"
+    package="com.koushikdutta.async"
     android:versionCode="300"
     android:versionName="3.0.0">
 

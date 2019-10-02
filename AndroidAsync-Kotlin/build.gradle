@@ -34,5 +34,5 @@ dependencies {
 
 // upload to maven task
 if (System.getenv().I_AM_KOUSH == 'true') {
-    apply from: 'upload.gradle'
+    apply from: '/Users/koush/cfg/maven.gradle'
 }
