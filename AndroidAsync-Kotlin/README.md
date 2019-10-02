@@ -12,7 +12,7 @@ suspend fun getTheRobotsTxt() {
   .await()
 
   val githubRobots = Ion.with(context)
-  .load("https://google.com/robots.txt")
+  .load("https://github.com/robots.txt")
   .asString()
   .await()
 
@@ -20,3 +20,19 @@ return googleRobots + githubRobots
 ```
 
 That's it!
+
+But remember that the await() suspends, so if you want to fetch both robots.txt at the same time:
+
+```kotlin
+suspend fun getTheRobotsTxt() {
+  val googleRobots = Ion.with(context)
+  .load("https://google.com/robots.txt")
+  .asString()
+
+  val githubRobots = Ion.with(context)
+  .load("https://github.com/robots.txt")
+  .asString()
+
+return googleRobots.await() + githubRobots.await()
+```
+
