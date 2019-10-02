@@ -16,7 +16,8 @@ suspend fun getTheRobotsTxt() {
   .asString()
   .await()
 
-return googleRobots + githubRobots
+  return googleRobots + githubRobots
+}
 ```
 
 That's it!
@@ -33,6 +34,7 @@ suspend fun getTheRobotsTxt() {
   .load("https://github.com/robots.txt")
   .asString()
 
-return googleRobots.await() + githubRobots.await()
+  return googleRobots.await() + githubRobots.await()
+}
 ```
 
