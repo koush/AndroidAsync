@@ -6,15 +6,15 @@ Since AndroidAsync and Ion operations all returned futures, you can simply call 
 
 ```kotlin
 suspend fun getTheRobotsTxt() {
-val googleRobots = Ion.with(context)
-.load("https://google.com/robots.txt")
-.asString()
-.await()
+  val googleRobots = Ion.with(context)
+  .load("https://google.com/robots.txt")
+  .asString()
+  .await()
 
-val githubRobots = Ion.with(context)
-.load("https://google.com/robots.txt")
-.asString()
-.await()
+  val githubRobots = Ion.with(context)
+  .load("https://google.com/robots.txt")
+  .asString()
+  .await()
 
 return googleRobots + githubRobots
 ```
