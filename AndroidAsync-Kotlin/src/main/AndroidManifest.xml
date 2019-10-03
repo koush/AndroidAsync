@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.koushikdutta.async"
-    android:versionCode="300"
-    android:versionName="3.0.0">
+    xmlns:maven="http://schemas.android.com/apk/res/android"
+    package="com.koushikdutta.async.kotlin"
+    maven:groupId="com.koushikdutta.async"
+    android:versionCode="309"
+    android:versionName="3.0.9">
 
     <uses-permission android:name="android.permission.INTERNET"/>
 
