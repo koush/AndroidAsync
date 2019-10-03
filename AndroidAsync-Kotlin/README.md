@@ -1,6 +1,6 @@
 # Support for Kotlin Coroutines in AndroidAsync and Ion
 
-Adds coroutines support to AndroidAsync and Ion.
+Adds coroutines support to AndroidAsync and [Ion](https://github.com/koush/ion).
 
 Maven:
 ```xml
