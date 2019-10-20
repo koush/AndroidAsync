@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
 
+import android.content.Context;
+
 public class AsyncHttpClient {
     private static AsyncHttpClient mDefaultInstance;
     public static AsyncHttpClient getDefaultInstance() {
@@ -62,6 +64,23 @@ public class AsyncHttpClient {
     }
     public void insertMiddleware(AsyncHttpClientMiddleware middleware) {
         mMiddleware.add(0, middleware);
+    }
+
+    //TLS 1.2 is only supported for SSLEngine in Lollipop (api lvl 20) and above
+    //If you want to use TLS 1.2 in old versions of Android, you need to update SSLEngine
+    //Inspired by thus post: http://www.dahuatu.com/bawYXMDjmQ.html
+
+    public void enableTLSProtocolOnOlderVersionsOfAndroid(Context context, String protocol) throws GooglePlayServicesNotAvailableException, GooglePlayServicesRepairableException {
+        //Get the a more recent security provider using google play services
+        //Will raise exceptions if device doesn't have proper google play services installed
+        ProviderInstaller.installIfNeeded(context);
+
+        //Example: set protocol to "TLSv1.2" for TLS 1.2
+        SSLContext sslContext = SSLContext.getInstance(protocol);
+
+        //Create new SSL Engine and insert it as middlewear
+        SSLEngine engine = sslContext.createSSLEngine();
+        insertMiddleware((AsyncHttpClientMiddleware) engine);
     }
 
     SpdyMiddleware sslSocketMiddleware;
@@ -510,7 +529,7 @@ public class AsyncHttpClient {
 
     public static abstract class JSONObjectCallback extends RequestCallbackBase<JSONObject> {
     }
-    
+
     public static abstract class JSONArrayCallback extends RequestCallbackBase<JSONArray> {
     }
 
