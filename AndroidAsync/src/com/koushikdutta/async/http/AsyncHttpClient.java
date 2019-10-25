@@ -18,7 +18,6 @@ import com.koushikdutta.async.future.Future;
 import com.koushikdutta.async.future.SimpleFuture;
 import com.koushikdutta.async.http.callback.HttpConnectCallback;
 import com.koushikdutta.async.http.callback.RequestCallback;
-import com.koushikdutta.async.http.spdy.SpdyMiddleware;
 import com.koushikdutta.async.parser.AsyncParser;
 import com.koushikdutta.async.parser.ByteBufferListParser;
 import com.koushikdutta.async.parser.JSONArrayParser;
@@ -64,14 +63,14 @@ public class AsyncHttpClient {
         mMiddleware.add(0, middleware);
     }
 
-    SpdyMiddleware sslSocketMiddleware;
+    AsyncSSLSocketMiddleware sslSocketMiddleware;
     AsyncSocketMiddleware socketMiddleware;
     HttpTransportMiddleware httpTransportMiddleware;
     AsyncServer mServer;
     public AsyncHttpClient(AsyncServer server) {
         mServer = server;
         insertMiddleware(socketMiddleware = new AsyncSocketMiddleware(this));
-        insertMiddleware(sslSocketMiddleware = new SpdyMiddleware(this));
+        insertMiddleware(sslSocketMiddleware = new AsyncSSLSocketMiddleware(this));
         insertMiddleware(httpTransportMiddleware = new HttpTransportMiddleware());
         sslSocketMiddleware.addEngineConfigurator(new SSLEngineSNIConfigurator());
     }
@@ -116,7 +115,7 @@ public class AsyncHttpClient {
         return socketMiddleware;
     }
 
-    public SpdyMiddleware getSSLSocketMiddleware() {
+    public AsyncSSLSocketMiddleware getSSLSocketMiddleware() {
         return sslSocketMiddleware;
     }
 

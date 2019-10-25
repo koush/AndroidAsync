@@ -43,15 +43,29 @@ public class BoundaryEmitter extends FilteredDataEmitter {
     // the state starts out having already matched \r\n
 
     /*
-        Content-Type: multipart/form-data; boundary=----------------------------bc3c801ac760
-        
-        ------------------------------bc3c801ac760
-        Content-Disposition: form-data; name="my-file"; filename="foo"
-        Content-Type: application/octet-stream
-        
-        foo         <---------------- the newline is NOT PART OF THE PAYLOAD
-        ------------------------------bc3c801ac760--
-     */
+    Mac:work$ curl -F person=anonymous -F secret=@test.kt  http://localhost:5555
+
+    POST / HTTP/1.1
+    Host: localhost:5555
+    User-Agent: curl/7.54.0
+    Content-Length: 372
+    Expect: 100-continue
+    Content-Type: multipart/form-data; boundary=------------------------17903558439eb6ff
+
+--------------------------17903558439eb6ff              <--- note! two dashes before boundary
+    Content-Disposition: form-data; name="person"
+
+    anonymous
+--------------------------17903558439eb6ff              <--- note! two dashes before boundary
+    Content-Disposition: form-data; name="secret"; filename="test.kt"
+    Content-Type: application/octet-stream
+
+    fun main(args: Array<String>) {
+        println("Hello JavaScript!")
+    }
+
+--------------------------17903558439eb6ff--            <--- note! two dashes before AND after boundary
+            */
     
     
     int state = 2;
