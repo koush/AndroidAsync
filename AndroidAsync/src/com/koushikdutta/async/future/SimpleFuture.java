@@ -169,8 +169,12 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
     public boolean setComplete(Exception e) {
         return setComplete(e, null, null);
     }
+    public boolean setCompleteException(Exception e) { return setComplete(e, null, null); }
 
     public boolean setComplete(T value) {
+        return setComplete(null, value, null);
+    }
+    public boolean setCompleteValue(T value) {
         return setComplete(null, value, null);
     }
 
@@ -235,6 +239,10 @@ public class SimpleFuture<T> extends SimpleCancellable implements DependentFutur
      * @return
      */
     public Future<T> setComplete(Future<T> future) {
+        return setComplete(future, null);
+    }
+
+    public Future<T> setCompleteFuture(Future<T> future) {
         return setComplete(future, null);
     }
 
