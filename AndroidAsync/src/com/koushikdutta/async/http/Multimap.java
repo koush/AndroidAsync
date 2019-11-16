@@ -97,9 +97,9 @@ public class Multimap extends LinkedHashMap<String, List<String>> implements Ite
             String v = null;
             if (pair.length > 1)
                 v = pair[1];
-            if (unquote && v != null && v.endsWith("\"") && v.startsWith("\""))
+            if (v != null && unquote && v.endsWith("\"") && v.startsWith("\""))
                 v = v.substring(1, v.length() - 1);
-            if (decoder != null) {
+            if (v != null && decoder != null) {
                 key = decoder.decode(key);
                 v = decoder.decode(v);
             }
