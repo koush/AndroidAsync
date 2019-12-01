@@ -50,7 +50,6 @@ android {
     }
 }
 
-// upload to maven task
-//if (System.getenv().I_AM_KOUSH == 'true') {
-//    apply from: '/Users/koush/cfg/maven.gradle'
-//}
+if (false && System.getenv().I_AM_KOUSH == 'true') {
+  apply from: 'https://raw.githubusercontent.com/koush/mvn-repo/master/maven.gradle'
+}
