@@ -8,7 +8,7 @@ But if you're looking for a raw Socket, HTTP(s) client/server, and WebSocket lib
 is it.
 
 #### Features
- * Based on NIO. One thread, driven by callbacks. Highly efficient.
+ * Based on NIO. Single threaded and callback driven.
  * All operations return a Future that can be cancelled
  * Socket client + socket server
  * HTTP client + server
