@@ -13,7 +13,6 @@ is it.
  * Socket client + socket server
  * HTTP client + server
  * WebSocket client + server
- * Socket.IO client
 
 ### Download
 
