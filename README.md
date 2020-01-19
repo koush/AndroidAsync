@@ -8,12 +8,11 @@ But if you're looking for a raw Socket, HTTP(s) client/server, and WebSocket lib
 is it.
 
 #### Features
- * Based on NIO. One thread, driven by callbacks. Highly efficient.
+ * Based on NIO. Single threaded and callback driven.
  * All operations return a Future that can be cancelled
  * Socket client + socket server
  * HTTP client + server
  * WebSocket client + server
- * Socket.IO client
 
 ### Download
 
@@ -107,7 +106,8 @@ AsyncHttpClient.getDefaultInstance().getFile(url, filename, new AsyncHttpClient.
 ### Caching is supported too
 
 ```java
-// arguments are the http client, the directory to store cache files, and the size of the cache in bytes
+// arguments are the http client, the directory to store cache files,
+// and the size of the cache in bytes
 ResponseCacheMiddleware.addCache(AsyncHttpClient.getDefaultInstance(),
                                   getFileStreamPath("asynccache"),
                                   1024 * 1024 * 10);
@@ -164,39 +164,6 @@ AsyncHttpClient.getDefaultInstance().websocket(get, "my-protocol", new WebSocket
 ```
 
 
-### AndroidAsync also supports socket.io (version 0.9.x)
-
-```java
-SocketIOClient.connect(AsyncHttpClient.getDefaultInstance(), "http://192.168.1.2:3000", new ConnectCallback() {
-    @Override
-    public void onConnectCompleted(Exception ex, SocketIOClient client) {
-        if (ex != null) {
-            ex.printStackTrace();
-            return;
-        }
-        client.setStringCallback(new StringCallback() {
-            @Override
-            public void onString(String string) {
-                System.out.println(string);
-            }
-        });
-        client.on("someEvent", new EventCallback() {
-            @Override
-            public void onEvent(JSONArray argument, Acknowledge acknowledge) {
-                System.out.println("args: " + arguments.toString());
-            }
-        });
-        client.setJSONCallback(new JSONCallback() {
-            @Override
-            public void onJSON(JSONObject json) {
-                System.out.println("json: " + json.toString());
-            }
-        });
-    }
-});
-```
-
-
 ### AndroidAsync also let's you create simple HTTP servers:
 
 ```java
@@ -221,17 +188,12 @@ server.listen(5000);
 
 ```java
 AsyncHttpServer httpServer = new AsyncHttpServer();
-httpServer.setErrorCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                Log.e("WebSocket", "An error occurred", ex);
-            }
-        });
-        httpServer.listen(AsyncServer.getDefault(), port);
 
-        httpServer.websocket("/live", new AsyncHttpServer.WebSocketRequestCallback() {
-            @Override
-            public void onConnected(final WebSocket webSocket, AsyncHttpServerRequest request) {
+httpServer.listen(AsyncServer.getDefault(), port);
+
+httpServer.websocket("/live", new AsyncHttpServer.WebSocketRequestCallback() {
+    @Override
+    public void onConnected(final WebSocket webSocket, AsyncHttpServerRequest request) {
         _sockets.add(webSocket);
         
         //Use this to clean up any references to your websocket
@@ -296,7 +258,3 @@ client.getString("http://foo.com/hello.txt")
     }
 });
 ```
-
-### Note on SSLv3
-
-https://github.com/koush/AndroidAsync/issues/174
