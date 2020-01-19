@@ -7,13 +7,14 @@ import java.nio.channels.Selector;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by koush on 2/13/14.
  */
 class SelectorWrapper implements Closeable {
     private Selector selector;
-    boolean isWaking;
+    public AtomicBoolean isWaking = new AtomicBoolean(false);
     Semaphore semaphore = new Semaphore(0);
     public Selector getSelector() {
         return selector;
@@ -67,34 +68,34 @@ class SelectorWrapper implements Closeable {
             return;
 
         // now, we NEED to wait for the select to start to forcibly wake it.
-        synchronized (this) {
-            // check if another thread is already waiting
-            if (isWaking) {
-//                System.out.println("race wakeup already progressing");
-                return;
-            }
-            isWaking = true;
+        if (isWaking.getAndSet(true)) {
+            selector.wakeup();
+            return;
         }
 
         try {
-//            System.out.println("performing race wakup");
-            // try to wake up 10 times
-            for (int i = 0; i < 100; i++) {
-                try {
-                    if (semaphore.tryAcquire(10, TimeUnit.MILLISECONDS)) {
-//                        System.out.println("race wakeup success");
-                        return;
-                    }
+            waitForSelect();
+            selector.wakeup();
+        } finally {
+            isWaking.set(false);
+        }
+    }
+
+    public boolean waitForSelect() {
+        // try to wake up 10 times
+        for (int i = 0; i < 100; i++) {
+            try {
+                if (semaphore.tryAcquire(10, TimeUnit.MILLISECONDS)) {
+                    // successfully acquiring means the selector is NOT selecting, since select
+                    // will drain all permits.
+                    continue;
                 }
-                catch (InterruptedException e) {
-                }
-                selector.wakeup();
+            } catch (InterruptedException e) {
+                // an InterruptedException means the acquire failed a select is in progress,
+                // since it holds all permits
+                return true;
             }
         }
-        finally {
-            synchronized (this) {
-                isWaking = false;
-            }
-        }
+        return false;
     }
 }

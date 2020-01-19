@@ -122,15 +122,11 @@ public class AsyncServer {
 
     private static ExecutorService synchronousWorkers = newSynchronousWorkers("AsyncServer-worker-");
     private static void wakeup(final SelectorWrapper selector) {
-        synchronousWorkers.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    selector.wakeupOnce();
-                }
-                catch (Exception e) {
-                    Log.i(LOGTAG, "Selector Exception? L Preview?");
-                }
+        synchronousWorkers.execute(() -> {
+            try {
+                selector.wakeupOnce();
+            }
+            catch (Exception e) {
             }
         });
     }
@@ -275,7 +271,7 @@ public class AsyncServer {
 
 
     public void stop() {
-        stop(true);
+        stop(false);
     }
 
     public void stop(boolean wait) {
@@ -298,7 +294,13 @@ public class AsyncServer {
                     semaphore.release();
                 }
             }, 0));
-            currentSelector.wakeupOnce();
+            synchronousWorkers.execute(() -> {
+                try {
+                    currentSelector.wakeupOnce();
+                }
+                catch (Exception e) {
+                }
+            });
 
             // force any existing connections to die
             shutdownKeys(currentSelector);
@@ -589,58 +591,66 @@ public class AsyncServer {
         // ugh.. this should really be post to make it nonblocking...
         // but i want datagrams to be immediately writable.
         // they're not really used anyways.
-        run(new Runnable() {
-            @Override
-            public void run() {
-                final DatagramChannel socket;
-                try {
-                    socket = DatagramChannel.open();
-                }
-                catch (Exception e) {
-                    return;
-                }
-                try {
-                    handler.attach(socket);
-
-                    InetSocketAddress address;
-                    if (host == null)
-                        address = new InetSocketAddress(port);
-                    else
-                        address = new InetSocketAddress(host, port);
-
-                    if (reuseAddress)
-                        socket.socket().setReuseAddress(reuseAddress);
-                    socket.socket().bind(address);
-                    handleSocket(handler);
-                }
-                catch (IOException e) {
-                    Log.e(LOGTAG, "Datagram error", e);
-                    StreamUtility.closeQuietly(socket);
-                }
+        Runnable runnable = () -> {
+            final DatagramChannel socket;
+            try {
+                socket = DatagramChannel.open();
             }
-        });
+            catch (Exception e) {
+                return;
+            }
+            try {
+                handler.attach(socket);
+
+                InetSocketAddress address;
+                if (host == null)
+                    address = new InetSocketAddress(port);
+                else
+                    address = new InetSocketAddress(host, port);
+
+                if (reuseAddress)
+                    socket.socket().setReuseAddress(reuseAddress);
+                socket.socket().bind(address);
+                handleSocket(handler);
+            }
+            catch (IOException e) {
+                Log.e(LOGTAG, "Datagram error", e);
+                StreamUtility.closeQuietly(socket);
+            }
+        };
+
+        if (getAffinity() != Thread.currentThread()) {
+            run(runnable);
+            return handler;
+        }
+
+        runnable.run();
         return handler;
     }
 
     public AsyncDatagramSocket connectDatagram(final SocketAddress remote) throws IOException {
-        final DatagramChannel socket = DatagramChannel.open();
         final AsyncDatagramSocket handler = new AsyncDatagramSocket();
+        final DatagramChannel socket = DatagramChannel.open();
         handler.attach(socket);
         // ugh.. this should really be post to make it nonblocking...
         // but i want datagrams to be immediately writable.
         // they're not really used anyways.
-        run(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    handleSocket(handler);
-                    socket.connect(remote);
-                }
-                catch (IOException e) {
-                    StreamUtility.closeQuietly(socket);
-                }
+        Runnable runnable = () -> {
+            try {
+                handleSocket(handler);
+                socket.connect(remote);
             }
-        });
+            catch (IOException e) {
+                StreamUtility.closeQuietly(socket);
+            }
+        };
+
+        if (getAffinity() != Thread.currentThread()) {
+            run(runnable);
+            return handler;
+        }
+
+        runnable.run();
         return handler;
     }
 

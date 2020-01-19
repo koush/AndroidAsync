@@ -385,40 +385,28 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
         try {
             if (!finishedHandshake && (engine.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING || engine.getHandshakeStatus() == HandshakeStatus.FINISHED)) {
                 if (clientMode) {
-                    TrustManager[] trustManagers = this.trustManagers;
-                    if (trustManagers == null) {
-                        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                        tmf.init((KeyStore) null);
-                        trustManagers = tmf.getTrustManagers();
-                    }
-                    boolean trusted = false;
                     Exception peerUnverifiedCause = null;
-                    for (TrustManager tm : trustManagers) {
-                        try {
-                            X509TrustManager xtm = (X509TrustManager) tm;
-                            peerCertificates = (X509Certificate[]) engine.getSession().getPeerCertificates();
-                            xtm.checkServerTrusted(peerCertificates, "SSL");
-                            if (mHost != null) {
-                                if (hostnameVerifier == null) {
-                                    StrictHostnameVerifier verifier = new StrictHostnameVerifier();
-                                    verifier.verify(mHost, StrictHostnameVerifier.getCNs(peerCertificates[0]), StrictHostnameVerifier.getDNSSubjectAlts(peerCertificates[0]));
-                                }
-                                else {
-                                    if (!hostnameVerifier.verify(mHost, engine.getSession())) {
-                                        throw new SSLException("hostname <" + mHost + "> has been denied");
-                                    }
+                    boolean trusted = false;
+                    try {
+                        peerCertificates = (X509Certificate[]) engine.getSession().getPeerCertificates();
+                        if (mHost != null) {
+                            if (hostnameVerifier == null) {
+                                StrictHostnameVerifier verifier = new StrictHostnameVerifier();
+                                verifier.verify(mHost, StrictHostnameVerifier.getCNs(peerCertificates[0]), StrictHostnameVerifier.getDNSSubjectAlts(peerCertificates[0]));
+                            }
+                            else {
+                                if (!hostnameVerifier.verify(mHost, engine.getSession())) {
+                                    throw new SSLException("hostname <" + mHost + "> has been denied");
                                 }
                             }
-                            trusted = true;
-                            break;
                         }
-                        catch (GeneralSecurityException ex) {
-                            peerUnverifiedCause = ex;
-                        }
-                        catch (SSLException ex) {
-                            peerUnverifiedCause = ex;
-                        }
+
+                        trusted = true;
                     }
+                    catch (SSLException ex) {
+                        peerUnverifiedCause = ex;
+                    }
+
                     finishedHandshake = true;
                     if (!trusted) {
                         AsyncSSLException e = new AsyncSSLException(peerUnverifiedCause);
@@ -446,13 +434,7 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 onDataAvailable();
             }
         }
-        catch (NoSuchAlgorithmException ex) {
-            throw new RuntimeException(ex);
-        }
-        catch (GeneralSecurityException ex) {
-            report(ex);
-        }
-        catch (AsyncSSLException ex) {
+        catch (Exception ex) {
             report(ex);
         }
     }
