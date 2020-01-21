@@ -192,6 +192,9 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
 
                 @Override
                 public void onCompleted(Exception e) {
+                    if (isSwitchingProtocols(res))
+                        return;
+
                     requestComplete = true;
                     super.onCompleted(e);
                     // no http pipelining, gc trashing if the socket dies
