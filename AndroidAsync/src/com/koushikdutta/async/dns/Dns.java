@@ -61,6 +61,11 @@ public class Dns {
     }
 
     public static Future<DnsResponse> lookup(AsyncServer server, String host, final boolean multicast, final FutureCallback<DnsResponse> callback) {
+        if (!server.isAffinityThread()) {
+            SimpleFuture<DnsResponse> ret = new SimpleFuture<>();
+            server.post(() -> ret.setComplete(lookup(server, host, multicast, callback)));
+            return ret;
+        }
         ByteBuffer packet = ByteBufferList.obtain(1024).order(ByteOrder.BIG_ENDIAN);
         short id = (short)new Random().nextInt();
         short flags = (short)setQuery(0);

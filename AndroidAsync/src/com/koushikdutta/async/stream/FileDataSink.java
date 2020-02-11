@@ -21,6 +21,7 @@ public class FileDataSink extends OutputStreamDataSink {
     public OutputStream getOutputStream() throws IOException {
         OutputStream ret = super.getOutputStream();
         if (ret == null) {
+            file.getParentFile().mkdirs();
             ret = new FileOutputStream(file);
             setOutputStream(ret);
         }
