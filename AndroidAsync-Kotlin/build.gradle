@@ -48,13 +48,14 @@ dependencies {
     api project(':AndroidAsync:AndroidAsync')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
+
     testImplementation 'junit:junit:4.12'
-    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.3.50'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.3.61'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 }
 
 // upload to maven task
-if (System.getenv().I_AM_KOUSH == 'true') {
+if (false && System.getenv().I_AM_KOUSH == 'true') {
     apply from: '/Users/koush/cfg/maven.gradle'
 }

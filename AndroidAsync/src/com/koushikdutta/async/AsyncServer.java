@@ -458,7 +458,7 @@ public class AsyncServer {
 
     private static ExecutorService newSynchronousWorkers(String prefix) {
         ThreadFactory tf = new NamedThreadFactory(prefix);
-        ThreadPoolExecutor tpe = new ThreadPoolExecutor(1, 4, 10L,
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, 4, 10L,
             TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), tf);
         return tpe;
     }
