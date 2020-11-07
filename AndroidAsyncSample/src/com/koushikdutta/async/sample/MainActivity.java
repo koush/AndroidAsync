@@ -10,8 +10,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
-import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -53,18 +51,13 @@ public class MainActivity extends Activity {
         }
         setContentView(R.layout.activity_main);
         
-        Button b = (Button)findViewById(R.id.go);
-        b.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                refresh();
-            }
-        });
+        Button b = findViewById(R.id.go);
+        b.setOnClickListener(v -> refresh());
         
-        rommanager = (ImageView)findViewById(R.id.rommanager);
-        tether = (ImageView)findViewById(R.id.tether);
-        desksms = (ImageView)findViewById(R.id.desksms);
-        chart = (ImageView)findViewById(R.id.chart);
+        rommanager = findViewById(R.id.rommanager);
+        tether = findViewById(R.id.tether);
+        desksms = findViewById(R.id.desksms);
+        chart = findViewById(R.id.chart);
         
         showCacheToast();
     }
@@ -76,24 +69,16 @@ public class MainActivity extends Activity {
     
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add("Toggle Caching").setOnMenuItemClickListener(new OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                cacher.setCaching(!cacher.getCaching());
-                showCacheToast();
-                return true;
-            }
+        menu.add("Toggle Caching").setOnMenuItemClickListener(item -> {
+            cacher.setCaching(!cacher.getCaching());
+            showCacheToast();
+            return true;
         });
         return true;
     }
     
     private void assignImageView(final ImageView iv, final BitmapDrawable bd) {
-        iv.getHandler().post(new Runnable() {
-          @Override
-          public void run() {
-              iv.setImageDrawable(bd);
-          }
-        });
+        iv.getHandler().post(() -> iv.setImageDrawable(bd));
     }
 
     private void getFile(final ImageView iv, String url, final String filename) {
