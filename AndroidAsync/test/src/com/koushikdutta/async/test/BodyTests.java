@@ -1,12 +1,11 @@
 package com.koushikdutta.async.test;
 
-import androidx.test.runner.AndroidJUnit4;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.koushikdutta.async.http.Multimap;
 import com.koushikdutta.async.http.body.UrlEncodedFormBody;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
 /**
  * Created by koush on 3/19/14.

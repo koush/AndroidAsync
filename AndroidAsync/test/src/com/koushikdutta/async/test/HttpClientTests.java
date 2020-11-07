@@ -1,7 +1,11 @@
 package com.koushikdutta.async.test;
 
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+
 import android.net.Uri;
-import androidx.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -29,8 +33,6 @@ import com.koushikdutta.async.http.server.AsyncProxyServer;
 
 import org.json.JSONObject;
 import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.util.concurrent.CancellationException;

@@ -16,11 +16,10 @@
 
 package com.koushikdutta.async.test;
 
+import org.junit.runner.RunWith;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import android.content.Context;
-import androidx.test.runner.AndroidJUnit4;
-
-import org.junit.runner.RunWith;
 
 import java.io.InputStream;
 import java.io.OutputStream;

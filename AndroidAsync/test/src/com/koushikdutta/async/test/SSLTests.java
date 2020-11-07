@@ -1,6 +1,7 @@
 package com.koushikdutta.async.test;
 
-import androidx.test.runner.AndroidJUnit4;
+import org.junit.runner.RunWith;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.http.AsyncHttpClient;
@@ -11,7 +12,6 @@ import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
 import org.json.JSONObject;
-import org.junit.runner.RunWith;
 
 import java.security.KeyStore;
 

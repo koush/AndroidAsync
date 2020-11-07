@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        targetSdkVersion 28
+        targetSdkVersion 29
         minSdkVersion 14
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -33,8 +33,8 @@ android {
         targetCompatibility 1.8
     }
 
-    compileSdkVersion project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 28
-    buildToolsVersion project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '28.0.3'
+    compileSdkVersion project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 29
+    buildToolsVersion project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '29.0.3'
 
     dependencies {
         // this is only necessary to get compilation working for self signed certificates. dependency isn't added.
@@ -43,8 +43,8 @@ android {
 
 
         testImplementation 'junit:junit:4.12'
-        androidTestImplementation 'com.android.support.test:runner:1.0.2'
-        androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+        androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+        androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
         // for when i wanna test this against gms conscrypt
         androidTestImplementation 'com.google.android.gms:play-services-base:17.0.0'
     }

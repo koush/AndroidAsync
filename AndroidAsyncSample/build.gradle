@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-    compile project(':AndroidAsync')
+    implementation project(':AndroidAsync')
 }
 
 android {
@@ -14,11 +14,15 @@ android {
     }
 
     defaultConfig {
-        targetSdkVersion 24
-        minSdkVersion 9
+        targetSdkVersion 29
+        minSdkVersion 14
     }
 
-    compileSdkVersion project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 25
-    buildToolsVersion project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '25.0.2'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    compileSdkVersion project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 29
+    buildToolsVersion project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '29.0.3'
 }
 

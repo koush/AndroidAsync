@@ -1,11 +1,11 @@
 package com.koushikdutta.async.test;
 
-import androidx.test.runner.AndroidJUnit4;
+
+import org.junit.runner.RunWith;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.koushikdutta.async.util.FileCache;
 import com.koushikdutta.async.util.StreamUtility;
-
-import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileInputStream;

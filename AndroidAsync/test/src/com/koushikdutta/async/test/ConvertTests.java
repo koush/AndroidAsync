@@ -1,13 +1,12 @@
 package com.koushikdutta.async.test;
 
-import androidx.test.runner.AndroidJUnit4;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.koushikdutta.async.future.SimpleFuture;
 
 import org.json.JSONObject;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
 import java.nio.ByteBuffer;
 
 import static com.koushikdutta.async.future.Converter.convert;

@@ -1,6 +1,7 @@
 package com.koushikdutta.async.test;
 
-import androidx.test.runner.AndroidJUnit4;
+import org.junit.runner.RunWith;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
@@ -20,7 +21,6 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
 import com.koushikdutta.async.http.server.HttpServerRequestCallback;
 
-import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileOutputStream;

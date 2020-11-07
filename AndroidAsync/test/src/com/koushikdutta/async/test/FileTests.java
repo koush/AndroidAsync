@@ -1,7 +1,7 @@
 package com.koushikdutta.async.test;
 
 
-import androidx.test.runner.AndroidJUnit4;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.FileDataEmitter;
