@@ -19,12 +19,10 @@ public class BoundaryEmitter extends FilteredDataEmitter {
     }
     
     public String getBoundaryStart() {
-        assert boundary != null;
         return new String(boundary, 2, boundary.length - 2);
     }
     
     public String getBoundaryEnd() {
-        assert boundary != null;
         return getBoundaryStart() + "--\r\n";
     }
     
@@ -160,7 +158,6 @@ public class BoundaryEmitter extends FilteredDataEmitter {
                 }
             }
             else {
-                assert false;
                 report(new MimeEncodingException("Invalid multipart/form-data. Unknown state?"));
             }
         }

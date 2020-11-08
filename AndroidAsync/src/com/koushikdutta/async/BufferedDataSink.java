@@ -104,7 +104,6 @@ public class BufferedDataSink implements DataSink {
     }
 
     public void setMaxBuffer(int maxBuffer) {
-        assert maxBuffer >= 0;
         mMaxBuffer = maxBuffer;
     }
 

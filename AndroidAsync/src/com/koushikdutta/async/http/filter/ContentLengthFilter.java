@@ -21,8 +21,6 @@ public class ContentLengthFilter extends FilteredDataEmitter {
     ByteBufferList transformed = new ByteBufferList();
     @Override
     public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-        assert totalRead < contentLength;
-
         int remaining = bb.remaining();
         long toRead = Math.min(contentLength - totalRead, remaining);
 

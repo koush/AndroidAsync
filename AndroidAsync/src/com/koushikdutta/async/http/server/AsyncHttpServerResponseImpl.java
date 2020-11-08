@@ -66,7 +66,6 @@ public class AsyncHttpServerResponseImpl implements AsyncHttpServerResponse {
     @Override
     public void write(ByteBufferList bb) {
         // order is important here...
-        assert !mEnded;
         // do the header write... this will call onWritable, which may be reentrant
         if (!headWritten)
             initFirstWrite();

@@ -281,7 +281,6 @@ public class AsyncHttpServerRouter implements RouteMatcher {
     }
 
     public void directory(String regex, final File directory, final boolean list) {
-        assert directory.isDirectory();
         addAction(AsyncHttpGet.METHOD, regex, new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, final AsyncHttpServerResponse response) {

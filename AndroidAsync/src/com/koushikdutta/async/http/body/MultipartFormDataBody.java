@@ -178,8 +178,6 @@ public class MultipartFormDataBody extends BoundaryEmitter implements AsyncHttpR
                 byte[] bytes = (getBoundaryEnd()).getBytes();
                 com.koushikdutta.async.Util.writeAll(sink, bytes, next);
                 written += bytes.length;
-                
-                assert written == totalToWrite;
             }
         });
         c.start();

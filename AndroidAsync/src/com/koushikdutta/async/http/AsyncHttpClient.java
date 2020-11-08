@@ -153,7 +153,6 @@ public class AsyncHttpClient {
     }
 
     private void reportConnectedCompleted(FutureAsyncHttpResponse cancel, Exception ex, AsyncHttpResponseImpl response, AsyncHttpRequest request, final HttpConnectCallback callback) {
-        assert callback != null;
         cancel.scheduled.cancel();
         boolean complete;
         if (ex != null) {
@@ -166,7 +165,6 @@ public class AsyncHttpClient {
         }
         if (complete) {
             callback.onConnectCompleted(ex, response);
-            assert ex != null || response.socket() == null || response.getDataCallback() != null || response.isPaused();
             return;
         }
 
@@ -204,7 +202,6 @@ public class AsyncHttpClient {
     }
 
     private void executeAffinity(final AsyncHttpRequest request, final int redirectCount, final FutureAsyncHttpResponse cancel, final HttpConnectCallback callback) {
-        assert mServer.isAffinityThread();
         if (redirectCount > 15) {
             reportConnectedCompleted(cancel, new RedirectLimitExceededException("too many redirects"), null, request, callback);
             return;
@@ -704,13 +701,11 @@ public class AsyncHttpClient {
     }
 
     public Future<WebSocket> websocket(String uri, String protocol, final WebSocketConnectCallback callback) {
-//        assert callback != null;
         final AsyncHttpGet get = new AsyncHttpGet(uri.replace("ws://", "http://").replace("wss://", "https://"));
         return websocket(get, protocol, callback);
     }
 
     public Future<WebSocket> websocket(String uri, String[] protocols, final WebSocketConnectCallback callback) {
-//        assert callback != null;
         final AsyncHttpGet get = new AsyncHttpGet(uri.replace("ws://", "http://").replace("wss://", "https://"));
         return websocket(get, protocols, callback);
     }

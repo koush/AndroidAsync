@@ -38,7 +38,6 @@ public class InflaterInputFilter extends FilteredDataEmitter {
                         if (!output.hasRemaining()) {
                             output.flip();
                             transformed.add(output);
-                            assert totalRead != 0;
                             int newSize = output.capacity() * 2;
                             output = ByteBufferList.obtain(newSize);
                         }
