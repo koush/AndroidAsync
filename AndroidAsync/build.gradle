@@ -22,8 +22,8 @@ android {
     }
 
     defaultConfig {
-        targetSdkVersion 28
-        minSdkVersion 14
+        targetSdkVersion 30
+        minSdkVersion 21
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -33,8 +33,8 @@ android {
         targetCompatibility 1.8
     }
 
-    compileSdkVersion project.hasProperty('global_compileSdkVersion') ? global_compileSdkVersion : 28
-    buildToolsVersion project.hasProperty('global_buildToolsVersion') ? global_buildToolsVersion : '28.0.3'
+    compileSdkVersion 30
+    buildToolsVersion '30.0.2'
 
     dependencies {
         // this is only necessary to get compilation working for self signed certificates. dependency isn't added.
@@ -50,6 +50,6 @@ android {
     }
 }
 
-if (System.getenv().I_AM_KOUSH == 'true') {
+if (false && System.getenv().I_AM_KOUSH == 'true') {
   apply from: 'https://raw.githubusercontent.com/koush/mvn-repo/master/maven.gradle'
 }
