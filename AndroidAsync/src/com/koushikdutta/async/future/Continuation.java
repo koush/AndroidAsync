@@ -56,7 +56,6 @@ public class Continuation extends SimpleCancellable implements ContinuationCallb
                 if (mThisCompleted)
                     return;
                 mThisCompleted = true;
-                assert waiting;
                 waiting = false;
                 if (ex == null) {
                     next();

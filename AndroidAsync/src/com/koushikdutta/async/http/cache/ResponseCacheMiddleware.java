@@ -439,7 +439,6 @@ public class ResponseCacheMiddleware extends SimpleMiddleware {
             // fill pending
             try {
                 ByteBuffer buffer = allocator.allocate();
-                assert buffer.position() == 0;
                 FileInputStream din = cacheResponse.getBody();
                 int read = din.read(buffer.array(), buffer.arrayOffset(), buffer.capacity());
                 if (read == -1) {

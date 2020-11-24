@@ -166,7 +166,6 @@ public class ByteBufferList {
             offset += read;
             if (b.remaining() == 0) {
                 ByteBuffer removed = mBuffers.remove();
-                assert b == removed;
                 reclaim(b);
             }
         }
@@ -196,8 +195,6 @@ public class ByteBufferList {
                 b.get(subset.array(), 0, need);
                 into.add(subset);
                 mBuffers.addFirst(b);
-                assert subset.capacity() >= need;
-                assert subset.position() == 0;
                 break;
             }
             else {
@@ -338,7 +335,6 @@ public class ByteBufferList {
         while (mBuffers.size() > 0) {
             reclaim(mBuffers.remove());
         }
-        assert mBuffers.size() == 0;
         remaining = 0;
     }
     
@@ -465,14 +461,11 @@ public class ByteBufferList {
                 return;
             }
 
-            assert !reclaimedContains(b);
-
             b.position(0);
             b.limit(b.capacity());
             currentSize += b.capacity();
 
             r.add(b);
-            assert r.size() != 0 ^ currentSize == 0;
 
             maxItem = Math.max(maxItem, b.capacity());
         }
@@ -490,7 +483,6 @@ public class ByteBufferList {
                         if (r.size() == 0)
                             maxItem = 0;
                         currentSize -= ret.capacity();
-                        assert r.size() != 0 ^ currentSize == 0;
                         if (ret.capacity() >= size) {
 //                            System.out.println("using " + ret.capacity());
                             return ret;
@@ -516,7 +508,6 @@ public class ByteBufferList {
                 while (r.size() > 0 && total < size && index < arr.length - 1) {
                     ByteBuffer b = r.remove();
                     currentSize -= b.capacity();
-                    assert r.size() != 0 ^ currentSize == 0;
                     int needed = Math.min(size - total, b.capacity());
                     total += needed;
                     arr[index++] = b;

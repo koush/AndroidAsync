@@ -396,7 +396,6 @@ public class AsyncServer {
 
     public ConnectFuture connectResolvedInetSocketAddress(final InetSocketAddress address, final ConnectCallback callback, final SocketCreateCallback createCallback) {
         final ConnectFuture cancel = new ConnectFuture();
-        assert !address.isUnresolved();
 
         post(new Runnable() {
             @Override

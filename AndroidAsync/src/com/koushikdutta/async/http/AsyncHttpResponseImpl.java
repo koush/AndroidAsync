@@ -175,8 +175,6 @@ abstract class AsyncHttpResponseImpl extends FilteredDataEmitter implements Data
         if (!mFirstWrite)
             return;
         mFirstWrite = false;
-        assert null != mRequest.getHeaders().get("Content-Type");
-        assert mRequest.getHeaders().get("Transfer-Encoding") != null || HttpUtil.contentLength(mRequest.getHeaders()) != -1;
     }
 
     DataSink mSink;

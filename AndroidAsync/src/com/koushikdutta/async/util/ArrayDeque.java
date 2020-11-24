@@ -121,7 +121,6 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * when head and tail have wrapped around to become equal.
      */
     private void doubleCapacity() {
-        assert head == tail;
         int p = head;
         int n = elements.length;
         int r = n - p; // number of elements to the right of p
@@ -490,11 +489,6 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     }
 
     private void checkInvariants() {
-        assert elements[tail] == null;
-        assert head == tail ? elements[head] == null :
-            (elements[head] != null &&
-             elements[(tail - 1) & (elements.length - 1)] != null);
-        assert elements[(head - 1) & (elements.length - 1)] == null;
     }
 
     /**

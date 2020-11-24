@@ -1,0 +1,119 @@
+// Setup
+
+// 0) Setup your sonatype credentials by editing/creating ~/.gradle/gradle.properties and enter:
+// signing.keyId=<HEXADECIMCAL KEY ID RETRIVABLE VIA gpg --list-keys>
+// signing.password=<KEY PASSWORD>
+// signing.secretKeyRingFile=<PATH TO KEY RING, USUALLY ~/.gnupg/secring.gpg>
+// sonatypeUsername=<SONATYPE USERNAME OR WHATEVER YOU USE>
+// sonatypePassword=<CORRESPONDING PASSWORD>
+
+// 1) Setup your build.gradle for your android project and add this one line of code which imports this gist:
+// apply from: 'https://raw.github.com/koush/mvn-repo/master/maven.gradle'
+
+// 2) gradle clean && gradle build && gradle uploadArchives
+
+// 3) That's it!
+
+
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+
+afterEvaluate { project ->
+  String user = null
+  String repo = null
+  'git remote -v'.execute(null, project.projectDir).getText().find('.*?git@github.com/(.*?)/(.*?) .*?') {
+      match ->
+          user = match[1]
+          repo = match[2]
+  }
+
+  String githubUrl = 'https://api.github.com/repos/' + user + '/' + repo;
+  if (System.getenv().GITHUB_TOKEN)
+    githubUrl += '?access_token=' + System.getenv().GITHUB_TOKEN
+  def repoInfo = new groovy.json.JsonSlurper().parseText(new URL(githubUrl).getText())
+
+  def android_manifest
+  try {
+      android_manifest = new XmlParser(false, false).parseText(new File(project.projectDir, 'AndroidManifest.xml').getText())
+  }
+  catch (e) {
+      android_manifest = new XmlParser(false, false).parseText(new File(project.projectDir, 'src/main/AndroidManifest.xml').getText())
+  }  
+  def versionName = android_manifest.'@android:versionName'
+  def package_name = android_manifest.'@package'
+  def artifact_id = project.projectDir.getName().toLowerCase()
+  project.version = versionName
+  project.group = package_name
+
+  uploadArchives {
+      repositories {
+          mavenDeployer {
+
+              beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+              pom.groupId = package_name
+              pom.artifactId = artifact_id
+              pom.version = versionName
+
+              repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+              }
+
+              pom.project {
+                 name repo
+                 packaging 'jar'
+                 description repoInfo.description
+                 url repoInfo.html_url
+
+                 scm {
+                     url repoInfo.git_url
+                     connection repoInfo.git_url
+                     developerConnection repoInfo.ssh_url
+                 }
+
+                 licenses {
+                     license {
+                         name 'The Apache Software License, Version 2.0'
+                         url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                         distribution 'repo'
+                     }
+                 }
+
+                 developers {
+                     developer {
+                         id user
+                         name user
+                     }
+                 }
+             }
+          }
+      }
+  }
+
+  signing {
+      sign configurations.archives
+  }
+
+  task androidJavadocs(type: Javadoc) {
+     source = android.sourceSets.main.java.srcDirs
+  }
+
+  task androidJavadocsJar(type: Jar) {
+    classifier = 'javadoc'
+    baseName = artifact_id
+    from androidJavadocs.destinationDir
+  }
+
+  task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    baseName = artifact_id
+    from android.sourceSets.main.java.srcDirs 
+  } 
+
+  artifacts {
+    // archives packageReleaseJar
+    archives androidSourcesJar
+    archives androidJavadocsJar
+  }
+}
+

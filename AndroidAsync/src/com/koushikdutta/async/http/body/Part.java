@@ -66,6 +66,5 @@ public class Part {
     }
     
     public void write(DataSink sink, CompletedCallback callback) {
-        assert false;
     }
 }

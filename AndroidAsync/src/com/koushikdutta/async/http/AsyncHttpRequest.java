@@ -97,7 +97,6 @@ public class AsyncHttpRequest {
     public static final String HEADER_ACCEPT_ALL = "*/*";
 
     public AsyncHttpRequest(Uri uri, String method, Headers headers) {
-        assert uri != null;
         mMethod = method;
         this.uri = uri;
         if (headers == null)

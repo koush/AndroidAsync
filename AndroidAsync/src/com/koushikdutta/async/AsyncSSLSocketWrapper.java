@@ -471,7 +471,6 @@ public class AsyncSSLSocketWrapper implements AsyncSocketWrapper, AsyncSSLSocket
                 bb.addAll(arr);
                 writeBuf.flip();
                 writeList.add(writeBuf);
-                assert !writeList.hasRemaining();
                 if (writeList.remaining() > 0)
                     mSink.write(writeList);
                 int previousCapacity = writeBuf.capacity();

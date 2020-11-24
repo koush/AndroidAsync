@@ -49,7 +49,6 @@ public class AsyncNetworkSocket implements AsyncSocket {
     }
     
     public void onDataWritable() {
-//        assert mWriteableHandler != null;
         if (!mChannel.isChunked()) {
             // turn write off
             mKey.interestOps(~SelectionKey.OP_WRITE & mKey.interestOps());
@@ -79,7 +78,6 @@ public class AsyncNetworkSocket implements AsyncSocket {
             return;
         }
         if (!mChannel.isConnected()) {
-            assert !mChannel.isChunked();
             return;
         }
 
@@ -103,7 +101,6 @@ public class AsyncNetworkSocket implements AsyncSocket {
             throw new IOException(new CancelledKeyException());
         if (remaining > 0) {
             // chunked channels should not fail
-            assert !mChannel.isChunked();
             // register for a write notification if a write fails
             // turn write on
             mKey.interestOps(SelectionKey.OP_WRITE | mKey.interestOps());
