@@ -19,101 +19,103 @@ apply plugin: 'maven'
 apply plugin: 'signing'
 
 
-afterEvaluate { project ->
-  String user = null
-  String repo = null
-  'git remote -v'.execute(null, project.projectDir).getText().find('.*?git@github.com/(.*?)/(.*?) .*?') {
-      match ->
-          user = match[1]
-          repo = match[2]
-  }
+if (hasProperty('sonatypeUsername') && hasProperty('sonatypePassword') && hasProperty('githubToken')) {
 
-  String githubUrl = 'https://api.github.com/repos/' + user + '/' + repo;
-  if (System.getenv().GITHUB_TOKEN)
-    githubUrl += '?access_token=' + System.getenv().GITHUB_TOKEN
-  def repoInfo = new groovy.json.JsonSlurper().parseText(new URL(githubUrl).getText())
+    afterEvaluate { project ->
+        String user = null
+        String repo = null
+        'git remote -v'.execute(null, project.projectDir).getText().find('.*?git@github.com/(.*?)/(.*?) .*?') {
+            match ->
+                user = match[1]
+                repo = match[2]
+        }
 
-  def android_manifest
-  try {
-      android_manifest = new XmlParser(false, false).parseText(new File(project.projectDir, 'AndroidManifest.xml').getText())
-  }
-  catch (e) {
-      android_manifest = new XmlParser(false, false).parseText(new File(project.projectDir, 'src/main/AndroidManifest.xml').getText())
-  }  
-  def versionName = android_manifest.'@android:versionName'
-  def package_name = android_manifest.'@package'
-  def artifact_id = project.projectDir.getName().toLowerCase()
-  project.version = versionName
-  project.group = package_name
+        String githubUrl = 'https://api.github.com/repos/' + user + '/' + repo
+        if (System.getenv().GITHUB_TOKEN)
+            githubUrl += '?access_token=' + System.getenv().GITHUB_TOKEN
+        def repoInfo = new groovy.json.JsonSlurper().parseText(new URL(githubUrl).getText())
 
-  uploadArchives {
-      repositories {
-          mavenDeployer {
+        def android_manifest
+        try {
+            android_manifest = new XmlParser(false, false).parseText(new File(project.projectDir, 'AndroidManifest.xml').getText())
+        }
+        catch (e) {
+            android_manifest = new XmlParser(false, false).parseText(new File(project.projectDir, 'src/main/AndroidManifest.xml').getText())
+        }
+        def versionName = android_manifest.'@android:versionName'
+        def package_name = android_manifest.'@package'
+        def artifact_id = project.projectDir.getName().toLowerCase()
+        project.version = versionName
+        project.group = package_name
 
-              beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-              pom.groupId = package_name
-              pom.artifactId = artifact_id
-              pom.version = versionName
+        uploadArchives {
+            repositories {
+                mavenDeployer {
 
-              repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
-              }
+                    beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+                    pom.groupId = package_name
+                    pom.artifactId = artifact_id
+                    pom.version = versionName
 
-              pom.project {
-                 name repo
-                 packaging 'jar'
-                 description repoInfo.description
-                 url repoInfo.html_url
+                    repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                        authentication(userName: sonatypeUsername, password: sonatypePassword)
+                    }
 
-                 scm {
-                     url repoInfo.git_url
-                     connection repoInfo.git_url
-                     developerConnection repoInfo.ssh_url
-                 }
+                    pom.project {
+                        name repo
+                        packaging 'jar'
+                        description repoInfo.description
+                        url repoInfo.html_url
 
-                 licenses {
-                     license {
-                         name 'The Apache Software License, Version 2.0'
-                         url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                         distribution 'repo'
-                     }
-                 }
+                        scm {
+                            url repoInfo.git_url
+                            connection repoInfo.git_url
+                            developerConnection repoInfo.ssh_url
+                        }
 
-                 developers {
-                     developer {
-                         id user
-                         name user
-                     }
-                 }
-             }
-          }
-      }
-  }
+                        licenses {
+                            license {
+                                name 'The Apache Software License, Version 2.0'
+                                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                                distribution 'repo'
+                            }
+                        }
 
-  signing {
-      sign configurations.archives
-  }
+                        developers {
+                            developer {
+                                id user
+                                name user
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-  task androidJavadocs(type: Javadoc) {
-     source = android.sourceSets.main.java.srcDirs
-  }
+        signing {
+            sign configurations.archives
+        }
 
-  task androidJavadocsJar(type: Jar) {
-    classifier = 'javadoc'
-    baseName = artifact_id
-    from androidJavadocs.destinationDir
-  }
+        task androidJavadocs(type: Javadoc) {
+            source = android.sourceSets.main.java.srcDirs
+        }
 
-  task androidSourcesJar(type: Jar) {
-    classifier = 'sources'
-    baseName = artifact_id
-    from android.sourceSets.main.java.srcDirs 
-  } 
+        task androidJavadocsJar(type: Jar) {
+            classifier = 'javadoc'
+            baseName = artifact_id
+            from androidJavadocs.destinationDir
+        }
 
-  artifacts {
-    // archives packageReleaseJar
-    archives androidSourcesJar
-    archives androidJavadocsJar
-  }
+        task androidSourcesJar(type: Jar) {
+            classifier = 'sources'
+            baseName = artifact_id
+            from android.sourceSets.main.java.srcDirs
+        }
+
+        artifacts {
+            // archives packageReleaseJar
+            archives androidSourcesJar
+            archives androidJavadocsJar
+        }
+    }
 }
-
