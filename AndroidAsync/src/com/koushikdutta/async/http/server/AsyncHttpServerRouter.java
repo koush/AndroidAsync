@@ -149,7 +149,9 @@ public class AsyncHttpServerRouter implements RouteMatcher {
         }
     }
 
-    static Hashtable<String, String> mContentTypes = new Hashtable<String, String>();
+    static Hashtable<String, String> mContentTypes = new Hashtable<>();
+
+    static
     {
         mContentTypes.put("js", "application/javascript");
         mContentTypes.put("json", "application/json");
