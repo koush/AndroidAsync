@@ -167,10 +167,6 @@ public class AsyncHttpServerRouter implements RouteMatcher {
     }
 
     public static String getContentType(String path) {
-        return tryGetContentType(path);
-    }
-
-    public static String tryGetContentType(String path) {
         int index = path.lastIndexOf(".");
         if (index != -1) {
             String e = path.substring(index + 1);
