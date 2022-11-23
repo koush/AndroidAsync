@@ -330,6 +330,7 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
         mCodes.put(302, "Found");
         mCodes.put(304, "Not Modified");
         mCodes.put(400, "Bad Request");
+        mCodes.put(401, "Unauthorized");
         mCodes.put(404, "Not Found");
         mCodes.put(500, "Internal Server Error");
     }
@@ -339,6 +340,10 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
         if (d == null)
             return "Unknown";
         return d;
+    }
+
+    public static void addResponseCodeDescription( int code, String description ) {
+        mCodes.put(code, description);
     }
 
     public static interface WebSocketRequestCallback {
