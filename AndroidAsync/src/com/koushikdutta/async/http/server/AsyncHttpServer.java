@@ -108,7 +108,13 @@ public class AsyncHttpServer extends AsyncHttpServerRouter {
                     String statusLine = getStatusLine();
                     String[] parts = statusLine.split(" ");
                     fullPath = parts[1];
-                    path = URLDecoder.decode(fullPath.split("\\?")[0]);
+                    try {
+                        path = URLDecoder.decode(fullPath.split("\\?")[0], "UTF-8");
+                    } catch (Exception x) {
+                        Log.w("AsyncHttpServer", "Request for: " + fullPath + " failed: " +  x.getMessage());
+                        method = "";
+                        return null;
+                    }
                     method = parts[0];
                     RouteMatch route = route(method, path);
                     if (route == null)
