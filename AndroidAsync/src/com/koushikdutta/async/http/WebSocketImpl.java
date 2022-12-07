@@ -152,7 +152,7 @@ public class WebSocketImpl implements WebSocket {
         final String key = Base64.encodeToString(toByteArray(UUID.randomUUID()),Base64.NO_WRAP);
         headers.set("Sec-WebSocket-Version", "13");
         headers.set("Sec-WebSocket-Key", key);
-        headers.set("Sec-WebSocket-Extensions", "x-webkit-deflate-frame");
+        headers.set("Sec-WebSocket-Extensions", "permessage-deflate");
         headers.set("Connection", "Upgrade");
         headers.set("Upgrade", "websocket");
         if (protocols != null) {
@@ -192,7 +192,7 @@ public class WebSocketImpl implements WebSocket {
         String extensions = requestHeaders.get("Sec-WebSocket-Extensions");
         boolean deflate = false;
         if (extensions != null) {
-            if (extensions.equals("x-webkit-deflate-frame"))
+            if (extensions.equals("permessage-deflate"))
                 deflate = true;
             // is this right? do we want to crap out here? Commenting out
             // as I suspect this caused a regression.
